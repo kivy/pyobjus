@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
-static void preload() {
+static void pyobjc_internal_init() {
 	static void *foundation = NULL;
 	if ( foundation == NULL ) {
 		foundation = dlopen(
