@@ -57,8 +57,8 @@ cdef extern from "ffi/ffi.h":
     cdef ffi_type ffi_type_longdouble
     cdef ffi_type ffi_type_pointer
 
-    cdef ffi_prep_cif(ffi_cif *cif, ffi_abi abi, unsigned int nargs,ffi_type *rtype, ffi_type **atypes)
-    cdef ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue, void **avalue)
+    cdef ffi_status ffi_prep_cif(ffi_cif *cif, ffi_abi abi, unsigned int nargs,ffi_type *rtype, ffi_type **atypes)
+    cdef void ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue, void **avalue)
 
 
 
@@ -307,15 +307,12 @@ cdef class ObjcMethod(object):
         f_status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
                 len(self.signature_args),f_result_type, f_arg_types)
         if f_status != FFI_OK:
-            free(f_args)
             raise ObjcException('Unable to prepare the method...')
         
         #allocate result buffer
         f_result = malloc(f_result_type.size)
         if f_result == NULL:
             raise MemoryError()
-
-
 
         # allocate f_args
         f_args = <void**>malloc(sizeof(void*) * len(self.signature_args))
@@ -347,9 +344,8 @@ cdef class ObjcMethod(object):
             elif sig == 'Q':
                 ullv =  long(arg)
                 f_args[index] = &ullv
-        """
+
         ffi_call(&cif, <void(*)()>objc_msgSend, f_result, f_args)
-        """
         drainAutoreleasePool(pool)
         #cdef char* ret_str = <char*> f_result
         return "hello"
