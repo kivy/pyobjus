@@ -1,4 +1,4 @@
-__all__ = ('ObjcMethod', )
+__all__ = ('ObjcClass', 'ObjcMethod', )
 
 import re
 
@@ -42,7 +42,7 @@ cdef parse_signature(bytes signature):
     return signature_return, signature_args
 
 
-class ObjcMethod(object):
+cdef class ObjcMethod(object):
     cdef bytes name
     cdef bytes signature
     cdef object signature_return
@@ -55,4 +55,44 @@ class ObjcMethod(object):
         super(ObjcMethod, self).__init__()
         self.signature = <bytes>signature
         self.signature_return, self.signature_args = parse_signature(signature)
+
+    cdef void set_resolve_info(self, bytes name) except *:
+        self.name = name
+
+    cdef void ensure_method(self) except *:
+        pass
+
+    def __call__(self, *args):
+        self.ensure_method()
+
+
+cdef class ObjcClass(object):
+    def __cinit__(self, *args, **kwargs):
+        pass
+
+    def __init__(self, *args, **kwargs):
+        super(ObjcClass, self).__init__()
+
+        if 'noinstance' not in kwargs:
+            self.call_constructor(args)
+            self.resolve_methods()
+            self.resolve_fields()
+
+    cdef void instanciate_from(self, o_self) except *:
+        self.o_self = o_self
+        self.resolve_methods()
+        self.resolve_fields()
+
+    cdef void call_constructor(self, args) except *:
+        pass
+
+    cdef void resolve_methods(self) except *:
+        cdef ObjcMethod om
+        for name, value in self.__class__.__dict__.iteritems():
+            if isinstance(value, ObjcMethod):
+                om = value
+                om.set_resolve_info(name)
+
+    cdef void resolve_fields(self) except *:
+        pass
 
