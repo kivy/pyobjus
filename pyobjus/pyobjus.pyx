@@ -1,4 +1,4 @@
-__all__ = ('ObjcClass', 'ObjcMethod', )
+__all__ = ('ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException')
 
 import re
 
@@ -41,6 +41,42 @@ cdef parse_signature(bytes signature):
     signature_args = zip(parts[0::2], parts[1::2])
     return signature_return, signature_args
 
+cdef dict oclass_register = {}
+
+
+class ObjcException(Exception):
+    pass
+
+
+cdef class JavaClassStorage:
+    cdef JNIEnv *j_env
+    cdef jclass j_cls
+
+    def __cinit__(self):
+        self.j_env = NULL
+        self.j_cls = NULL
+
+
+class MetaObjcClass(type):
+    def __new__(meta, classname, bases, classDict):
+        meta.resolve_class(classDict)
+        tp = type.__new__(meta, classname, bases, classDict)
+        oclass_register[classDict['__objcclass__']] = tp
+        return tp
+
+    @staticmethod
+    def get_objcclass(name):
+        return oclass_register.get(name)
+
+    @classmethod
+    def resolve_class(meta, classDict):
+        # search the Objc class, and bind to our object
+        if '__objcclass__' not in classDict:
+            return ObjcException('__objcclass__ definition missing')
+
+        cdef bytes __objcclass__ = <bytes>classDict['__objcclass__']
+
+
 
 cdef class ObjcMethod(object):
     cdef bytes name
@@ -67,8 +103,10 @@ cdef class ObjcMethod(object):
 
 
 cdef class ObjcClass(object):
+    cdef id o_instance
+
     def __cinit__(self, *args, **kwargs):
-        pass
+        self.o_instance = NULL
 
     def __init__(self, *args, **kwargs):
         super(ObjcClass, self).__init__()
