@@ -11,14 +11,20 @@ cdef extern from "objc/runtime.h":
     id objc_getRequiredClass(const_char_ptr)
     Method* class_copyMethodList(Class cls, unsigned int *outCount)
 
+cdef extern from "common.h":
+    void preload()
+    id allocAndInitAutoreleasePool()
+    void drainAutoreleasePool(id pool)
 
 cdef unsigned int method_list_for_class():
-
+    preload()
+    cdef id pool = allocAndInitAutoreleasePool()
     cdef id _cls = objc_getRequiredClass("NSString")
     cdef Class cls = <Class>_cls
     cdef unsigned int num_methods = 0
     cdef Method* method_list = class_copyMethodList(cls, &num_methods)
-    return int(num_methods)
+    drainAutoreleasePool(pool)
+    return num_methods
 
 
 cpdef test():

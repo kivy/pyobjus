@@ -3,22 +3,18 @@ from os import environ
 from os.path import dirname, join
 import sys
 
+files = ['pyobjus.pyx']
 libraries = []
 library_dirs = []
 extra_compile_args = []
-extra_link_args = ["-framework AppKit", "-lobjc"]
+extra_link_args = ["-framework AppKit"]
 include_dirs = []
 
 # detect cython
 try:
     from Cython.Distutils import build_ext
-    have_cython = True
-    ext = 'pyx'
 except ImportError:
-    from distutils.command.build_ext import build_ext
-    have_cython = False
-    ext = 'c'
-
+    raise
 
 # create the extension
 setup(name='pyobjus',
@@ -28,7 +24,7 @@ setup(name='pyobjus',
       ext_package='pyobjus',
       ext_modules=[
           Extension(
-              'pyobjus', ['pyobjus/pyobjus.' + ext],
+              'pyobjus', [join('pyobjus', x) for x in files],
               libraries=libraries,
               library_dirs=library_dirs,
               include_dirs=include_dirs,
