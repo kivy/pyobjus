@@ -5,8 +5,8 @@ class NSString(ObjcClass):
     __metaclass__ = MetaObjcClass
 
     init = ObjcMethod('@16@0:8')
-    substringFromIndex = ObjcMethod('@24@0:8Q16')
+    substringFromIndex_ = ObjcMethod('@24@0:8Q16')
 
 a = NSString()
 a.init()
-print a.substringFromIndex(6)
+print a.substringFromIndex_(6)

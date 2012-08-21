@@ -4,10 +4,10 @@ from os.path import dirname, join
 import sys
 
 files = ['pyobjus.pyx']
-libraries = []
+libraries = ["ffi"]
 library_dirs = []
 extra_compile_args = []
-extra_link_args = ["-framework AppKit"]
+extra_link_args = []
 include_dirs = []
 
 # detect cython
