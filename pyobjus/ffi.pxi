@@ -1,12 +1,20 @@
 cdef extern from "ffi/ffi.h":
 
-    cdef enum ffi_status:
+
+    ctypedef unsigned long  ffi_arg
+    ctypedef signed long    ffi_sarg
+
+    ctypedef enum ffi_status:
         FFI_OK = 0,
         FFI_BAD_TYPEDEF,
         FFI_BAD_ABI
 
-    cdef enum ffi_abi:
-        FFI_DEFAULT_ABI
+    ctypedef enum ffi_abi:
+        FFI_FIRST_ABI = 0,
+        FFI_SYSV,
+        FFI_UNIX64,
+        FFI_DEFAULT_ABI,
+        FFI_LAST_ABI
 
     ctypedef struct ffi_cif:
         pass

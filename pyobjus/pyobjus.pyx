@@ -99,14 +99,14 @@ cdef class ObjcMethod(object):
 
     def __call__(self, *args):
         self.ensure_method()
-
         print '--> want to call', self.name, args
         print '--> return def is', self.signature_return
         print '--> args def is', self.signature_args
 
         cdef ffi_cif cif
         cdef ffi_status f_status
-        cdef void *f_result
+        #cdef farg f_result
+        cdef void* f_result
         cdef ffi_type* f_result_type
         cdef void **f_args
         cdef ffi_type **f_arg_types
@@ -127,27 +127,33 @@ cdef class ObjcMethod(object):
         index = 0
         for arg in self.signature_args:
             f_arg_types[index] = type_encoding_to_ffitype(arg)
+            print "argtype: {0}  size:{1}".format(arg, f_arg_types[index][0].size)
             index = index + 1
 
         # FFI PREP 
-        f_status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
+        f_status = ffi_prep_cif(&cif,FFI_DEFAULT_ABI,
                 len(self.signature_args),f_result_type, f_arg_types)
         if f_status != FFI_OK:
             raise ObjcException('Unable to prepare the method...')
 
+        print "prep status: {0}".format(f_status)
+
         #allocate result buffer
+        print "allocating f_result with size {0}".format(f_result_type[0].size)
         f_result = malloc(f_result_type[0].size)
         if f_result == NULL:
             raise MemoryError()
 
         # allocate f_args
-        f_args = <void**>malloc(sizeof(void*) * len(self.signature_args))
+        print "allocatinf f_args for {0} args".format(len(self.signature_args))
+        f_args = <void**>malloc(sizeof(void*) * (len(self.signature_args)))
         if f_args == NULL:
             raise MemoryError()
 
         # arg 0 and 1 are the instance and the method selector
+        cdef SEL selector = sel_registerName(self.name)
         f_args[0] = &self.o_instance
-        f_args[1] = sel_registerName(self.name)
+        f_args[1] = &selector
 
         #populate the rest of f_args based on method signature
         cdef void* val_ptr
@@ -156,7 +162,7 @@ cdef class ObjcMethod(object):
             arg = args[index-2]
 
             # we already know the ffitype/size being used
-            val_ptr = <void*>malloc(f_arg_types[index][0].size)
+            val_ptr = <void*>malloc(f_arg_types[index][0].size*2)
             print "allocating {0} bytes for arg:".format(f_arg_types[index][0].size, arg)
 
             # cast the argument type based on method sig and store at val_ptr
@@ -176,7 +182,11 @@ cdef class ObjcMethod(object):
             f_args[index] = val_ptr
 
 
-        #ffi_call(&cif, <void(*)()>objc_msgSend, f_result, f_args)
+        #cdef objc_selector
+        ffi_call(&cif, <void(*)()>objc_msgSend, f_result, f_args)
+        cdef id ret = (<id*>f_result)[0]
+        #cdef id ret = objc_msgSend(f_args[0],  <SEL>f_args[1])
+        print "return {0}".format(<int>ret)
         #drainAutoreleasePool(pool)
         #cdef char* ret_str = <char*> f_result
         return "hello"
@@ -212,14 +222,14 @@ cdef class ObjcClass(object):
         self.resolve_fields()
 
     cdef void call_constructor(self, args) except *:
-        #self.o_instance = class_createInstance(self.o_cls, 0);
+        self.o_instance = class_createInstance(self.o_cls, 0);
         self.o_instance = objc_msgSend(self.o_cls, sel_registerName('alloc'))
         if self.o_instance == NULL:
             raise ObjcException('Unable to instanciate {0}'.format(
                 self.__javaclass__))
-
         self.o_instance = objc_msgSend(self.o_instance,
             sel_registerName('init'))
+
 
     cdef void resolve_methods(self) except *:
         cdef ObjcMethod om

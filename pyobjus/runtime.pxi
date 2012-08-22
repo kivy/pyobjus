@@ -3,6 +3,8 @@ cdef extern from "objc/runtime.h":
     ctypedef struct objc_selector:
         pass
 
+
+    ctypedef objc_selector* SEL
     ctypedef void* id
     ctypedef void* Class
     ctypedef void* Method
@@ -15,7 +17,7 @@ cdef extern from "objc/runtime.h":
     id       class_createInstance(Class cls, unsigned int)
     Method*  class_copyMethodList(Class cls, unsigned int *outCount)
 
-    objc_selector* sel_registerName(char *)
+    SEL sel_registerName(char *)
 
 
 cdef extern from "_runtime.h":

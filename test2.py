@@ -6,7 +6,9 @@ class NSString(ObjcClass):
 
     init = ObjcMethod('@16@0:8')
     substringFromIndex_ = ObjcMethod('@24@0:8Q16')
+    length = ObjcMethod('Q16@0:8')
 
 a = NSString()
 a.init()
-print a.substringFromIndex_(6)
+a.length()
+#print a.substringFromIndex_(6)
