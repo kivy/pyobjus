@@ -1,183 +1,14 @@
 __all__ = ('ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException')
 
-import re
 
-cdef extern from *:
-    ctypedef char* const_char_ptr "const char*"
-
-cdef extern from "stdlib.h":
-    void free(void* ptr)
-    void* malloc(size_t size)
-    void* realloc(void* ptr, size_t size)
-
-cdef extern from "objc/runtime.h":
-    ctypedef void* id
-    ctypedef void* Class
-    ctypedef void* Method
-    ctypedef struct objc_selector:
-        pass
-
-    id objc_getClass(const_char_ptr name)
-    id objc_getRequiredClass(const_char_ptr)
-    Method* class_copyMethodList(Class cls, unsigned int *outCount)
-    id class_createInstance(Class cls, unsigned int)
-
-    id objc_msgSend(id, objc_selector *, ...)
-    objc_selector *sel_registerName(char *)
-
-cdef extern from "common.h":
-    void pyobjc_internal_init()
-    id allocAndInitAutoreleasePool()
-    void drainAutoreleasePool(id pool)
-
-cdef extern from "ffi/ffi.h":
-    cdef enum ffi_status:
-        FFI_OK = 0,
-        FFI_BAD_TYPEDEF,
-        FFI_BAD_ABI
-    cdef enum ffi_abi:
-        FFI_DEFAULT_ABI
-    ctypedef struct ffi_cif:
-        pass
-    ctypedef struct ffi_type:
-        size_t size
-        unsigned short _type "type"
-
-    cdef ffi_type ffi_type_void
-    cdef ffi_type ffi_type_uint8
-    cdef ffi_type ffi_type_sint8
-    cdef ffi_type ffi_type_uint16
-    cdef ffi_type ffi_type_sint16
-    cdef ffi_type ffi_type_uint32
-    cdef ffi_type ffi_type_sint32
-    cdef ffi_type ffi_type_uint64
-    cdef ffi_type ffi_type_sint64
-    cdef ffi_type ffi_type_float
-    cdef ffi_type ffi_type_double
-    cdef ffi_type ffi_type_longdouble
-    cdef ffi_type ffi_type_pointer
-
-    cdef ffi_status ffi_prep_cif(ffi_cif *cif, ffi_abi abi, unsigned int nargs,ffi_type *rtype, ffi_type **atypes)
-    cdef void ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue, void **avalue)
-
-
-
-cdef unsigned int method_list_for_class():
-    pyobjc_internal_init()
-    cdef id pool = allocAndInitAutoreleasePool()
-    cdef id _cls = objc_getRequiredClass("NSString")
-    cdef Class cls = <Class>_cls
-    cdef unsigned int num_methods = 0
-    cdef Method* method_list = class_copyMethodList(cls, &num_methods)
-    drainAutoreleasePool(pool)
-    return num_methods
+include "common.pxi"
+include "runtime.pxi"
+include "ffi.pxi"
+include "type_enc.pxi"
 
 
 # do the initialization!
 pyobjc_internal_init()
-
-cpdef test():
-    print method_list_for_class()
-
-def parse_signature(bytes signature):
-    parts = re.split('(\d+)', signature)[:-1]
-    signature_return = parts[0:2]
-    parts = parts[2:]
-    signature_args = zip(parts[0::2], parts[1::2])
-    return signature_return, signature_args
-
-
-
-cpdef convert_objctype_arg(signature, arg):
-    sig, offset = signature
-    if sig == 'c':
-        return <char> bytes(arg)
-    elif sig == 'i':
-        return <int> int(arg)
-    elif sig == 's':
-        return <short> int(arg)
-    elif sig == 'l':
-        return <long> int(arg)
-    elif sig == 'q':
-        return <long long> long(arg)
-    elif sig == 'C':
-        return <unsigned char> bytes(arg)
-    elif sig == 'I':
-        return <unsigned int> int(arg)
-    elif sig == 'S':
-        return <unsigned short> int(arg)
-    elif sig == 'L':
-        return <unsigned long> long(arg)
-    elif sig == 'Q':
-        return <unsigned long long> long(arg)
-    elif sig == 'f':
-        return <float> float(arg)
-    elif sig == 'd':
-        return <double> float(arg)
-    elif sig == 'B':
-        v = False
-        if arg:
-            v = True
-        return <unsigned char> v
-    else:
-        return arg
-    """
-    elif sig == '*':
-        return arg
-    elif sig == '@':
-        return arg
-    elif sig == '#':
-        return arg
-    elif sig == ':':
-        return arg
-    """
-
-
-
-cdef ffi_type* convert_objctype_to_ffitype(signature):
-    sig, offset = signature
-    if sig == 'c':
-        return &ffi_type_uint8
-    elif sig == 'i':
-        return &ffi_type_sint32
-    elif sig == 's':
-        return &ffi_type_sint16
-    elif sig == 'l':
-        return &ffi_type_sint32
-    elif sig == 'q':
-        return &ffi_type_sint64
-    elif sig == 'C':
-        return &ffi_type_uint8
-    elif sig == 'I':
-        return &ffi_type_uint32
-    elif sig == 'S':
-        return &ffi_type_uint16
-    elif sig == 'L':
-        return &ffi_type_uint32
-    elif sig == 'Q':
-        return &ffi_type_uint64
-    elif sig == 'f':
-        return &ffi_type_float
-    elif sig == 'd':
-        return &ffi_type_double
-    elif sig == 'B':
-        return &ffi_type_sint8
-    elif sig == '*':
-        return &ffi_type_pointer
-    elif sig == '@':
-        return &ffi_type_pointer
-    elif sig == '#':
-        return &ffi_type_pointer
-    elif sig == ':':
-        return &ffi_type_pointer
-    #TODO: missing encodings:
-    #[array type]	An array
-    #{name=type...}	A structure
-    #(name=type...)	A union
-    #bnum	A bit field of num bits
-    #^type	A pointer to type
-    #?	An unknown type (among other things, 
-    #   this code is used for function pointers)
 
 
 cdef dict oclass_register = {}
@@ -253,7 +84,6 @@ cdef class ObjcMethod(object):
 
     cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
         self.name = name.replace(":", "_")
-
         self.o_cls = o_cls
         self.o_instance = o_instance
 
@@ -274,9 +104,6 @@ cdef class ObjcMethod(object):
         print '--> return def is', self.signature_return
         print '--> args def is', self.signature_args
 
-        cdef id pool = allocAndInitAutoreleasePool()
-        cdef bytes name = self.name
-
         cdef ffi_cif cif
         cdef ffi_status f_status
         cdef void *f_result
@@ -285,32 +112,31 @@ cdef class ObjcMethod(object):
         cdef ffi_type **f_arg_types
         cdef int index
         cdef size_t size
+
+
+        #get return type type as ffitype*
+        f_result_type = type_encoding_to_ffitype(self.signature_return)
         
-        # create array of ffi_type describing type of each argument
+        #allocate memory to hold ffitype* of arguments
         size = sizeof(ffi_type) * len(self.signature_args)
         f_arg_types = <ffi_type **>malloc(size)
         if f_arg_types == NULL:
             raise MemoryError()
 
-        # populate f_args_type array for FFI prep and keep track
-        # of arg sizees to allocate f_args array while we are at it
+        # populate f_args_type array for FFI prep
         index = 0
         for arg in self.signature_args:
-            f_arg_types[index] = convert_objctype_to_ffitype(arg)
+            f_arg_types[index] = type_encoding_to_ffitype(arg)
             index = index + 1
-        
+
         # FFI PREP 
-        # the first 2 args is from us: class or instance + selector
-        # but they are included in signature args
-        # TODO static!
-        f_result_type = convert_objctype_to_ffitype(self.signature_return)
         f_status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
                 len(self.signature_args),f_result_type, f_arg_types)
         if f_status != FFI_OK:
             raise ObjcException('Unable to prepare the method...')
-        
+
         #allocate result buffer
-        f_result = malloc(f_result_type.size)
+        f_result = malloc(f_result_type[0].size)
         if f_result == NULL:
             raise MemoryError()
 
@@ -319,34 +145,39 @@ cdef class ObjcMethod(object):
         if f_args == NULL:
             raise MemoryError()
 
-        #populate f_args
+        # arg 0 and 1 are the instance and the method selector
         f_args[0] = &self.o_instance
         f_args[1] = sel_registerName(self.name)
 
-        cdef char cv
-        cdef int iv
-        cdef short sv
-        cdef unsigned long long ullv
-        #...
-        
+        #populate the rest of f_args based on method signature
+        cdef void* val_ptr
         for index in range(2, len(self.signature_args)):
-            arg = args[index]
+            # argument passed to call
+            arg = args[index-2]
+
+            # we already know the ffitype/size being used
+            val_ptr = <void*>malloc(f_arg_types[index][0].size)
+            print "allocating {0} bytes for arg:".format(f_arg_types[index][0].size, arg)
+
+            # cast the argument type based on method sig and store at val_ptr
             sig, offset = self.signature_args[index]
             if sig == 'c':
-                cv = bytes(arg)
-                f_args[index] = &cv
+                (<char*>val_ptr)[0] = bytes(arg)
             elif sig == 'i':
-                iv =  int(arg)
-                f_args[index] = &iv
+                (<int*>val_ptr)[0] = <int> int(arg)
             elif sig == 's':
-                sv =  int(arg)
-                f_args[index] = &sv
+                (<short*>val_ptr)[0] = <short> int(arg)
             elif sig == 'Q':
-                ullv =  long(arg)
-                f_args[index] = &ullv
+                (<unsigned long long*>val_ptr)[0] = <unsigned long long> long(arg)
+            else:
+                (<int*>val_ptr)[0] = 0
+            print "fargs[{0}] = {1}, {2}".format(index, sig, arg)
 
-        ffi_call(&cif, <void(*)()>objc_msgSend, f_result, f_args)
-        drainAutoreleasePool(pool)
+            f_args[index] = val_ptr
+
+
+        #ffi_call(&cif, <void(*)()>objc_msgSend, f_result, f_args)
+        #drainAutoreleasePool(pool)
         #cdef char* ret_str = <char*> f_result
         return "hello"
 
