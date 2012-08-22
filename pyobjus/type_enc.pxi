@@ -44,6 +44,7 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
         return &ffi_type_pointer
     elif enc == ':':
         return &ffi_type_pointer
+    raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
     #[array type]	An array
     #{name=type...}	A structure

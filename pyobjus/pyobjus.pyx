@@ -72,8 +72,24 @@ cdef class ObjcMethod(object):
     cdef Class o_cls
     cdef id o_instance
 
+    cdef int is_ready
+    cdef ffi_cif f_cif
+    cdef ffi_type* f_result_type
+    cdef ffi_type **f_arg_types
+
     def __cinit__(self, signature, **kwargs):
-        pass
+        self.is_ready = 0
+        self.f_result_type = NULL
+        self.f_arg_types = NULL
+
+    def __dealloc__(self):
+        self.is_ready = 0
+        if self.f_result_type != NULL:
+            free(self.f_result_type)
+            self.f_result_type = NULL
+        if self.f_arg_types != NULL:
+            free(self.f_arg_types)
+            self.f_arg_types = NULL
 
     def __init__(self, signature, **kwargs):
         super(ObjcMethod, self).__init__()
@@ -88,7 +104,34 @@ cdef class ObjcMethod(object):
         self.o_instance = o_instance
 
     cdef void ensure_method(self) except *:
-        pass
+        if self.is_ready:
+            return
+
+        # get return type type as ffitype*
+        self.f_result_type = type_encoding_to_ffitype(self.signature_return)
+        
+        # allocate memory to hold ffitype* of arguments
+        cdef int size = sizeof(ffi_type) * len(self.signature_args)
+        self.f_arg_types = <ffi_type **>malloc(size)
+        if self.f_arg_types == NULL:
+            raise MemoryError()
+
+        # populate f_args_type array for FFI prep
+        cdef int index = 0
+        for arg in self.signature_args:
+            self.f_arg_types[index] = type_encoding_to_ffitype(arg)
+            index = index + 1
+
+        # FFI PREP 
+        cdef ffi_status f_status
+        f_status = ffi_prep_cif(&self.f_cif, FFI_DEFAULT_ABI,
+                len(self.signature_args), self.f_result_type, self.f_arg_types)
+        if f_status != FFI_OK:
+            raise ObjcException(
+                    'Unable to prepare the method {0!r}'.format(self.name))
+
+        self.is_ready = 1
+
 
     def __get__(self, obj, objtype):
         if obj is None:
@@ -104,60 +147,35 @@ cdef class ObjcMethod(object):
         print '--> return def is', self.signature_return
         print '--> args def is', self.signature_args
 
-        cdef ffi_cif cif
-        cdef ffi_status f_status
         cdef void *f_result
-        cdef ffi_type* f_result_type
         cdef void **f_args
-        cdef ffi_type **f_arg_types
         cdef int index
         cdef size_t size
 
-
-        #get return type type as ffitype*
-        f_result_type = type_encoding_to_ffitype(self.signature_return)
-        
-        #allocate memory to hold ffitype* of arguments
-        size = sizeof(ffi_type) * len(self.signature_args)
-        f_arg_types = <ffi_type **>malloc(size)
-        if f_arg_types == NULL:
-            raise MemoryError()
-
-        # populate f_args_type array for FFI prep
-        index = 0
-        for arg in self.signature_args:
-            f_arg_types[index] = type_encoding_to_ffitype(arg)
-            index = index + 1
-
-        # FFI PREP 
-        f_status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
-                len(self.signature_args),f_result_type, f_arg_types)
-        if f_status != FFI_OK:
-            raise ObjcException('Unable to prepare the method...')
-
-        #allocate result buffer
-        f_result = malloc(f_result_type[0].size)
+        # allocate result buffer
+        f_result = malloc(self.f_result_type[0].size)
         if f_result == NULL:
-            raise MemoryError()
+            raise MemoryError('Unable to allocate f_result')
 
         # allocate f_args
-        f_args = <void**>malloc(sizeof(void*) * len(self.signature_args))
+        f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
         if f_args == NULL:
-            raise MemoryError()
+            free(f_result)
+            raise MemoryError('Unable to allocate f_args')
 
         # arg 0 and 1 are the instance and the method selector
         f_args[0] = &self.o_instance
         f_args[1] = sel_registerName(self.name)
 
-        #populate the rest of f_args based on method signature
+        # populate the rest of f_args based on method signature
         cdef void* val_ptr
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
 
             # we already know the ffitype/size being used
-            val_ptr = <void*>malloc(f_arg_types[index][0].size)
-            print "allocating {0} bytes for arg:".format(f_arg_types[index][0].size, arg)
+            val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
+            print "allocating {0} bytes for arg:".format(self.f_arg_types[index][0].size, arg)
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset = self.signature_args[index]
@@ -176,7 +194,7 @@ cdef class ObjcMethod(object):
             f_args[index] = val_ptr
 
 
-        #ffi_call(&cif, <void(*)()>objc_msgSend, f_result, f_args)
+        #ffi_call(&f_cif, <void(*)()>objc_msgSend, f_result, f_args)
         #drainAutoreleasePool(pool)
         #cdef char* ret_str = <char*> f_result
         return "hello"
