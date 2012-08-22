@@ -100,7 +100,7 @@ cdef class ObjcMethod(object):
         self.is_static = kwargs.get('static', False)
 
     cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
-        self.name = name.replace(":", "_")
+        self.name = name.replace("_", ":")
         self.selector = sel_registerName(self.name)
         self.o_cls = o_cls
         self.o_instance = o_instance
@@ -109,10 +109,9 @@ cdef class ObjcMethod(object):
         if self.is_ready:
             return
 
-
         # get return type type as ffitype*
         self.f_result_type = type_encoding_to_ffitype(self.signature_return)
-        
+
         # allocate memory to hold ffitype* of arguments
         cdef int size = sizeof(ffi_type) * len(self.signature_args)
         self.f_arg_types = <ffi_type **>malloc(size)
@@ -197,6 +196,8 @@ cdef class ObjcMethod(object):
 
 
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, f_result, f_args)
+        cdef id ret = (<id*>f_result)[0]
+        print "ret: {0}".format(<int>ret)
 
 
 
