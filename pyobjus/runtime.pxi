@@ -18,6 +18,9 @@ cdef extern from "objc/runtime.h":
     Method*  class_copyMethodList(Class cls, unsigned int *outCount)
 
     SEL sel_registerName(char *)
+    SEL method_getName(Method)
+    const_char_ptr sel_getName(SEL)
+    const_char_ptr method_getTypeEncoding(Method)
 
 
 cdef extern from "_runtime.h":

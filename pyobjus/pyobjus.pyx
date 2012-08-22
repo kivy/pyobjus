@@ -1,4 +1,5 @@
-__all__ = ('ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException')
+__all__ = ('ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException',
+    'autoclass')
 
 
 include "common.pxi"
@@ -250,4 +251,47 @@ cdef class ObjcClass(object):
     cdef void resolve_fields(self) except *:
         pass
 
+
+registers = []
+
+def ensureclass(clsname):
+    if clsname in registers:
+        return
+    objcname = clsname.replace('.', '/')
+    if MetaObjcClass.get_objcclass(objcname):
+        return
+    registers.append(clsname)
+    autoclass(clsname)
+
+
+def autoclass(clsname):
+    cls = MetaObjcClass.get_objcclass(clsname)
+    if cls:
+        return cls
+
+    classDict = {}
+
+    #c = find_objcclass(clsname)
+    #if c is None:
+    #    raise Exception('Java class {0} not found'.format(c))
+    #    return None
+
+    cdef unsigned int index, num_methods
+    cdef id clsid = objc_getClass(<bytes>clsname)
+    cdef char *method_name
+    cdef char *method_args
+    cdef bytes nmae
+    cdef Method* class_methods = class_copyMethodList(clsid, &num_methods)
+    for index in xrange(num_methods):
+        method_name = sel_getName(method_getName(class_methods[index]))
+        method_args = method_getTypeEncoding(class_methods[index])
+        name = <bytes>method_name
+        classDict[name] = ObjcMethod(<bytes>method_args)
+
+    classDict['__objcclass__'] = clsname
+
+    return MetaObjcClass.__new__(MetaObjcClass,
+            clsname,
+            (ObjcClass, ),
+            classDict)
 
