@@ -1,3 +1,7 @@
+'''
+Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
+'''
+
 __all__ = ('ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException',
     'autoclass')
 
@@ -73,6 +77,7 @@ cdef class ObjcMethod(object):
     cdef Class o_cls
     cdef id o_instance
     cdef SEL selector 
+    cdef SEL *selectors
 
     cdef int is_ready
     cdef ffi_cif f_cif
@@ -83,6 +88,9 @@ cdef class ObjcMethod(object):
         self.is_ready = 0
         self.f_result_type = NULL
         self.f_arg_types = NULL
+        self.name = None
+        self.selector = NULL
+        self.selectors = NULL
 
     def __dealloc__(self):
         self.is_ready = 0
@@ -99,10 +107,17 @@ cdef class ObjcMethod(object):
         self.signature_return, self.signature_args = parse_signature(signature)
         print 'RESOLVE', self.signature_return, self.signature_args
         self.is_static = kwargs.get('static', False)
+        self.name = kwargs.get('name')
+
+        py_selectors = kwargs.get('selectors', [])
+        if len(py_selectors):
+            self.selectors = <SEL *>malloc(sizeof(SEL) * len(py_selectors))
+            for index, name in enumerate(py_selectors):
+                self.selectors[index] = sel_registerName(<bytes>name)
 
     cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
-        self.name = name.replace("_", ":")
-        self.selector = sel_registerName(self.name)
+        self.name = self.name or name.replace("_", ":")
+        self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
         self.o_instance = o_instance
 
@@ -168,9 +183,11 @@ cdef class ObjcMethod(object):
         # arg 0 and 1 are the instance and the method selector
         f_args[0] = &self.o_instance
         f_args[1] = &self.selector
+        print ' - selector is', <unsigned long>self.selector
 
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
+        f_index = 1
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
@@ -180,7 +197,7 @@ cdef class ObjcMethod(object):
             print "allocating {0} bytes for arg:".format(self.f_arg_types[index][0].size, arg)
 
             # cast the argument type based on method sig and store at val_ptr
-            sig, offset = self.signature_args[index]
+            sig, offset, attr = self.signature_args[index]
             if sig == 'c':
                 (<char*>val_ptr)[0] = bytes(arg)
             elif sig == 'i':
@@ -189,16 +206,87 @@ cdef class ObjcMethod(object):
                 (<short*>val_ptr)[0] = <short> int(arg)
             elif sig == 'Q':
                 (<unsigned long long*>val_ptr)[0] = <unsigned long long> long(arg)
+            elif sig == '*':
+                (<char **>val_ptr)[0] = <char *><bytes>arg
+                #val_ptr = <char*><bytes>arg
             else:
                 (<int*>val_ptr)[0] = 0
-            print "fargs[{0}] = {1}, {2}".format(index, sig, arg)
+            print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
 
-            f_args[index] = val_ptr
+            f_index += 1
+            f_args[f_index] = self.selectors[index-2]
+            f_index += 1
+            f_args[f_index] = val_ptr
 
 
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, f_result, f_args)
-        cdef id ret = (<id*>f_result)[0]
-        print "ret: {0}".format(<int>ret)
+        sig = self.signature_return[0]
+        cdef id ret_id
+        if sig == '@':
+            ret_id = (<id*>f_result)[0]
+            if ret_id == self.o_instance:
+                return self
+            assert(0)
+        elif sig == 'c':
+            return (<char*>f_result)[0]
+        elif sig == 'i':
+            return (<int *>f_result)[0]
+        elif sig == 's':
+            return (<short*>f_result)[0]
+        elif sig == 'l':
+            return (<long*>f_result)[0]
+        elif sig == 'q':
+            return (<long long*>f_result)[0]
+        elif sig == 'C':
+            return (<unsigned char*>f_result)[0]
+        elif sig == 'I':
+            return (<unsigned int*>f_result)[0]
+        elif sig == 'S':
+            return (<unsigned short*>f_result)[0]
+        elif sig == 'L':
+            return (<unsigned long*>f_result)[0]
+        elif sig == 'Q':
+            return (<unsigned long long*>f_result)[0]
+        elif sig == 'f':
+            return (<float*>f_result)[0]
+        elif sig == 'd':
+            return (<double*>f_result)[0]
+        elif sig == 'b':
+            return (<bool*>f_result)[0]
+        elif sig == 'v':
+            return None
+        elif sig == '*':
+            return <bytes>(<char**>f_result)[0]
+        elif sig == '@':
+            # id ?return (<long*>f_result)[0]
+            pass
+        elif sig == '#':
+            # class ?
+            pass
+        elif sig == ':':
+            # selector ? but as a return ?
+            pass
+        elif sig[0] == '[':
+            # array
+            pass
+        elif sig[0] == '{':
+            # array
+            pass
+        elif sig[0] == '(':
+            # union
+            pass
+        elif sig == 'b':
+            # bitfield
+            pass
+        elif sig[0] == '^':
+            # pointer to type
+            pass
+        elif sig == '?':
+            # unknown type
+            pass
+
+        else:
+            assert(0)
 
 
 
@@ -287,6 +375,7 @@ def autoclass(clsname):
         method_name = sel_getName(method_getName(class_methods[index]))
         method_args = method_getTypeEncoding(class_methods[index])
         name = <bytes>method_name
+        print '->', name
         classDict[name] = ObjcMethod(<bytes>method_args)
 
     classDict['__objcclass__'] = clsname

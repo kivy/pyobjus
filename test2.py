@@ -7,8 +7,13 @@ class NSString(ObjcClass):
     init = ObjcMethod('@16@0:8')
     substringFromIndex_ = ObjcMethod('@24@0:8Q16')
     length = ObjcMethod('Q16@0:8')
+    initWithUTF8String_ = ObjcMethod('@24@0:8r*16', selectors=('bytes', ))
 
 a = NSString()
-a.init()
-a.length()
+ret = a.initWithUTF8String_('hello world')
+print 'a.initWithUTF8String() ->', ret
+#ret = a.init()
+#print 'a.init() ->', ret
+ret = a.length()
+print 'a.length() ->', ret
 #print a.substringFromIndex_(6)

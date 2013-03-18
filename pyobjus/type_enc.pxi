@@ -1,15 +1,24 @@
 import re
 
+def seperate_encoding(sig):
+    c = sig[0][0]
+    print 'seperate_encoding', sig, c
+    if c in 'rnNoORV':
+        sig = (sig[0][1:], sig[1], c)
+    else:
+        sig = (sig[0], sig[1], None)
+    return sig
+
 def parse_signature(bytes signature):
     parts = re.split('(\d+)', signature)[:-1]
-    signature_return = parts[0:2]
+    signature_return = seperate_encoding(parts[0:2])
     parts = parts[2:]
-    signature_args = zip(parts[0::2], parts[1::2])
+    signature_args = [seperate_encoding(x) for x in zip(parts[0::2], parts[1::2])]
     return signature_return, signature_args
 
 
 cdef ffi_type* type_encoding_to_ffitype(type_encoding):
-    enc, offset = type_encoding
+    enc, offset, attr = type_encoding
     if enc == 'c':
         return &ffi_type_uint8
     elif enc == 'i':
