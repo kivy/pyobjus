@@ -358,6 +358,7 @@ def ensureclass(clsname):
     autoclass(clsname)
 
 
+
 def autoclass(clsname):
     cls = MetaObjcClass.get_objcclass(clsname)
     if cls:
@@ -380,8 +381,8 @@ def autoclass(clsname):
         method_name = sel_getName(method_getName(class_methods[index]))
         method_args = method_getTypeEncoding(class_methods[index])
         name = <bytes>method_name
-        print '->', name
-        classDict[name] = ObjcMethod(<bytes>method_args)
+        print '->', name.replace(":", "_")
+        classDict[name.replace(":", "_")] = ObjcMethod(<bytes>method_args)
 
     classDict['__objcclass__'] = clsname
 
@@ -389,4 +390,3 @@ def autoclass(clsname):
             clsname,
             (ObjcClass, ),
             classDict)
-
