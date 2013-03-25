@@ -169,6 +169,7 @@ cdef class ObjcMethod(object):
         cdef void **f_args
         cdef int index
         cdef size_t size
+        cdef ObjcClass arg_objcclass
 
         # allocate f_args
         f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
@@ -205,6 +206,11 @@ cdef class ObjcMethod(object):
             elif sig == '*':
                 (<char **>val_ptr)[0] = <char *><bytes>arg
                 #val_ptr = <char*><bytes>arg
+            elif sig == '@':
+                assert(isinstance(arg, ObjcClass))
+                arg_objcclass = <ObjcClass>arg
+                print '====> ARG', arg
+                (<id *>val_ptr)[0] = <id>arg_objcclass.o_instance
             else:
                 (<int*>val_ptr)[0] = 0
             print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
@@ -216,13 +222,14 @@ cdef class ObjcMethod(object):
 
 
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
+
         sig = self.signature_return[0]
         cdef id ret_id
         cdef ObjcClass cret
         if sig == '@':
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
-                return self
+                return self.p_class
             print 'sig', sig
             print 'ret_id', <long>ret_id
             print 'o_instance', <long>self.o_instance
