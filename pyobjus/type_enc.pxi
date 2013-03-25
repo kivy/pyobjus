@@ -2,7 +2,7 @@ import re
 
 def seperate_encoding(sig):
     c = sig[0][0]
-    print 'seperate_encoding', sig, c
+    #print 'seperate_encoding', sig, c
     if c in 'rnNoORV':
         sig = (sig[0][1:], sig[1], c)
     else:

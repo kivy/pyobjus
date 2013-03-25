@@ -209,8 +209,8 @@ cdef class ObjcMethod(object):
                 (<int*>val_ptr)[0] = 0
             print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
 
-            f_index += 1
-            f_args[f_index] = &self.selectors[index-2]
+            #f_index += 1
+            #f_args[f_index] = &self.selectors[index-2]
             f_index += 1
             f_args[f_index] = val_ptr
 
