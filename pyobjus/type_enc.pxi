@@ -53,14 +53,17 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
         return &ffi_type_pointer
     elif enc == ':':
         return &ffi_type_pointer
+    elif enc == 'v':
+        return &ffi_type_void
+        
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
-    #[array type]	An array
-    #{name=type...}	A structure
-    #(name=type...)	A union
-    #bnum	A bit field of num bits
-    #^type	A pointer to type
-    #?	An unknown type (among other things, 
+    #[array type]    An array
+    #{name=type...}    A structure
+    #(name=type...)    A union
+    #bnum    A bit field of num bits
+    #^type    A pointer to type
+    #?    An unknown type (among other things, 
     #   this code is used for function pointers)
 
 """
