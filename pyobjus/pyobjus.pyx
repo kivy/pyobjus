@@ -78,6 +78,7 @@ cdef class ObjcMethod(object):
     cdef id o_instance
     cdef SEL selector 
     cdef SEL *selectors
+    cdef ObjcClass p_class
 
     cdef int is_ready
     cdef ffi_cif f_cif
@@ -164,20 +165,15 @@ cdef class ObjcMethod(object):
         print '--> return def is', self.signature_return
         print '--> args def is', self.signature_args
 
-        cdef void *f_result
+        cdef ffi_arg f_result
         cdef void **f_args
         cdef int index
         cdef size_t size
 
-        # allocate result buffer
-        f_result = malloc(self.f_result_type[0].size)
-        if f_result == NULL:
-            raise MemoryError('Unable to allocate f_result')
-
         # allocate f_args
         f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
         if f_args == NULL:
-            free(f_result)
+            free(f_args)
             raise MemoryError('Unable to allocate f_args')
 
         # arg 0 and 1 are the instance and the method selector
@@ -194,7 +190,7 @@ cdef class ObjcMethod(object):
 
             # we already know the ffitype/size being used
             val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
-            print "allocating {0} bytes for arg:".format(self.f_arg_types[index][0].size, arg)
+            print "allocating {} bytes for arg: {!r}".format(self.f_arg_types[index][0].size, arg)
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
@@ -214,49 +210,57 @@ cdef class ObjcMethod(object):
             print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
 
             f_index += 1
-            f_args[f_index] = self.selectors[index-2]
+            f_args[f_index] = &self.selectors[index-2]
             f_index += 1
             f_args[f_index] = val_ptr
 
 
-        ffi_call(&self.f_cif, <void(*)()>objc_msgSend, f_result, f_args)
+        ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
         sig = self.signature_return[0]
         cdef id ret_id
+        cdef ObjcClass cret
         if sig == '@':
-            ret_id = (<id*>f_result)[0]
+            ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self
-            assert(0)
+            print 'sig', sig
+            print 'ret_id', <long>ret_id
+            print 'o_instance', <long>self.o_instance
+            cret = self.p_class.__class__(noinstance=True)
+            cret.o_instance = ret_id
+            cret.resolve_methods()
+            cret.resolve_fields()
+            return cret
         elif sig == 'c':
-            return (<char*>f_result)[0]
+            return (<char*>f_result)
         elif sig == 'i':
-            return (<int *>f_result)[0]
+            return (<int>f_result)
         elif sig == 's':
-            return (<short*>f_result)[0]
+            return (<short>f_result)
         elif sig == 'l':
-            return (<long*>f_result)[0]
+            return (<long>f_result)
         elif sig == 'q':
-            return (<long long*>f_result)[0]
+            return (<long long>f_result)
         elif sig == 'C':
-            return (<unsigned char*>f_result)[0]
+            return (<unsigned char>f_result)
         elif sig == 'I':
-            return (<unsigned int*>f_result)[0]
+            return (<unsigned int>f_result)
         elif sig == 'S':
-            return (<unsigned short*>f_result)[0]
+            return (<unsigned short>f_result)
         elif sig == 'L':
-            return (<unsigned long*>f_result)[0]
+            return (<unsigned long>f_result)
         elif sig == 'Q':
-            return (<unsigned long long*>f_result)[0]
+            return (<unsigned long long>f_result)
         elif sig == 'f':
-            return (<float*>f_result)[0]
+            return (<float>f_result)
         elif sig == 'd':
-            return (<double*>f_result)[0]
+            return (<double>f_result)
         elif sig == 'b':
-            return (<bool*>f_result)[0]
+            return (<bool>f_result)
         elif sig == 'v':
             return None
         elif sig == '*':
-            return <bytes>(<char**>f_result)[0]
+            return <bytes>(<char*>f_result)
         elif sig == '@':
             # id ?return (<long*>f_result)[0]
             pass
@@ -336,6 +340,7 @@ cdef class ObjcClass(object):
                 if om.is_static:
                     continue
                 om.set_resolve_info(name, self.o_cls, self.o_instance)
+                om.p_class = self
 
     cdef void resolve_fields(self) except *:
         pass

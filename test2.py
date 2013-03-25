@@ -14,6 +14,6 @@ ret = a.initWithUTF8String_('hello world')
 print 'a.initWithUTF8String() ->', ret
 #ret = a.init()
 #print 'a.init() ->', ret
-ret = a.length()
-print 'a.length() ->', ret
-#print a.substringFromIndex_(6)
+l = ret.length()
+print 'a.length() ->', l
+print a.substringFromIndex_(6)
