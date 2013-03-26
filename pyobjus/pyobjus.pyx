@@ -248,7 +248,10 @@ cdef class ObjcMethod(object):
             cret.resolve_fields()
             return cret
         elif sig == 'c':
-            return (<char*>f_result)
+            # this should be a char. Most of the time, a BOOL is also
+            # implemented as a char. So it's not a string, but just the numeric
+            # value of the char.
+            return (<int><char>f_result)
         elif sig == 'i':
             return (<int>f_result)
         elif sig == 's':
