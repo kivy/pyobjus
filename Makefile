@@ -5,3 +5,7 @@ build_ext:
 
 tests: build_ext
 	cd tests && env PYTHONPATH=..:$(PYTHONPATH) nosetests -v
+
+html:
+	$(MAKE) -C docs html
+
