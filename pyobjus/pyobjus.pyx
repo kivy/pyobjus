@@ -44,10 +44,7 @@ class MetaObjcClass(type):
         cdef SEL cls_method_sel
         cls_method_sel = <SEL>(<bytes>sel_name)
         print <bytes>cls_method_sel
-
-        print "XXXX", <bytes>(class_getClassMethod(ocls, <SEL>cls_method_sel))
         return None
-
 
     @staticmethod
     def get_objcclass(name):
@@ -238,14 +235,14 @@ cdef class ObjcMethod(object):
         sig = self.signature_return[0]
         cdef id ret_id
         cdef ObjcClass cret
+        cdef bytes bret
         if sig == '@':
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self.p_class
-            print 'sig', sig
-            print 'ret_id', <long>ret_id
-            print 'o_instance', <long>self.o_instance
-            cret = self.p_class.__class__(noinstance=True)
+
+            bret = <bytes><char *>object_getClassName(ret_id)
+            cret = autoclass(bret)(noinstance=True)
             cret.o_instance = ret_id
             cret.resolve_methods()
             cret.resolve_fields()
