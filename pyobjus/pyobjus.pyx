@@ -37,6 +37,18 @@ class MetaObjcClass(type):
         oclass_register[classDict['__objcclass__']] = tp
         return tp
 
+    def __getattr__(self, name):
+        print "CLASS:", self.__name__
+        ocls = self.get_objcclass(self.__name__)
+        sel_name = name.replace("_",":")
+        cdef SEL cls_method_sel
+        cls_method_sel = <SEL>(<bytes>sel_name)
+        print <bytes>cls_method_sel
+
+        print "XXXX", <bytes>(class_getClassMethod(ocls, <SEL>cls_method_sel))
+        return None
+
+
     @staticmethod
     def get_objcclass(name):
         return oclass_register.get(name)
