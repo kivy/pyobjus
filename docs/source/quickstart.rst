@@ -30,7 +30,7 @@ Using class not in the standard Framework
 
 If you want to use others class that the one accessible from the linked
 framework, you need to preload the framework first, or add the Framework to
-your application (ios only).  To preload the framework, you can use ctypes:
+your application (ios only).  To preload the framework, you can use ctypes::
 
     # we want to use NSAlert, but it's not a standard objective-C class
     # so we need to import the framework into the process (desktop)
