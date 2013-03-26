@@ -1,0 +1,8 @@
+*.pyc
+*.pyo
+.*.swp
+*.c
+*.so
+build/*
+output
+test.py
