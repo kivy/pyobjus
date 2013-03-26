@@ -9,12 +9,11 @@ class HelloWorldTest(unittest.TestCase):
         self.assertEqual(s.length(), 11)
 
 
-    #def test_autoclass2(self):
-    #    NSString = autoclass("NSString")
-    #    s = NSString.stringWithString_('hello world')
-    #    self.assertEqual(s.length(), 11)
+    def test_autoclass2(self):
+        NSString = autoclass("NSString")
+        print NSString.stringWithString_
+        s = NSString.stringWithUTF8String_('hello world')
+        self.assertEqual(s.length(), 11)
 
-    #def test_classmathod(self):
-    #    NSString = autoclass("NSString")
-    #    NSString.classMethod()
+
 

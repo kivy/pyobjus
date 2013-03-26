@@ -70,9 +70,8 @@ class MetaObjcClass(type):
         for name, value in classDict.iteritems():
             if isinstance(value, ObjcMethod):
                 om = value
-                if not om.is_static:
-                    continue
-                om.set_resolve_info(name, storage.o_cls, NULL)
+                if om.is_static:
+                    om.set_resolve_info(name, storage.o_cls, NULL)
 
         # FIXME do the static fields resolution
 
@@ -115,7 +114,7 @@ cdef class ObjcMethod(object):
         super(ObjcMethod, self).__init__()
         self.signature = <bytes>signature
         self.signature_return, self.signature_args = parse_signature(signature)
-        print 'RESOLVE', self.signature_return, self.signature_args
+        #print 'RESOLVE', self.signature_return, self.signature_args
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
 
@@ -169,6 +168,15 @@ cdef class ObjcMethod(object):
         return self
 
     def __call__(self, *args):
+        #if self.is_static:
+        #    return self._call_class_method(*args)
+        return self._call_instance_method(*args)
+
+
+
+
+    def _call_instance_method(self, *args):
+
         self.ensure_method()
         print '--> want to call', self.name, args
         print '--> return def is', self.signature_return
@@ -187,7 +195,12 @@ cdef class ObjcMethod(object):
             raise MemoryError('Unable to allocate f_args')
 
         # arg 0 and 1 are the instance and the method selector
-        f_args[0] = &self.o_instance
+        #for class methods, we need the class itself is theinstance
+        if self.is_static:
+            f_args[0] = &self.o_cls
+        else:
+            f_args[0] = &self.o_instance
+
         f_args[1] = &self.selector
         print ' - selector is', <unsigned long>self.selector
 
@@ -214,7 +227,6 @@ cdef class ObjcMethod(object):
                 (<unsigned long long*>val_ptr)[0] = <unsigned long long> long(arg)
             elif sig == '*':
                 (<char **>val_ptr)[0] = <char *><bytes>arg
-                #val_ptr = <char*><bytes>arg
             elif sig == '@':
                 assert(isinstance(arg, ObjcClass))
                 arg_objcclass = <ObjcClass>arg
@@ -224,11 +236,8 @@ cdef class ObjcMethod(object):
                 (<int*>val_ptr)[0] = 0
             print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
 
-            #f_index += 1
-            #f_args[f_index] = &self.selectors[index-2]
             f_index += 1
             f_args[f_index] = val_ptr
-
 
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
 
@@ -375,34 +384,49 @@ def ensureclass(clsname):
 
 
 
-def autoclass(clsname):
-    cls = MetaObjcClass.get_objcclass(clsname)
-    if cls:
-        return cls
 
-    classDict = {}
 
-    #c = find_objcclass(clsname)
-    #if c is None:
-    #    raise Exception('Java class {0} not found'.format(c))
-    #    return None
 
+
+cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods
-    cdef id clsid = objc_getClass(<bytes>clsname)
     cdef char *method_name
     cdef char *method_args
-    cdef bytes nmae
-    cdef Method* class_methods = class_copyMethodList(clsid, &num_methods)
-    for index in xrange(num_methods):
-        method_name = sel_getName(method_getName(class_methods[index]))
-        method_args = method_getTypeEncoding(class_methods[index])
-        name = <bytes>method_name
-        print '->', name.replace(":", "_")
-        classDict[name.replace(":", "_")] = ObjcMethod(<bytes>method_args)
+    cdef bytes py_name
+    cdef dict methods = {}
+    cdef Method* class_methods = class_copyMethodList(cls, &num_methods)
+    for i in xrange(num_methods):
+        method_name = sel_getName(method_getName(class_methods[i]))
+        method_args = method_getTypeEncoding(class_methods[i])
+        py_name = (<bytes>method_name).replace(":", "_")
+        methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
+    free(class_methods)
+    return methods
 
-    classDict['__objcclass__'] = clsname
+cdef class_get_static_methods(Class cls):
+    cdef Class meta_cls = <Class>object_getClass(cls)
+    return class_get_methods(meta_cls, True)
 
-    return MetaObjcClass.__new__(MetaObjcClass,
-            clsname,
-            (ObjcClass, ),
-            classDict)
+
+def autoclass(cls_name):
+    if cls_name in oclass_register:
+        return oclass_register[cls_name]
+
+    cdef dict class_dict = {'__objcclass__': cls_name}
+    cdef Class cls = <Class>objc_getClass(cls_name)
+    cdef dict instance_methods = class_get_methods(cls)
+    cdef dict class_methods = class_get_static_methods(cls)
+
+    #print "\n\ninstance methods:"
+    #pprint(instance_methods)
+    #print "\n\nclass methods:"
+    #pprint(class_methods)
+
+    class_dict.update(instance_methods)
+    class_dict.update(class_methods)
+
+    return MetaObjcClass.__new__(MetaObjcClass, 
+            cls_name, (ObjcClass, ), class_dict)
+
+
+
