@@ -10,7 +10,10 @@ include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
-
+from libc.stdio cimport printf
+from cpython cimport PyObject_Repr
+from cpython cimport PyObject
+from ctypes import c_void_p
 
 # do the initialization!
 pyobjc_internal_init()
@@ -134,6 +137,7 @@ cdef class ObjcMethod(object):
         if self.is_ready:
             return
 
+        print "signature enshure_method -->", self.signature_return
         # get return type type as ffitype*
         self.f_result_type = type_encoding_to_ffitype(self.signature_return)
 
@@ -146,6 +150,7 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in self.signature_args:
+            print "argument ==>", arg, len(self.signature_args)
             self.f_arg_types[index] = type_encoding_to_ffitype(arg)
             index = index + 1
 
@@ -172,9 +177,6 @@ cdef class ObjcMethod(object):
         #    return self._call_class_method(*args)
         return self._call_instance_method(*args)
 
-
-
-
     def _call_instance_method(self, *args):
 
         self.ensure_method()
@@ -187,6 +189,7 @@ cdef class ObjcMethod(object):
         cdef int index
         cdef size_t size
         cdef ObjcClass arg_objcclass
+        #cdef PyCapsule* ptr
 
         # allocate f_args
         f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
@@ -197,6 +200,7 @@ cdef class ObjcMethod(object):
         # arg 0 and 1 are the instance and the method selector
         #for class methods, we need the class itself is theinstance
         if self.is_static:
+            print "static class !!!!"
             f_args[0] = &self.o_cls
         else:
             f_args[0] = &self.o_instance
@@ -207,6 +211,14 @@ cdef class ObjcMethod(object):
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
         f_index = 1
+
+        cdef void* test = malloc(sizeof(void *))
+        cdef int *num_test
+        print "duzina! -->", len(self.signature_args)
+        cdef void* val_test      
+
+        
+        #cdef PyCapsule *objRepr
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
@@ -217,6 +229,7 @@ cdef class ObjcMethod(object):
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
+
             if sig == 'c':
                 (<char*>val_ptr)[0] = bytes(arg)
             elif sig == 'i':
@@ -228,20 +241,27 @@ cdef class ObjcMethod(object):
             elif sig == '*':
                 (<char **>val_ptr)[0] = <char *><bytes>arg
             elif sig == '@':
-                assert(isinstance(arg, ObjcClass))
-                arg_objcclass = <ObjcClass>arg
+                #assert(isinstance(arg, ObjcClass))
+                #arg_objcclass = <ObjcClass>arg
                 print '====> ARG', arg
-                (<id *>val_ptr)[0] = <id>arg_objcclass.o_instance
+                val_test = <void*>arg
+                somePyObj = <object>val_test
+                print "CONVERTED OBJECT VALUE -->", somePyObj
+                val_ptr = val_test
+                
             else:
                 (<int*>val_ptr)[0] = 0
             print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
 
             f_index += 1
             f_args[f_index] = val_ptr
-
+        
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
 
+        print "prosooooooo"
+
         sig = self.signature_return[0]
+        print "return_signature ->", sig
         cdef id ret_id
         cdef ObjcClass cret
         cdef bytes bret
@@ -249,8 +269,12 @@ cdef class ObjcMethod(object):
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self.p_class
-
             bret = <bytes><char *>object_getClassName(ret_id)
+            print bret
+            if bret == "nil":
+                printf("RETURNED POINTER VALUE --> %p", ret_id)
+                #return <object>ret_id
+
             cret = autoclass(bret)(noinstance=True)
             cret.o_instance = ret_id
             cret.resolve_methods()
@@ -289,9 +313,6 @@ cdef class ObjcMethod(object):
             return None
         elif sig == '*':
             return <bytes>(<char*>f_result)
-        elif sig == '@':
-            # id ?return (<long*>f_result)[0]
-            pass
         elif sig == '#':
             # class ?
             pass
@@ -319,7 +340,6 @@ cdef class ObjcMethod(object):
 
         else:
             assert(0)
-
 
 
 cdef class ObjcClass(object):
@@ -402,6 +422,7 @@ cdef class_get_methods(Class cls, static=False):
         method_name = sel_getName(method_getName(class_methods[i]))
         method_args = method_getTypeEncoding(class_methods[i])
         py_name = (<bytes>method_name).replace(":", "_")
+
         methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
     free(class_methods)
     return methods
@@ -419,6 +440,8 @@ def autoclass(cls_name):
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
+
+    #print instance_methods
 
     #print "\n\ninstance methods:"
     #pprint(instance_methods)

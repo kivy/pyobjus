@@ -32,4 +32,3 @@ cdef extern from "_runtime.h":
     void  pyobjc_internal_init()
     id    allocAndInitAutoreleasePool()
     void  drainAutoreleasePool(id pool)
-
