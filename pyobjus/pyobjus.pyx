@@ -41,7 +41,7 @@ class MetaObjcClass(type):
         return tp
 
     def __getattr__(self, name):
-        print "CLASS:", self.__name__
+        print "CLASS ---------------->:", self.__name__
         ocls = self.get_objcclass(self.__name__)
         sel_name = name.replace("_",":")
         cdef SEL cls_method_sel
@@ -126,16 +126,16 @@ cdef class ObjcMethod(object):
             self.selectors = <SEL *>malloc(sizeof(SEL) * len(py_selectors))
             for index, name in enumerate(py_selectors):
                 self.selectors[index] = sel_registerName(<bytes>name)
-
     cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
+        #printf("%p, %s", self.selector, self.name)
         self.o_instance = o_instance
 
     cdef void ensure_method(self) except *:
-        if self.is_ready:
-            return
+        #if self.is_ready:
+        #    return
 
         print "signature enshure_method -->", self.signature_return
         # get return type type as ffitype*
@@ -178,7 +178,8 @@ cdef class ObjcMethod(object):
         return self._call_instance_method(*args)
 
     def _call_instance_method(self, *args):
-
+        printf("%p\n", self.o_instance)
+        self.set_resolve_info(self.name, self.o_cls, self.o_instance)
         self.ensure_method()
         print '--> want to call', self.name, args
         print '--> return def is', self.signature_return
@@ -216,8 +217,11 @@ cdef class ObjcMethod(object):
         cdef int *num_test
         print "duzina! -->", len(self.signature_args)
         cdef void* val_test      
-
-        
+        cdef id val_test_id
+        cdef ObjcClass ocl
+        cdef bytes brb
+        #brb = <bytes><char *>sel_getName(<SEL>f_args[1])
+        #print  "brb", brb
         #cdef PyCapsule *objRepr
         for index in range(2, len(self.signature_args)):
             # argument passed to call
@@ -243,11 +247,18 @@ cdef class ObjcMethod(object):
             elif sig == '@':
                 #assert(isinstance(arg, ObjcClass))
                 #arg_objcclass = <ObjcClass>arg
-                print '====> ARG', arg
-                val_test = <void*>arg
-                somePyObj = <object>val_test
-                print "CONVERTED OBJECT VALUE -->", somePyObj
-                val_ptr = val_test
+                print '====> ARG', <ObjcClass>arg
+                ocl = <ObjcClass>arg
+                #printf("%p\n", ocl.o_instance)
+                val_test_id = <id>ocl.o_instance
+                printf("POINTER ==>%p", val_test_id)
+                #brb = <bytes><char *>object_getClassName(val_test_id)
+                #print "instance =======>", brb
+                #val_test = <void*>arg
+                #val_test_id = <id>arg
+                #somePyObj = <object>val_test
+                #print "CONVERTED OBJECT VALUE -->", somePyObj
+                val_ptr = val_test_id
                 
             else:
                 (<int*>val_ptr)[0] = 0
@@ -255,10 +266,11 @@ cdef class ObjcMethod(object):
 
             f_index += 1
             f_args[f_index] = val_ptr
-        
+
+            printf("POINTER BEFORE FFI_CALL ==>%p\n", f_args[f_index])
+         
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
 
-        print "prosooooooo"
 
         sig = self.signature_return[0]
         print "return_signature ->", sig
@@ -266,16 +278,20 @@ cdef class ObjcMethod(object):
         cdef ObjcClass cret
         cdef bytes bret
         if sig == '@':
+            printf("f_result_value -->%p", f_result)
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self.p_class
             bret = <bytes><char *>object_getClassName(ret_id)
             print bret
             if bret == "nil":
+                print object(f_result)
+                print "bu!"
                 printf("RETURNED POINTER VALUE --> %p", ret_id)
                 #return <object>ret_id
 
             cret = autoclass(bret)(noinstance=True)
+            printf("will return class %p\n", ret_id)
             cret.o_instance = ret_id
             cret.resolve_methods()
             cret.resolve_fields()
