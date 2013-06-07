@@ -10,9 +10,6 @@ include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
-from libc.stdio cimport printf
-from cpython cimport PyObject_Repr
-from cpython cimport PyObject
 from ctypes import c_void_p
 
 # do the initialization!
@@ -21,6 +18,9 @@ pyobjc_internal_init()
 
 cdef dict oclass_register = {}
 
+cdef pr(void *pointer):
+    # convert a void* to a 0x... value
+    return '0x%x' % <unsigned long>pointer
 
 class ObjcException(Exception):
     pass
@@ -126,18 +126,19 @@ cdef class ObjcMethod(object):
             self.selectors = <SEL *>malloc(sizeof(SEL) * len(py_selectors))
             for index, name in enumerate(py_selectors):
                 self.selectors[index] = sel_registerName(<bytes>name)
+
     cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
-        #printf("%p, %s", self.selector, self.name)
         self.o_instance = o_instance
 
     cdef void ensure_method(self) except *:
-        #if self.is_ready:
-        #    return
+        if self.is_ready:
+            return
 
-        print "signature enshure_method -->", self.signature_return
+        print '-' * 80
+        print 'signature ensure_method -->', self.name, self.signature_return
         # get return type type as ffitype*
         self.f_result_type = type_encoding_to_ffitype(self.signature_return)
 
@@ -178,8 +179,9 @@ cdef class ObjcMethod(object):
         return self._call_instance_method(*args)
 
     def _call_instance_method(self, *args):
-        printf("%p\n", self.o_instance)
-        self.set_resolve_info(self.name, self.o_cls, self.o_instance)
+        print '-' * 80
+        print 'call_instance_method()', self.name, pr(self.o_cls), pr(self.o_instance)
+        #self.set_resolve_info(self.name, self.o_cls, self.o_instance)
         self.ensure_method()
         print '--> want to call', self.name, args
         print '--> return def is', self.signature_return
@@ -203,11 +205,14 @@ cdef class ObjcMethod(object):
         if self.is_static:
             print "static class !!!!"
             f_args[0] = &self.o_cls
+            print ' - [0] static class instance', pr(self.o_cls)
         else:
             f_args[0] = &self.o_instance
+            print ' - [0] class instance', pr(self.o_instance)
+
 
         f_args[1] = &self.selector
-        print ' - selector is', <unsigned long>self.selector
+        print ' - selector is', pr(self.selector)
 
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
@@ -215,7 +220,6 @@ cdef class ObjcMethod(object):
 
         cdef void* test = malloc(sizeof(void *))
         cdef int *num_test
-        print "duzina! -->", len(self.signature_args)
         cdef void* val_test      
         cdef id val_test_id
         cdef ObjcClass ocl
@@ -229,7 +233,8 @@ cdef class ObjcMethod(object):
 
             # we already know the ffitype/size being used
             val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
-            print "allocating {} bytes for arg: {!r}".format(self.f_arg_types[index][0].size, arg)
+            print "index {}: allocating {} bytes for arg: {!r}".format(
+                    index, self.f_arg_types[index][0].size, arg)
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
@@ -249,16 +254,15 @@ cdef class ObjcMethod(object):
                 #arg_objcclass = <ObjcClass>arg
                 print '====> ARG', <ObjcClass>arg
                 ocl = <ObjcClass>arg
-                #printf("%p\n", ocl.o_instance)
                 val_test_id = <id>ocl.o_instance
-                printf("POINTER ==>%p", val_test_id)
+                print ' -> pointer is', pr(val_test_id)
                 #brb = <bytes><char *>object_getClassName(val_test_id)
                 #print "instance =======>", brb
                 #val_test = <void*>arg
                 #val_test_id = <id>arg
                 #somePyObj = <object>val_test
                 #print "CONVERTED OBJECT VALUE -->", somePyObj
-                val_ptr = val_test_id
+                (<id *>val_ptr)[0] = val_test_id
                 
             else:
                 (<int*>val_ptr)[0] = 0
@@ -267,35 +271,34 @@ cdef class ObjcMethod(object):
             f_index += 1
             f_args[f_index] = val_ptr
 
-            printf("POINTER BEFORE FFI_CALL ==>%p\n", f_args[f_index])
+            print 'pointer before ffi_call:', pr(f_args[f_index])
          
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
 
 
         sig = self.signature_return[0]
-        print "return_signature ->", sig
         cdef id ret_id
         cdef ObjcClass cret
         cdef bytes bret
         if sig == '@':
-            printf("f_result_value -->%p", f_result)
+            print ' - @ f_result:', pr(<void *>f_result)
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self.p_class
             bret = <bytes><char *>object_getClassName(ret_id)
-            print bret
-            if bret == "nil":
+            print ' - object_getClassName(f_result) =', bret
+            if bret == 'nil':
                 print object(f_result)
                 print "bu!"
-                printf("RETURNED POINTER VALUE --> %p", ret_id)
+                print '<-- returned pointer value:', pr(ret_id)
+                assert(0)
                 #return <object>ret_id
 
             cret = autoclass(bret)(noinstance=True)
-            printf("will return class %p\n", ret_id)
-            cret.o_instance = ret_id
-            cret.resolve_methods()
-            cret.resolve_fields()
+            cret.instanciate_from(ret_id)
+            print '<-- return object', cret
             return cret
+
         elif sig == 'c':
             # this should be a char. Most of the time, a BOOL is also
             # implemented as a char. So it's not a string, but just the numeric
@@ -383,17 +386,35 @@ cdef class ObjcClass(object):
 
     cdef void instanciate_from(self, id o_instance) except *:
         self.o_instance = o_instance
+        #print 'o_instance', pr(o_instance)
+        # XXX is retain is needed ?
+        self.o_instance = objc_msgSend(self.o_instance, sel_registerName('retain'))
+        #print 'retainCount', <int>objc_msgSend(self.o_instance,
+        #        sel_registerName('retainCount'))
         self.resolve_methods()
         self.resolve_fields()
 
     cdef void call_constructor(self, args) except *:
+        # FIXME it seems that doing nothing is changed:
+        # -> doing alloc + init doesn't change anything, it still run
+        # -> is class_createInstance() is sufficient itself?
+        # -> make tests change with and without alloc+init, check the test_isequal
+        #print '-' * 80
+        #print 'call_constructor() for', self.__cls_storage
         self.o_instance = class_createInstance(self.o_cls, 0);
-        self.o_instance = objc_msgSend(self.o_cls, sel_registerName('alloc'))
+        #print 'o_instance (first)', pr(self.o_instance)
+        #self.o_instance = objc_msgSend(self.o_cls, sel_registerName('alloc'))
+        #print 'o_instance (alloc)', pr(self.o_instance)
+        #print 'retainCount (alloc)', <int>objc_msgSend(self.o_instance,
+        #        sel_registerName('retainCount'))
         if self.o_instance == NULL:
             raise ObjcException('Unable to instanciate {0}'.format(
                 self.__javaclass__))
-        self.o_instance = objc_msgSend(self.o_instance,
-            sel_registerName('init'))
+        #self.o_instance = objc_msgSend(self.o_instance,
+        #    sel_registerName('init'))
+        #print 'o_instance (init)', pr(self.o_instance)
+        #print 'retainCount (init)', <int>objc_msgSend(self.o_instance,
+        #        sel_registerName('retainCount'))
 
 
     cdef void resolve_methods(self) except *:
