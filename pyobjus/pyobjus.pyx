@@ -443,8 +443,12 @@ cdef class_get_static_methods(Class cls):
 
 
 def autoclass(cls_name, new_instance=True):
+    if cls_name in oclass_register:
+        return oclass_register[cls_name]
+    
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
+    
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
     cdef dict merged_class_dict = {}
