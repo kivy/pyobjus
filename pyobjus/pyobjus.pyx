@@ -15,12 +15,17 @@ from ctypes import c_void_p
 # do the initialization!
 pyobjc_internal_init()
 
-
-cdef dict oclass_register = {}
-
 cdef pr(void *pointer):
     # convert a void* to a 0x... value
     return '0x%x' % <unsigned long>pointer
+
+# currently this is no working
+#cdef va_list * make_va_list(id n, ...):
+#    cdef va_list args
+#    va_start(args, n)
+#    return &args
+
+cdef dict oclass_register = {}
 
 class ObjcException(Exception):
     pass
@@ -34,19 +39,19 @@ cdef class ObjcClassStorage:
 
 
 class MetaObjcClass(type):
+    class_methods = dict()
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
+        meta.class_methods.update(classDict)
         tp = type.__new__(meta, classname, bases, classDict)
         oclass_register[classDict['__objcclass__']] = tp
         return tp
 
     def __getattr__(self, name):
-        print "CLASS ---------------->:", self.__name__
         ocls = self.get_objcclass(self.__name__)
         sel_name = name.replace("_",":")
         cdef SEL cls_method_sel
         cls_method_sel = <SEL>(<bytes>sel_name)
-        print <bytes>cls_method_sel
         return None
 
     @staticmethod
@@ -62,7 +67,7 @@ class MetaObjcClass(type):
         cdef bytes __objcclass__ = <bytes>classDict['__objcclass__']
         cdef ObjcClassStorage storage = ObjcClassStorage()
 
-        storage.o_cls = objc_getClass(__objcclass__)
+        storage.o_cls = <Class>objc_getClass(__objcclass__)
         if storage.o_cls == NULL:
             raise ObjcException('Unable to found the class {0!r}'.format(
                 __objcclass__))
@@ -117,7 +122,6 @@ cdef class ObjcMethod(object):
         super(ObjcMethod, self).__init__()
         self.signature = <bytes>signature
         self.signature_return, self.signature_args = parse_signature(signature)
-        #print 'RESOLVE', self.signature_return, self.signature_args
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
 
@@ -181,7 +185,6 @@ cdef class ObjcMethod(object):
     def _call_instance_method(self, *args):
         print '-' * 80
         print 'call_instance_method()', self.name, pr(self.o_cls), pr(self.o_instance)
-        #self.set_resolve_info(self.name, self.o_cls, self.o_instance)
         self.ensure_method()
         print '--> want to call', self.name, args
         print '--> return def is', self.signature_return
@@ -192,7 +195,6 @@ cdef class ObjcMethod(object):
         cdef int index
         cdef size_t size
         cdef ObjcClass arg_objcclass
-        #cdef PyCapsule* ptr
 
         # allocate f_args
         f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
@@ -217,16 +219,7 @@ cdef class ObjcMethod(object):
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
         f_index = 1
-
-        cdef void* test = malloc(sizeof(void *))
-        cdef int *num_test
-        cdef void* val_test      
-        cdef id val_test_id
         cdef ObjcClass ocl
-        cdef bytes brb
-        #brb = <bytes><char *>sel_getName(<SEL>f_args[1])
-        #print  "brb", brb
-        #cdef PyCapsule *objRepr
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
@@ -250,20 +243,10 @@ cdef class ObjcMethod(object):
             elif sig == '*':
                 (<char **>val_ptr)[0] = <char *><bytes>arg
             elif sig == '@':
-                #assert(isinstance(arg, ObjcClass))
-                #arg_objcclass = <ObjcClass>arg
                 print '====> ARG', <ObjcClass>arg
                 ocl = <ObjcClass>arg
-                val_test_id = <id>ocl.o_instance
-                print ' -> pointer is', pr(val_test_id)
-                #brb = <bytes><char *>object_getClassName(val_test_id)
-                #print "instance =======>", brb
-                #val_test = <void*>arg
-                #val_test_id = <id>arg
-                #somePyObj = <object>val_test
-                #print "CONVERTED OBJECT VALUE -->", somePyObj
-                (<id *>val_ptr)[0] = val_test_id
-                
+                (<id*>val_ptr)[0] = <id>ocl.o_instance
+                                
             else:
                 (<int*>val_ptr)[0] = 0
             print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
@@ -274,7 +257,6 @@ cdef class ObjcMethod(object):
             print 'pointer before ffi_call:', pr(f_args[f_index])
          
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
-
 
         sig = self.signature_return[0]
         cdef id ret_id
@@ -288,12 +270,9 @@ cdef class ObjcMethod(object):
             bret = <bytes><char *>object_getClassName(ret_id)
             print ' - object_getClassName(f_result) =', bret
             if bret == 'nil':
-                print object(f_result)
-                print "bu!"
                 print '<-- returned pointer value:', pr(ret_id)
                 assert(0)
-                #return <object>ret_id
-
+            
             cret = autoclass(bret)(noinstance=True)
             cret.instanciate_from(ret_id)
             print '<-- return object', cret
@@ -386,7 +365,6 @@ cdef class ObjcClass(object):
 
     cdef void instanciate_from(self, id o_instance) except *:
         self.o_instance = o_instance
-        #print 'o_instance', pr(o_instance)
         # XXX is retain is needed ?
         self.o_instance = objc_msgSend(self.o_instance, sel_registerName('retain'))
         #print 'retainCount', <int>objc_msgSend(self.o_instance,
@@ -443,53 +421,46 @@ def ensureclass(clsname):
     autoclass(clsname)
 
 
-
-
-
-
-
 cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods
     cdef char *method_name
     cdef char *method_args
     cdef bytes py_name
+    cdef char *argTypeDesc
     cdef dict methods = {}
     cdef Method* class_methods = class_copyMethodList(cls, &num_methods)
     for i in xrange(num_methods):
-        method_name = sel_getName(method_getName(class_methods[i]))
-        method_args = method_getTypeEncoding(class_methods[i])
+        method_name = <char*>sel_getName(method_getName(class_methods[i]))
+        method_args = <char*>method_getTypeEncoding(class_methods[i])
         py_name = (<bytes>method_name).replace(":", "_")
-
+        
         methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
     free(class_methods)
     return methods
 
 cdef class_get_static_methods(Class cls):
-    cdef Class meta_cls = <Class>object_getClass(cls)
+    cdef Class meta_cls = <Class>object_getClass(<id>cls)
     return class_get_methods(meta_cls, True)
 
 
 def autoclass(cls_name):
-    if cls_name in oclass_register:
-        return oclass_register[cls_name]
-
-    cdef dict class_dict = {'__objcclass__': cls_name}
     cdef Class cls = <Class>objc_getClass(cls_name)
+    cdef Class cls_super = class_getSuperclass(cls)
+    super_cls_name = object_getClassName(<id>cls_super)
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
-
-    #print instance_methods
-
-    #print "\n\ninstance methods:"
-    #pprint(instance_methods)
-    #print "\n\nclass methods:"
-    #pprint(class_methods)
+    cdef dict merged_class_dict = {}
+    cdef dict class_dict = {'__objcclass__':  cls_name}
 
     class_dict.update(instance_methods)
     class_dict.update(class_methods)
 
-    return MetaObjcClass.__new__(MetaObjcClass, 
-            cls_name, (ObjcClass, ), class_dict)
+    # if already exist super class instance
+    if super_cls_name in oclass_register:
+        merged_class_dict.update(oclass_register[super_cls_name].class_methods)
+        merged_class_dict.update(instance_methods)
+        merged_class_dict.update(class_methods)
+        return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass,), merged_class_dict)
 
-
+    return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass, ), class_dict)
 
