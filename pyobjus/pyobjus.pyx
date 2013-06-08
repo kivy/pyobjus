@@ -273,7 +273,7 @@ cdef class ObjcMethod(object):
                 print '<-- returned pointer value:', pr(ret_id)
                 assert(0)
             
-            cret = autoclass(bret)(noinstance=True)
+            cret = autoclass(bret, new_instance=False)(noinstance=True)
             cret.instanciate_from(ret_id)
             print '<-- return object', cret
             return cret
@@ -426,7 +426,6 @@ cdef class_get_methods(Class cls, static=False):
     cdef char *method_name
     cdef char *method_args
     cdef bytes py_name
-    cdef char *argTypeDesc
     cdef dict methods = {}
     cdef Method* class_methods = class_copyMethodList(cls, &num_methods)
     for i in xrange(num_methods):
@@ -443,10 +442,9 @@ cdef class_get_static_methods(Class cls):
     return class_get_methods(meta_cls, True)
 
 
-def autoclass(cls_name):
+def autoclass(cls_name, new_instance=True):
     cdef Class cls = <Class>objc_getClass(cls_name)
-    cdef Class cls_super = class_getSuperclass(cls)
-    super_cls_name = object_getClassName(<id>cls_super)
+    cdef Class cls_super
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
     cdef dict merged_class_dict = {}
@@ -454,13 +452,16 @@ def autoclass(cls_name):
 
     class_dict.update(instance_methods)
     class_dict.update(class_methods)
-
-    # if already exist super class instance
-    if super_cls_name in oclass_register:
-        merged_class_dict.update(oclass_register[super_cls_name].class_methods)
-        merged_class_dict.update(instance_methods)
-        merged_class_dict.update(class_methods)
-        return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass,), merged_class_dict)
+    
+    if(new_instance == False):
+        cls_super = class_getSuperclass(cls)
+        super_cls_name = object_getClassName(<id>cls_super)
+        # if already exist super class instance
+        if super_cls_name in oclass_register:
+            merged_class_dict.update(oclass_register[super_cls_name].class_methods)
+            merged_class_dict.update(instance_methods)
+            merged_class_dict.update(class_methods)
+            return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass,), merged_class_dict)
 
     return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass, ), class_dict)
 
