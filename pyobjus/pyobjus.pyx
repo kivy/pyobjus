@@ -10,14 +10,22 @@ include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
-
+from ctypes import c_void_p
 
 # do the initialization!
 pyobjc_internal_init()
 
+cdef pr(void *pointer):
+    # convert a void* to a 0x... value
+    return '0x%x' % <unsigned long>pointer
+
+# currently this is no working
+#cdef va_list * make_va_list(id n, ...):
+#    cdef va_list args
+#    va_start(args, n)
+#    return &args
 
 cdef dict oclass_register = {}
-
 
 class ObjcException(Exception):
     pass
@@ -31,19 +39,19 @@ cdef class ObjcClassStorage:
 
 
 class MetaObjcClass(type):
+    class_methods = dict()
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
+        meta.class_methods.update(classDict)
         tp = type.__new__(meta, classname, bases, classDict)
         oclass_register[classDict['__objcclass__']] = tp
         return tp
 
     def __getattr__(self, name):
-        print "CLASS:", self.__name__
         ocls = self.get_objcclass(self.__name__)
         sel_name = name.replace("_",":")
         cdef SEL cls_method_sel
         cls_method_sel = <SEL>(<bytes>sel_name)
-        print <bytes>cls_method_sel
         return None
 
     @staticmethod
@@ -59,7 +67,7 @@ class MetaObjcClass(type):
         cdef bytes __objcclass__ = <bytes>classDict['__objcclass__']
         cdef ObjcClassStorage storage = ObjcClassStorage()
 
-        storage.o_cls = objc_getClass(__objcclass__)
+        storage.o_cls = <Class>objc_getClass(__objcclass__)
         if storage.o_cls == NULL:
             raise ObjcException('Unable to found the class {0!r}'.format(
                 __objcclass__))
@@ -114,7 +122,6 @@ cdef class ObjcMethod(object):
         super(ObjcMethod, self).__init__()
         self.signature = <bytes>signature
         self.signature_return, self.signature_args = parse_signature(signature)
-        #print 'RESOLVE', self.signature_return, self.signature_args
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
 
@@ -134,6 +141,8 @@ cdef class ObjcMethod(object):
         if self.is_ready:
             return
 
+        print '-' * 80
+        print 'signature ensure_method -->', self.name, self.signature_return
         # get return type type as ffitype*
         self.f_result_type = type_encoding_to_ffitype(self.signature_return)
 
@@ -146,6 +155,7 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in self.signature_args:
+            print "argument ==>", arg, len(self.signature_args)
             self.f_arg_types[index] = type_encoding_to_ffitype(arg)
             index = index + 1
 
@@ -172,11 +182,9 @@ cdef class ObjcMethod(object):
         #    return self._call_class_method(*args)
         return self._call_instance_method(*args)
 
-
-
-
     def _call_instance_method(self, *args):
-
+        print '-' * 80
+        print 'call_instance_method()', self.name, pr(self.o_cls), pr(self.o_instance)
         self.ensure_method()
         print '--> want to call', self.name, args
         print '--> return def is', self.signature_return
@@ -197,26 +205,33 @@ cdef class ObjcMethod(object):
         # arg 0 and 1 are the instance and the method selector
         #for class methods, we need the class itself is theinstance
         if self.is_static:
+            print "static class !!!!"
             f_args[0] = &self.o_cls
+            print ' - [0] static class instance', pr(self.o_cls)
         else:
             f_args[0] = &self.o_instance
+            print ' - [0] class instance', pr(self.o_instance)
+
 
         f_args[1] = &self.selector
-        print ' - selector is', <unsigned long>self.selector
+        print ' - selector is', pr(self.selector)
 
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
         f_index = 1
+        cdef ObjcClass ocl
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
 
             # we already know the ffitype/size being used
             val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
-            print "allocating {} bytes for arg: {!r}".format(self.f_arg_types[index][0].size, arg)
+            print "index {}: allocating {} bytes for arg: {!r}".format(
+                    index, self.f_arg_types[index][0].size, arg)
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
+
             if sig == 'c':
                 (<char*>val_ptr)[0] = bytes(arg)
             elif sig == 'i':
@@ -228,10 +243,10 @@ cdef class ObjcMethod(object):
             elif sig == '*':
                 (<char **>val_ptr)[0] = <char *><bytes>arg
             elif sig == '@':
-                assert(isinstance(arg, ObjcClass))
-                arg_objcclass = <ObjcClass>arg
-                print '====> ARG', arg
-                (<id *>val_ptr)[0] = <id>arg_objcclass.o_instance
+                print '====> ARG', <ObjcClass>arg
+                ocl = <ObjcClass>arg
+                (<id*>val_ptr)[0] = <id>ocl.o_instance
+                                
             else:
                 (<int*>val_ptr)[0] = 0
             print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
@@ -239,6 +254,8 @@ cdef class ObjcMethod(object):
             f_index += 1
             f_args[f_index] = val_ptr
 
+            print 'pointer before ffi_call:', pr(f_args[f_index])
+         
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
 
         sig = self.signature_return[0]
@@ -246,16 +263,21 @@ cdef class ObjcMethod(object):
         cdef ObjcClass cret
         cdef bytes bret
         if sig == '@':
+            print ' - @ f_result:', pr(<void *>f_result)
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self.p_class
-
             bret = <bytes><char *>object_getClassName(ret_id)
-            cret = autoclass(bret)(noinstance=True)
-            cret.o_instance = ret_id
-            cret.resolve_methods()
-            cret.resolve_fields()
+            print ' - object_getClassName(f_result) =', bret
+            if bret == 'nil':
+                print '<-- returned pointer value:', pr(ret_id)
+                assert(0)
+            
+            cret = autoclass(bret, new_instance=False)(noinstance=True)
+            cret.instanciate_from(ret_id)
+            print '<-- return object', cret
             return cret
+
         elif sig == 'c':
             # this should be a char. Most of the time, a BOOL is also
             # implemented as a char. So it's not a string, but just the numeric
@@ -289,9 +311,6 @@ cdef class ObjcMethod(object):
             return None
         elif sig == '*':
             return <bytes>(<char*>f_result)
-        elif sig == '@':
-            # id ?return (<long*>f_result)[0]
-            pass
         elif sig == '#':
             # class ?
             pass
@@ -321,7 +340,6 @@ cdef class ObjcMethod(object):
             assert(0)
 
 
-
 cdef class ObjcClass(object):
     cdef Class o_cls
     cdef id o_instance
@@ -347,17 +365,34 @@ cdef class ObjcClass(object):
 
     cdef void instanciate_from(self, id o_instance) except *:
         self.o_instance = o_instance
+        # XXX is retain is needed ?
+        self.o_instance = objc_msgSend(self.o_instance, sel_registerName('retain'))
+        #print 'retainCount', <int>objc_msgSend(self.o_instance,
+        #        sel_registerName('retainCount'))
         self.resolve_methods()
         self.resolve_fields()
 
     cdef void call_constructor(self, args) except *:
+        # FIXME it seems that doing nothing is changed:
+        # -> doing alloc + init doesn't change anything, it still run
+        # -> is class_createInstance() is sufficient itself?
+        # -> make tests change with and without alloc+init, check the test_isequal
+        #print '-' * 80
+        #print 'call_constructor() for', self.__cls_storage
         self.o_instance = class_createInstance(self.o_cls, 0);
-        self.o_instance = objc_msgSend(self.o_cls, sel_registerName('alloc'))
+        #print 'o_instance (first)', pr(self.o_instance)
+        #self.o_instance = objc_msgSend(self.o_cls, sel_registerName('alloc'))
+        #print 'o_instance (alloc)', pr(self.o_instance)
+        #print 'retainCount (alloc)', <int>objc_msgSend(self.o_instance,
+        #        sel_registerName('retainCount'))
         if self.o_instance == NULL:
             raise ObjcException('Unable to instanciate {0}'.format(
                 self.__javaclass__))
-        self.o_instance = objc_msgSend(self.o_instance,
-            sel_registerName('init'))
+        #self.o_instance = objc_msgSend(self.o_instance,
+        #    sel_registerName('init'))
+        #print 'o_instance (init)', pr(self.o_instance)
+        #print 'retainCount (init)', <int>objc_msgSend(self.o_instance,
+        #        sel_registerName('retainCount'))
 
 
     cdef void resolve_methods(self) except *:
@@ -386,11 +421,6 @@ def ensureclass(clsname):
     autoclass(clsname)
 
 
-
-
-
-
-
 cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods
     cdef char *method_name
@@ -399,37 +429,43 @@ cdef class_get_methods(Class cls, static=False):
     cdef dict methods = {}
     cdef Method* class_methods = class_copyMethodList(cls, &num_methods)
     for i in xrange(num_methods):
-        method_name = sel_getName(method_getName(class_methods[i]))
-        method_args = method_getTypeEncoding(class_methods[i])
+        method_name = <char*>sel_getName(method_getName(class_methods[i]))
+        method_args = <char*>method_getTypeEncoding(class_methods[i])
         py_name = (<bytes>method_name).replace(":", "_")
+        
         methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
     free(class_methods)
     return methods
 
 cdef class_get_static_methods(Class cls):
-    cdef Class meta_cls = <Class>object_getClass(cls)
+    cdef Class meta_cls = <Class>object_getClass(<id>cls)
     return class_get_methods(meta_cls, True)
 
 
-def autoclass(cls_name):
+def autoclass(cls_name, new_instance=True):
     if cls_name in oclass_register:
         return oclass_register[cls_name]
-
-    cdef dict class_dict = {'__objcclass__': cls_name}
+    
     cdef Class cls = <Class>objc_getClass(cls_name)
+    cdef Class cls_super
+    
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
-
-    #print "\n\ninstance methods:"
-    #pprint(instance_methods)
-    #print "\n\nclass methods:"
-    #pprint(class_methods)
+    cdef dict merged_class_dict = {}
+    cdef dict class_dict = {'__objcclass__':  cls_name}
 
     class_dict.update(instance_methods)
     class_dict.update(class_methods)
+    
+    if(new_instance == False):
+        cls_super = class_getSuperclass(cls)
+        super_cls_name = object_getClassName(<id>cls_super)
+        # if already exist super class instance
+        if super_cls_name in oclass_register:
+            merged_class_dict.update(oclass_register[super_cls_name].class_methods)
+            merged_class_dict.update(instance_methods)
+            merged_class_dict.update(class_methods)
+            return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass,), merged_class_dict)
 
-    return MetaObjcClass.__new__(MetaObjcClass, 
-            cls_name, (ObjcClass, ), class_dict)
-
-
+    return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass, ), class_dict)
 

@@ -2,6 +2,8 @@
 #include <objc/objc-runtime.h>
 #include <stdio.h>
 #include <dlfcn.h>
+#include <Python.h> 
+#include <stdint.h>
 
 static void pyobjc_internal_init() {
 	static void *foundation = NULL;
@@ -16,7 +18,7 @@ static void pyobjc_internal_init() {
 }
 
 id allocAndInitAutoreleasePool() {
-  Class NSAutoreleasePoolClass = objc_getClass("NSAutoreleasePool");
+  Class NSAutoreleasePoolClass = (Class)objc_getClass("NSAutoreleasePool");
   id pool = class_createInstance(NSAutoreleasePoolClass, 0);
   return objc_msgSend(pool, sel_registerName("init"));
 }
