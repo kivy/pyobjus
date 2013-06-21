@@ -11,6 +11,7 @@ include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
 from ctypes import c_void_p
+from debug import dprint
 
 # do the initialization!
 pyobjc_internal_init()
@@ -141,8 +142,8 @@ cdef class ObjcMethod(object):
         if self.is_ready:
             return
 
-        print '-' * 80
-        print 'signature ensure_method -->', self.name, self.signature_return
+        dprint('-' * 80)
+        dprint('signature ensure_method -->', self.name, self.signature_return)
         # get return type type as ffitype*
         self.f_result_type = type_encoding_to_ffitype(self.signature_return)
 
@@ -155,7 +156,7 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in self.signature_args:
-            print "argument ==>", arg, len(self.signature_args)
+            dprint("argument ==>", arg, len(self.signature_args))
             self.f_arg_types[index] = type_encoding_to_ffitype(arg)
             index = index + 1
 
@@ -183,12 +184,12 @@ cdef class ObjcMethod(object):
         return self._call_instance_method(*args)
 
     def _call_instance_method(self, *args):
-        print '-' * 80
-        print 'call_instance_method()', self.name, pr(self.o_cls), pr(self.o_instance)
+        dprint('-' * 80)
+        dprint('call_instance_method()', self.name, pr(self.o_cls), pr(self.o_instance))
         self.ensure_method()
-        print '--> want to call', self.name, args
-        print '--> return def is', self.signature_return
-        print '--> args def is', self.signature_args
+        dprint('--> want to call', self.name, args)
+        dprint('--> return def is', self.signature_return)
+        dprint('--> args def is', self.signature_args)
 
         cdef ffi_arg f_result
         cdef void **f_args
@@ -205,16 +206,15 @@ cdef class ObjcMethod(object):
         # arg 0 and 1 are the instance and the method selector
         #for class methods, we need the class itself is theinstance
         if self.is_static:
-            print "static class !!!!"
             f_args[0] = &self.o_cls
-            print ' - [0] static class instance', pr(self.o_cls)
+            dprint(' - [0] static class instance', pr(self.o_cls))
         else:
             f_args[0] = &self.o_instance
-            print ' - [0] class instance', pr(self.o_instance)
+            dprint(' - [0] class instance', pr(self.o_instance))
 
 
         f_args[1] = &self.selector
-        print ' - selector is', pr(self.selector)
+        dprint(' - selector is', pr(self.selector))
 
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
@@ -226,8 +226,8 @@ cdef class ObjcMethod(object):
 
             # we already know the ffitype/size being used
             val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
-            print "index {}: allocating {} bytes for arg: {!r}".format(
-                    index, self.f_arg_types[index][0].size, arg)
+            dprint("index {}: allocating {} bytes for arg: {!r}".format(
+                    index, self.f_arg_types[index][0].size, arg))
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
@@ -243,18 +243,18 @@ cdef class ObjcMethod(object):
             elif sig == '*':
                 (<char **>val_ptr)[0] = <char *><bytes>arg
             elif sig == '@':
-                print '====> ARG', <ObjcClass>arg
+                dprint('====> ARG', <ObjcClass>arg)
                 ocl = <ObjcClass>arg
                 (<id*>val_ptr)[0] = <id>ocl.o_instance
                                 
             else:
                 (<int*>val_ptr)[0] = 0
-            print "fargs[{0}] = {1}, {2!r}".format(index, sig, arg)
+            dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
 
             f_index += 1
             f_args[f_index] = val_ptr
 
-            print 'pointer before ffi_call:', pr(f_args[f_index])
+            dprint('pointer before ffi_call:', pr(f_args[f_index]))
          
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
 
@@ -263,19 +263,19 @@ cdef class ObjcMethod(object):
         cdef ObjcClass cret
         cdef bytes bret
         if sig == '@':
-            print ' - @ f_result:', pr(<void *>f_result)
+            dprint(' - @ f_result:', pr(<void *>f_result))
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self.p_class
             bret = <bytes><char *>object_getClassName(ret_id)
-            print ' - object_getClassName(f_result) =', bret
+            dprint(' - object_getClassName(f_result) =', bret)
             if bret == 'nil':
-                print '<-- returned pointer value:', pr(ret_id)
+                dprint('<-- returned pointer value:', pr(ret_id))
                 assert(0)
             
             cret = autoclass(bret, new_instance=False)(noinstance=True)
             cret.instanciate_from(ret_id)
-            print '<-- return object', cret
+            dprint('<-- return object', cret)
             return cret
 
         elif sig == 'c':
