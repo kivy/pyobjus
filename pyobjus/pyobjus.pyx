@@ -34,10 +34,8 @@ cdef class ObjcClassStorage:
 
 
 class MetaObjcClass(type):
-    class_methods = dict()
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
-        meta.class_methods.update(classDict)
         tp = type.__new__(meta, classname, bases, classDict)
         oclass_register[classDict['__objcclass__']] = tp
         return tp
@@ -264,8 +262,8 @@ cdef class ObjcMethod(object):
             bret = <bytes><char *>object_getClassName(ret_id)
             dprint(' - object_getClassName(f_result) =', bret)
             if bret == 'nil':
-                dprint('<-- returned pointer value:', pr(ret_id))
-                assert(0)
+                dprint('<-- returned pointer value:', pr(ret_id), type="w")
+                return None
             
             cret = autoclass(bret, new_instance=False)(noinstance=True)
             cret.instanciate_from(ret_id)
@@ -435,31 +433,63 @@ cdef class_get_static_methods(Class cls):
     cdef Class meta_cls = <Class>object_getClass(<id>cls)
     return class_get_methods(meta_cls, True)
 
+cdef class_get_super_class_name(Class cls):
+    """ Get super class name of some class
+    Args:
+        cls: Class for which we will lookup for super class name
+    Returns:
+        Super class name of class
+    """
+    cdef Class cls_super = class_getSuperclass(<Class>cls)
+    return object_getClassName(<id>cls_super)
+
+cdef resolve_super_class_methods(Class cls):
+    """ Getting super classes methods of some class
+    Args:
+        cls: Class for which we will try to get super methods
+        
+    Returns:
+        A dict with super methods
+    """
+    cdef dict super_cls_methods_dict = {}
+    cdef Class cls_super = class_getSuperclass(<Class>cls)
+    super_cls_name = object_getClassName(<id>cls_super)
+    
+    while str(super_cls_name) != "nil":
+        super_cls_methods_dict.update(class_get_methods(cls_super))
+        super_cls_methods_dict.update(class_get_methods(cls_super))
+        
+        cls = <Class>objc_getClass(super_cls_name)
+        super_cls_name = class_get_super_class_name(cls)
+
+    return super_cls_methods_dict
 
 def autoclass(cls_name, new_instance=True):
     if cls_name in oclass_register:
         return oclass_register[cls_name]
-    
+
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
-    
+
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
     cdef dict merged_class_dict = {}
     cdef dict class_dict = {'__objcclass__':  cls_name}
 
+    # if this is new instance, get super methods
+    if(new_instance == True):
+        class_dict.update(resolve_super_class_methods(cls))
+    
     class_dict.update(instance_methods)
     class_dict.update(class_methods)
-    
+
     if(new_instance == False):
-        cls_super = class_getSuperclass(cls)
-        super_cls_name = object_getClassName(<id>cls_super)
+        super_cls_name = class_get_super_class_name(cls)
         # if already exist super class instance
         if super_cls_name in oclass_register:
-            merged_class_dict.update(oclass_register[super_cls_name].class_methods)
+            merged_class_dict.update(oclass_register[super_cls_name].__dict__)
             merged_class_dict.update(instance_methods)
             merged_class_dict.update(class_methods)
             return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass,), merged_class_dict)
 
     return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass, ), class_dict)
-

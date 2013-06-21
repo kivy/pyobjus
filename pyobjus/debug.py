@@ -3,7 +3,8 @@ DEBUG = True
 debug_types = {
     "d": "DEBUG",
     "w": "WARNING",
-    "e": "ERROR"
+    "e": "ERROR",
+    "i": "INFO"
     }
 
 def dprint(*args, **kwargs):
