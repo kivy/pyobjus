@@ -20,12 +20,6 @@ cdef pr(void *pointer):
     # convert a void* to a 0x... value
     return '0x%x' % <unsigned long>pointer
 
-# currently this is no working
-#cdef va_list * make_va_list(id n, ...):
-#    cdef va_list args
-#    va_start(args, n)
-#    return &args
-
 cdef dict oclass_register = {}
 
 class ObjcException(Exception):
