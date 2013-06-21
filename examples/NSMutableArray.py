@@ -28,3 +28,10 @@ print "count of array after object delete -->", count
 returnedObject = array.objectAtIndex_(0)
 value = returnedObject.UTF8String()
 print "string value of returned object -->", value
+
+# call method which accepts multiple arguments
+array.insertObject_atIndex_(text_val_two, 1)
+returnedObject = array.objectAtIndex_(1)
+value = returnedObject.UTF8String()
+print "string value of returned object at index 1 -->", value
+

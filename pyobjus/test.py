@@ -46,12 +46,11 @@ value = new_returnedObject.UTF8String()
 print "-" * 80
 print "string value of second returned object -->", value
 
-newArray.removeObject_(new_returnedObject)
+newArray.insertObject_atIndex_(new_returnedObject, 0)
+
 count = newArray.count()
 
-print "-" * 80
-print "count of newArray -->", count
-print "-" * 80
+print count
 
 
 
