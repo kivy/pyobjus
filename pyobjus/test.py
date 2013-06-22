@@ -4,8 +4,10 @@ ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/Br
 from pyobjus import autoclass
 
 NSArray = autoclass("NSArray")
+
 NSString = autoclass('NSString')
 text = NSString().initWithUTF8String_("some text")
+
 newText = NSString().initWithUTF8String_("some other text")
 string_for_static_array = NSString().initWithUTF8String_("some text for NSArray")
 
@@ -48,10 +50,13 @@ print "-" * 80
 print "string value of second returned object -->", value
 
 newArray.insertObject_atIndex_(new_returnedObject, 0)
-
 count = newArray.count()
-
 print count
+ocls = text.oclass()
+print array.isKindOfClass_(ocls)
 
+print newText.isKindOfClass_(ocls)
+print text.isKindOfClass_(ocls)
 
-
+ocls = array.oclass()
+print text.isKindOfClass_(ocls)
