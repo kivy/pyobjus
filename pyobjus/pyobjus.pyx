@@ -124,9 +124,6 @@ cdef class ObjcMethod(object):
             for index, name in enumerate(py_selectors):
                 self.selectors[index] = sel_registerName(<bytes>name)
 
-    cdef void set_selector(self, name):
-        self.selector = sel_registerName(<bytes>name)
-
     cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
 
         # we are doing this because we can't call method with class() -> it is python keyword, so
