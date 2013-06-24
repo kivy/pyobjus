@@ -70,12 +70,13 @@ print text.respondsToSelector_(sel_one)
 print text.respondsToSelector_(sel_two)
 print text.respondsToSelector_(selector("init"))
 
-print "NSArray"
+print "NSMutableArray"
 print array.respondsToSelector_(sel_one)
 print array.respondsToSelector_(sel_two)
 print array.respondsToSelector_(selector("retain"))
 print array.respondsToSelector_(selector("insertObject:atIndex:"))
 
+print "NSArray"
 print static_array.respondsToSelector_(selector("insertObject:atIndex:"))
 
 

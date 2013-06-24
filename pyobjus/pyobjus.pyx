@@ -352,7 +352,7 @@ cdef class ObjcMethod(object):
         elif sig == ':':
             osel = ObjcSelector()
             osel.selector = <SEL>f_result
-            pass
+            return osel
         elif sig[0] == '[':
             # array
             pass
