@@ -1,7 +1,7 @@
 import ctypes
 ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 
-from pyobjus import autoclass
+from pyobjus import autoclass, selector
 
 NSArray = autoclass("NSArray")
 
@@ -60,3 +60,22 @@ print text.isKindOfClass_(ocls)
 
 ocls = array.oclass()
 print text.isKindOfClass_(ocls)
+
+sel_one = selector("UTF8String")
+sel_two = selector("objectAtIndex:")
+
+print "NSString"
+print text.instancesRespondToSelector_(sel_one)
+print text.respondsToSelector_(sel_one)
+print text.respondsToSelector_(sel_two)
+print text.respondsToSelector_(selector("init"))
+
+print "NSArray"
+print array.respondsToSelector_(sel_one)
+print array.respondsToSelector_(sel_two)
+print array.respondsToSelector_(selector("retain"))
+print array.respondsToSelector_(selector("insertObject:atIndex:"))
+
+print static_array.respondsToSelector_(selector("insertObject:atIndex:"))
+
+

@@ -76,6 +76,26 @@ class MetaObjcClass(type):
 
         # FIXME do the static fields resolution
 
+cpdef selector(name):
+    """ Function for getting selector for given method name
+
+    Args:
+        name: method name
+    Returns:
+        ObjcSelector instance, which contains SEL pointer
+    """
+    osel = ObjcSelector()
+    osel.selector = sel_registerName(name)
+    dprint(pr(osel.selector), type="i")
+    return osel
+
+cdef class ObjcSelector(object):
+    """ Class for storing selector 
+    """    
+    cdef SEL selector 
+
+    def __cinit__(self, *args, **kwargs):
+        self.selector = NULL
 
 cdef class ObjcMethod(object):
     cdef bytes name
@@ -250,8 +270,14 @@ cdef class ObjcMethod(object):
             elif sig == '#':
                 dprint('===> Class arg', <ObjcClass>arg)
                 ocl = <ObjcClass>arg
-                (<id*>val_ptr)[0] = <id>ocl.o_cls
-
+                (<Class*>val_ptr)[0] = <Class>ocl.o_cls
+            # method is accepting selector
+            elif sig == ":":
+                dprint("==> Selector arg", <ObjcSelector>arg)
+                osel = <ObjcSelector>arg
+                dprint(pr(osel.selector), type="i")
+                (<id*>val_ptr)[0] = <id>osel.selector
+            
             else:
                 (<int*>val_ptr)[0] = 0
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
@@ -322,8 +348,10 @@ cdef class ObjcMethod(object):
             ocl = ObjcClass(noinstance="True", getcls="True")
             ocl.o_cls = <Class>object_getClass(<id>f_result)
             return ocl
+        # return type -> selector
         elif sig == ':':
-            # selector ? but as a return ?
+            osel = ObjcSelector()
+            osel.selector = <SEL>f_result
             pass
         elif sig[0] == '[':
             # array
@@ -474,9 +502,9 @@ cdef resolve_super_class_methods(Class cls):
     super_cls_name = object_getClassName(<id>cls_super)
     
     while str(super_cls_name) != "nil":
-        super_cls_methods_dict.update(class_get_methods(cls_super))
         super_cls_methods_dict.update(class_get_static_methods(cls_super))
-
+        super_cls_methods_dict.update(class_get_methods(cls_super))
+        
         super_cls_name = class_get_super_class_name(cls_super)
         cls_super = <Class>objc_getClass(super_cls_name)
 
@@ -502,8 +530,8 @@ def autoclass(cls_name, new_instance=True):
         else:
             class_dict.update(resolve_super_class_methods(cls))
         
-    class_dict.update(instance_methods)
     class_dict.update(class_methods)
+    class_dict.update(instance_methods)
 
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})
