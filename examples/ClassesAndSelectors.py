@@ -10,7 +10,7 @@ NSString = autoclass('NSString')
 text = NSString.alloc().initWithUTF8String_("some text")
 array = NSArray.arrayWithObject_(text)
 
-# equivalent to [text class];
+# equivalent to [NSString class];
 objc_class = NSString.oclass()
 print NSString.isKindOfClass_(NSObject.oclass())
 print NSString.isKindOfClass_(NSArray.oclass())
