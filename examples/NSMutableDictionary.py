@@ -6,18 +6,18 @@ from pyobjus import autoclass
 NSString = autoclass('NSString')
 NSMutableDictionary = autoclass("NSMutableDictionary")
 
-string_object = NSString().stringWithUTF8String_("some text for NSDictionary")
-string_key = NSString().stringWithUTF8String_("someKey")
+string_object = NSString.stringWithUTF8String_("some text for NSDictionary")
+string_key = NSString.stringWithUTF8String_("someKey")
 
-string_object_second = NSString().stringWithUTF8String_("some other text for NSDictionary")
-string_key_second = NSString().stringWithUTF8String_("someOtherKey")
+string_object_second = NSString.stringWithUTF8String_("some other text for NSDictionary")
+string_key_second = NSString.stringWithUTF8String_("someOtherKey")
 
 objects_dict = {
     string_key: string_object,
     string_key_second: string_object_second
 }
 
-mutable_dictionary = NSMutableDictionary().dictionaryWithCapacity_(10)
+mutable_dictionary = NSMutableDictionary.dictionaryWithCapacity_(10)
 
 # we can add objects to dict now
 for key in objects_dict:

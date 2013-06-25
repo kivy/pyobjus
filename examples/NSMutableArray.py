@@ -6,9 +6,9 @@ from pyobjus import autoclass
 NSString = autoclass('NSString')
 NSMutableArray = autoclass("NSMutableArray")
 
-array = NSMutableArray().arrayWithCapacity_(5)
-text_val_one = NSString().initWithUTF8String_("some text for NSMutableArray")
-text_val_two = NSString().initWithUTF8String_("some other text for NSMutableArray")
+array = NSMutableArray.arrayWithCapacity_(5)
+text_val_one = NSString.alloc().initWithUTF8String_("some text for NSMutableArray")
+text_val_two = NSString.alloc().initWithUTF8String_("some other text for NSMutableArray")
 
 # we add some objects to NSMutableArray
 array.addObject_(text_val_one)

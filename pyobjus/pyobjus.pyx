@@ -2,8 +2,8 @@
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
 
-__all__ = ('ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException',
-    'autoclass')
+__all__ = ('ObjcClassInstance', 'ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException',
+    'autoclass', 'selector')
 
 
 include "common.pxi"
@@ -37,7 +37,15 @@ class MetaObjcClass(type):
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
         tp = type.__new__(meta, classname, bases, classDict)
-        oclass_register[classDict['__objcclass__']] = tp
+        
+        if(classDict['__objcclass__'] not in oclass_register):
+            oclass_register[classDict['__objcclass__']] = {}
+
+        # for every class we save class instance and class object to cache
+        if(ObjcClass not in bases):
+            oclass_register[classDict['__objcclass__']]['instance'] = tp
+        else:
+            oclass_register[classDict['__objcclass__']]['class'] = tp
         return tp
 
     def __getattr__(self, name):
@@ -76,7 +84,7 @@ class MetaObjcClass(type):
 
         # FIXME do the static fields resolution
 
-cpdef selector(name):
+def selector(name):
     """ Function for getting selector for given method name
 
     Args:
@@ -107,7 +115,7 @@ cdef class ObjcMethod(object):
     cdef id o_instance
     cdef SEL selector 
     cdef SEL *selectors
-    cdef ObjcClass p_class
+    cdef ObjcClassInstance p_class
 
     cdef int is_ready
     cdef ffi_cif f_cif
@@ -143,6 +151,9 @@ cdef class ObjcMethod(object):
             self.selectors = <SEL *>malloc(sizeof(SEL) * len(py_selectors))
             for index, name in enumerate(py_selectors):
                 self.selectors[index] = sel_registerName(<bytes>name)
+
+    def set_is_static(self, value):
+        self.is_static = value
 
     cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
 
@@ -192,7 +203,7 @@ cdef class ObjcMethod(object):
     def __get__(self, obj, objtype):
         if obj is None:
             return self
-        cdef ObjcClass oc = obj
+        cdef ObjcClassInstance oc = obj
         self.o_instance = oc.o_instance
         return self
 
@@ -215,7 +226,7 @@ cdef class ObjcMethod(object):
         cdef void **f_args
         cdef int index
         cdef size_t size
-        cdef ObjcClass arg_objcclass
+        cdef ObjcClassInstance arg_objcclass
 
         # allocate f_args
         f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
@@ -239,7 +250,7 @@ cdef class ObjcMethod(object):
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
         f_index = 1
-        cdef ObjcClass ocl
+        cdef ObjcClassInstance ocl
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
@@ -263,19 +274,18 @@ cdef class ObjcMethod(object):
             elif sig == '*':
                 (<char **>val_ptr)[0] = <char *><bytes>arg
             elif sig == '@':
-                dprint('====> ARG', <ObjcClass>arg)
-                ocl = <ObjcClass>arg
+                dprint('====> ARG', <ObjcClassInstance>arg)
+                ocl = <ObjcClassInstance>arg
                 (<id*>val_ptr)[0] = <id>ocl.o_instance
             # method is accepting class
             elif sig == '#':
-                dprint('===> Class arg', <ObjcClass>arg)
-                ocl = <ObjcClass>arg
+                dprint('===> Class arg', <ObjcClassInstance>arg)
+                ocl = <ObjcClassInstance>arg
                 (<Class*>val_ptr)[0] = <Class>ocl.o_cls
             # method is accepting selector
             elif sig == ":":
                 dprint("==> Selector arg", <ObjcSelector>arg)
                 osel = <ObjcSelector>arg
-                dprint(pr(osel.selector), type="i")
                 (<id*>val_ptr)[0] = <id>osel.selector
             
             else:
@@ -292,7 +302,7 @@ cdef class ObjcMethod(object):
         sig = self.signature_return[0]
         dprint("return signature", sig, type="i")
         cdef id ret_id
-        cdef ObjcClass cret
+        cdef ObjcClassInstance cret
         cdef bytes bret
         if sig == '@':
             dprint(' - @ f_result:', pr(<void *>f_result))
@@ -305,7 +315,7 @@ cdef class ObjcMethod(object):
                 dprint('<-- returned pointer value:', pr(ret_id), type="w")
                 return None
             
-            cret = autoclass(bret, new_instance=False)(noinstance=True)
+            cret = autoclass(bret, new_instance=True)(noinstance=True)
             cret.instanciate_from(ret_id)
             dprint('<-- return object', cret)
             return cret
@@ -345,7 +355,7 @@ cdef class ObjcMethod(object):
             return <bytes>(<char*>f_result)
         # return type -> class
         elif sig == '#':
-            ocl = ObjcClass(noinstance="True", getcls="True")
+            ocl = ObjcClassInstance(noinstance="True", getcls="True")
             ocl.o_cls = <Class>object_getClass(<id>f_result)
             return ocl
         # return type -> selector
@@ -377,6 +387,15 @@ cdef class ObjcMethod(object):
 
 
 cdef class ObjcClass(object):
+    # if we are calling class method, set is_statis field to True
+    def __getattribute__(self, attr):
+        if(isinstance(object.__getattribute__(self, attr), ObjcMethod)):
+            object.__getattribute__(self, attr).set_is_static(True)
+
+        return object.__getattribute__(self, attr)
+
+
+cdef class ObjcClassInstance(object):
     cdef Class o_cls
     cdef id o_instance
 
@@ -385,7 +404,7 @@ cdef class ObjcClass(object):
         self.o_instance = NULL
 
     def __init__(self, *args, **kwargs):
-        super(ObjcClass, self).__init__()
+        super(ObjcClassInstance, self).__init__()
         cdef ObjcClassStorage storage
         if 'getcls' not in kwargs:
             storage = self.__cls_storage
@@ -434,6 +453,7 @@ cdef class ObjcClass(object):
 
 
     cdef void resolve_methods(self) except *:
+        
         cdef ObjcMethod om
         for name, value in self.__class__.__dict__.iteritems():
             if isinstance(value, ObjcMethod):
@@ -446,18 +466,7 @@ cdef class ObjcClass(object):
     cdef void resolve_fields(self) except *:
         pass
 
-
 registers = []
-
-def ensureclass(clsname):
-    if clsname in registers:
-        return
-    objcname = clsname.replace('.', '/')
-    if MetaObjcClass.get_objcclass(objcname):
-        return
-    registers.append(clsname)
-    autoclass(clsname)
-
 
 cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods
@@ -489,7 +498,7 @@ cdef class_get_super_class_name(Class cls):
     cdef Class cls_super = class_getSuperclass(<Class>cls)
     return object_getClassName(<id>cls_super)
 
-cdef resolve_super_class_methods(Class cls):
+cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
     Args:
         cls: Class for which we will try to get super methods
@@ -502,17 +511,25 @@ cdef resolve_super_class_methods(Class cls):
     super_cls_name = object_getClassName(<id>cls_super)
     
     while str(super_cls_name) != "nil":
-        super_cls_methods_dict.update(class_get_static_methods(cls_super))
-        super_cls_methods_dict.update(class_get_methods(cls_super))
-        
+        if(instance_methods == True):
+            super_cls_methods_dict.update(class_get_methods(cls_super))
+        else:
+            super_cls_methods_dict.update(class_get_static_methods(cls_super))
+
         super_cls_name = class_get_super_class_name(cls_super)
         cls_super = <Class>objc_getClass(super_cls_name)
 
     return super_cls_methods_dict
 
-def autoclass(cls_name, new_instance=True):
+def autoclass(cls_name, new_instance=False):
+    # if class or class instance is already in cache, return requested value
     if cls_name in oclass_register:
-        return oclass_register[cls_name]
+        if new_instance == False and "class" in oclass_register[cls_name]:
+            dprint("getting class from cache...", type='i')
+            return oclass_register[cls_name]['class']
+        elif new_instance == True and "instance" in oclass_register[cls_name]:
+            dprint('getting instance from cache...', type='i')
+            return oclass_register[cls_name]['instance']
 
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
@@ -521,20 +538,20 @@ def autoclass(cls_name, new_instance=True):
     cdef dict class_methods = class_get_static_methods(cls)
     cdef dict class_dict = {'__objcclass__':  cls_name}
 
-    if(new_instance == True):
-        class_dict.update(resolve_super_class_methods(cls))
+    # if this isn't new instance of some class, retrieve only static methods
+    if(new_instance == False):
+        class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
+        class_dict.update(class_methods)
+    # otherwise retrieve instance methods
     else:
-        super_cls_name = class_get_super_class_name(cls)
-        if super_cls_name in oclass_register:
-            class_dict.update(oclass_register[super_cls_name].__dict__)
-        else:
-            class_dict.update(resolve_super_class_methods(cls))
-        
-    class_dict.update(class_methods)
-    class_dict.update(instance_methods)
+        class_dict.update(resolve_super_class_methods(cls))
+        class_dict.update(instance_methods)
 
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)
 
-    return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClass, ), class_dict)
+    if(new_instance == False):
+        return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClass), class_dict)()
+
+    return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance,), class_dict)

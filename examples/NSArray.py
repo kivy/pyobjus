@@ -6,8 +6,8 @@ from pyobjus import autoclass
 NSString = autoclass('NSString')
 NSArray = autoclass("NSArray")
 
-string_for_array = NSString().initWithUTF8String_("some text for NSArray")
-array = NSArray().arrayWithObject_(string_for_array)
+string_for_array = NSString.alloc().initWithUTF8String_("some text for NSArray")
+array = NSArray.arrayWithObject_(string_for_array)
 
 returnedObject = array.objectAtIndex_(0)
 value = returnedObject.UTF8String()
