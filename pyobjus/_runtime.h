@@ -2,8 +2,6 @@
 #include <objc/objc-runtime.h>
 #include <stdio.h>
 #include <dlfcn.h>
-#include <Python.h> 
-#include <stdint.h>
 
 static void pyobjc_internal_init() {
 	static void *foundation = NULL;

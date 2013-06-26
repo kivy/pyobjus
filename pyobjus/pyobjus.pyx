@@ -10,7 +10,6 @@ include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
-from ctypes import c_void_p
 from debug import dprint
 
 # do the initialization!
@@ -111,12 +110,16 @@ cdef class ObjcMethod(object):
     cdef int is_static
     cdef object signature_return
     cdef object signature_args
+    # this attribute is required for pyobjus varargs implementation
+    cdef object signature_default_args
     cdef Class o_cls
     cdef id o_instance
     cdef SEL selector 
     cdef SEL *selectors
     cdef ObjcClassInstance p_class
-
+    cdef int is_varargs
+    cdef object a
+    cdef object b
     cdef int is_ready
     cdef ffi_cif f_cif
     cdef ffi_type* f_result_type
@@ -129,6 +132,7 @@ cdef class ObjcMethod(object):
         self.name = None
         self.selector = NULL
         self.selectors = NULL
+        self.is_varargs = 0
 
     def __dealloc__(self):
         self.is_ready = 0
@@ -199,7 +203,6 @@ cdef class ObjcMethod(object):
 
         self.is_ready = 1
 
-
     def __get__(self, obj, objtype):
         if obj is None:
             return self
@@ -207,10 +210,34 @@ cdef class ObjcMethod(object):
         self.o_instance = oc.o_instance
         return self
 
-    def __call__(self, *args):
-        #if self.is_static:
-        #    return self._call_class_method(*args)
+    def __call__(self, *args, **kwargs):
+        if len(args) > (len(self.signature_args) - 2):
+            dprint("preparing potential varargs method...", type='i')
+            self.is_varargs = True
+            self.is_ready = False 
+
+            # we are substracting 2 because first two arguments are selector and self
+            self.signature_default_args = self.signature_args[:]
+            num_of_signature_args = len(self.signature_args) - 2
+            num_of_passed_args = len(args)
+            num_of_arguments_to_add = num_of_passed_args - num_of_signature_args
+            
+            for i in range(num_of_arguments_to_add):
+                self.signature_args.append(self.signature_args[-1])
+            
+            # we need prepare new number of arguments for ffi_call
+            self.ensure_method()        
         return self._call_instance_method(*args)
+
+    def _reset_method_attributes(self):
+        '''Method for setting adapted attributes values to default ones
+        '''
+        dprint("reseting method attributes...", type='i')
+        self.signature_args = self.signature_default_args
+        self.is_ready = False
+        self.ensure_method()
+        # this is little optimisation in case of calling varargs method multiple times with None as argument
+        self.is_varargs = False
 
     def _call_instance_method(self, *args):
         
@@ -220,14 +247,12 @@ cdef class ObjcMethod(object):
         dprint('--> want to call', self.name, args)
         dprint('--> return def is', self.signature_return)
         dprint('--> args def is', self.signature_args)
-        
        
         cdef ffi_arg f_result
         cdef void **f_args
         cdef int index
         cdef size_t size
         cdef ObjcClassInstance arg_objcclass
-
         # allocate f_args
         f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
         if f_args == NULL:
@@ -254,7 +279,7 @@ cdef class ObjcMethod(object):
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
-
+            
             # we already know the ffitype/size being used
             val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
@@ -275,8 +300,11 @@ cdef class ObjcMethod(object):
                 (<char **>val_ptr)[0] = <char *><bytes>arg
             elif sig == '@':
                 dprint('====> ARG', <ObjcClassInstance>arg)
-                ocl = <ObjcClassInstance>arg
-                (<id*>val_ptr)[0] = <id>ocl.o_instance
+                if arg == None:
+                    (<id*>val_ptr)[0] = <id>NULL
+                else:
+                    ocl = <ObjcClassInstance>arg
+                    (<id*>val_ptr)[0] = <id>ocl.o_instance
             # method is accepting class
             elif sig == '#':
                 dprint('===> Class arg', <ObjcClassInstance>arg)
@@ -296,11 +324,14 @@ cdef class ObjcMethod(object):
             f_args[f_index] = val_ptr
 
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
-        
+
         ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
 
         sig = self.signature_return[0]
         dprint("return signature", sig, type="i")
+        if self.is_varargs:
+            self._reset_method_attributes()
+
         cdef id ret_id
         cdef ObjcClassInstance cret
         cdef bytes bret
