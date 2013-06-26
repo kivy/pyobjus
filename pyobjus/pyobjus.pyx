@@ -118,8 +118,6 @@ cdef class ObjcMethod(object):
     cdef SEL *selectors
     cdef ObjcClassInstance p_class
     cdef int is_varargs
-    cdef object a
-    cdef object b
     cdef int is_ready
     cdef ffi_cif f_cif
     cdef ffi_type* f_result_type
@@ -132,7 +130,7 @@ cdef class ObjcMethod(object):
         self.name = None
         self.selector = NULL
         self.selectors = NULL
-        self.is_varargs = 0
+        self.is_varargs = False
 
     def __dealloc__(self):
         self.is_ready = 0
