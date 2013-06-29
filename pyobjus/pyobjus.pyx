@@ -172,9 +172,6 @@ cdef class ObjcMethod(object):
         self.o_cls = o_cls
         self.o_instance = o_instance
 
-        #print self.name
-        #print self.signature_return[0]
-
     cdef void ensure_method(self) except *:
         if self.is_ready:
             return
@@ -432,6 +429,7 @@ cdef class ObjcMethod(object):
         elif sig[0] == '{':
             result_range_ptr = <CFRange*>void_ptr
             result_range = <CFRange>result_range_ptr[0]
+            # TODO: Find better solution for this 
             ns_range = NSRange(<unsigned long long>result_range.location, <unsigned long long>result_range.length)       
             return ns_range
         

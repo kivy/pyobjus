@@ -2,7 +2,7 @@ import ctypes
 ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 
 from pyobjus import autoclass, selector
-from ns_types import *
+from objc_py_types import *
 
 NSArray = autoclass("NSArray")
 NSString = autoclass('NSString')
@@ -68,7 +68,7 @@ print array_new.objectAtIndex_(0).UTF8String()
 array_new = NSArray.alloc().initWithObjects_(None)
 print array_new.count()
 
-a = NSRangee()
+a = NSRange()
 a = text.rangeOfString_(newText)
 print "length -->", a.length
 print "location -->", a.location

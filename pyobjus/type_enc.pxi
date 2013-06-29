@@ -18,8 +18,8 @@ def parse_signature(bytes signature):
 
 
 cdef ffi_type* type_encoding_to_ffitype(type_encoding):
-    cdef ffi_type *tm_type = <ffi_type*>malloc(sizeof(ffi_type*))
-    cdef ffi_type *tm_type_elements[3]
+    #cdef ffi_type *tm_type = <ffi_type*>malloc(sizeof(ffi_type*))
+    #cdef ffi_type *tm_type_elements[3]
     enc, offset, attr = type_encoding
     if enc == 'c':
         return &ffi_type_uint8
