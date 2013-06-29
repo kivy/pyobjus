@@ -10,7 +10,10 @@ include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
+include "objc_types.pxi"
+
 from debug import dprint
+from objc_py_types import NSRange
 
 # do the initialization!
 pyobjc_internal_init()
@@ -169,15 +172,33 @@ cdef class ObjcMethod(object):
         self.o_cls = o_cls
         self.o_instance = o_instance
 
+        #print self.name
+        #print self.signature_return[0]
+
     cdef void ensure_method(self) except *:
         if self.is_ready:
             return
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
-        # get return type type as ffitype*
-        self.f_result_type = type_encoding_to_ffitype(self.signature_return)
+        
+        cdef ffi_type f_type
+        cdef ffi_type* elements[3]
+        
+        if self.signature_return[0][0] != '{':
+            self.f_result_type = type_encoding_to_ffitype(self.signature_return)
+        else:
+            # currently this only works for rangeOfString: method 
+            f_type.size = 0
+            f_type.alignment = 0
+            f_type.type = FFI_TYPE_STRUCT
+            f_type.elements = elements
+            elements[0] = &ffi_type_uint64
+            elements[1] = &ffi_type_uint64
+            elements[2] = NULL
 
+            self.f_result_type = &f_type
+        
         # allocate memory to hold ffitype* of arguments
         cdef int size = sizeof(ffi_type) * len(self.signature_args)
         self.f_arg_types = <ffi_type **>malloc(size)
@@ -245,12 +266,14 @@ cdef class ObjcMethod(object):
         dprint('--> want to call', self.name, args)
         dprint('--> return def is', self.signature_return)
         dprint('--> args def is', self.signature_args)
-       
+
         cdef ffi_arg f_result
+        cdef void* void_ptr
         cdef void **f_args
         cdef int index
         cdef size_t size
         cdef ObjcClassInstance arg_objcclass
+        cdef size_t result_size = <size_t>int(self.signature_return[1])
         # allocate f_args
         f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
         if f_args == NULL:
@@ -323,13 +346,21 @@ cdef class ObjcMethod(object):
 
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
 
-        ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
+        if self.signature_return[0][0] != '{':
+            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
+        else:
+            void_ptr = malloc(result_size)
+            # TODO: Need to add objc_msgSend_stret method invocation in case of big structures
+            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, void_ptr, f_args)
 
         sig = self.signature_return[0]
         dprint("return signature", sig, type="i")
         if self.is_varargs:
             self._reset_method_attributes()
-
+        
+        cdef CFRange result_range
+        cdef CFRange *result_range_ptr
+ 
         cdef id ret_id
         cdef ObjcClassInstance cret
         cdef bytes bret
@@ -382,12 +413,13 @@ cdef class ObjcMethod(object):
             return None
         elif sig == '*':
             return <bytes>(<char*>f_result)
+
         # return type -> class
         elif sig == '#':
             ocl = ObjcClassInstance(noinstance="True", getcls="True")
             ocl.o_cls = <Class>object_getClass(<id>f_result)
             return ocl
-        # return type -> selector
+        # return type -> selector. TODO: Test this !!!
         elif sig == ':':
             osel = ObjcSelector()
             osel.selector = <SEL>f_result
@@ -395,9 +427,14 @@ cdef class ObjcMethod(object):
         elif sig[0] == '[':
             # array
             pass
+
+        # return type -> struct
         elif sig[0] == '{':
-            # array
-            pass
+            result_range_ptr = <CFRange*>void_ptr
+            result_range = <CFRange>result_range_ptr[0]
+            ns_range = NSRange(<unsigned long long>result_range.location, <unsigned long long>result_range.length)       
+            return ns_range
+        
         elif sig[0] == '(':
             # union
             pass

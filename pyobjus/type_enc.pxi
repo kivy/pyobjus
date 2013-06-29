@@ -18,6 +18,8 @@ def parse_signature(bytes signature):
 
 
 cdef ffi_type* type_encoding_to_ffitype(type_encoding):
+    cdef ffi_type *tm_type = <ffi_type*>malloc(sizeof(ffi_type*))
+    cdef ffi_type *tm_type_elements[3]
     enc, offset, attr = type_encoding
     if enc == 'c':
         return &ffi_type_uint8
@@ -55,6 +57,18 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
         return &ffi_type_pointer
     elif enc == 'v':
         return &ffi_type_void
+
+    # some struct type. NOTICE: THIS DOESN'T WORK CORRECT!
+    #elif enc[0] == '{':
+    #    tm_type.size = 0
+    #    tm_type.alignment = 0
+    #    tm_type.type = FFI_TYPE_STRUCT
+    #    tm_type.elements = tm_type_elements
+
+    #    tm_type_elements[0] = &ffi_type_uint8
+    #    tm_type_elements[1] = &ffi_type_uint8
+    #    tm_type_elements[2] = NULL
+    #    return tm_type
         
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:

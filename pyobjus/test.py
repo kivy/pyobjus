@@ -2,6 +2,7 @@ import ctypes
 ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 
 from pyobjus import autoclass, selector
+from ns_types import *
 
 NSArray = autoclass("NSArray")
 NSString = autoclass('NSString')
@@ -9,7 +10,7 @@ NSMutableArray = autoclass("NSMutableArray")
 
 text = NSString.stringWithUTF8String_("some text")
 
-newText = text
+newText = NSString.stringWithUTF8String_("text")
 string_for_static_array = text
 
 static_array = NSArray.arrayWithObject_(string_for_static_array)
@@ -66,3 +67,8 @@ array_new = NSArray.alloc().initWithObjects_(text, None)
 print array_new.objectAtIndex_(0).UTF8String()
 array_new = NSArray.alloc().initWithObjects_(None)
 print array_new.count()
+
+a = NSRangee()
+a = text.rangeOfString_(newText)
+print "length -->", a.length
+print "location -->", a.location

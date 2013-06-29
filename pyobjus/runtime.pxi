@@ -10,7 +10,7 @@ cdef extern from "objc/runtime.h":
     id              objc_getClass(const_char_ptr name)
     id              objc_getRequiredClass(const_char_ptr)
     id              objc_msgSend(id, objc_selector *, ...)
-
+    void            objc_msgSend_stret(id self, SEL selector, ...)
 
     id              class_createInstance(Class cls, unsigned int)
     Method*         class_copyMethodList(Class cls, unsigned int *outCount)
@@ -32,18 +32,3 @@ cdef extern from "_runtime.h":
     void  pyobjc_internal_init()
     id    allocAndInitAutoreleasePool()
     void  drainAutoreleasePool(id pool)
-
-# Needed for vararg methods --> Currently NOT working
-#cdef extern from "stdarg.h":
-#    ctypedef struct va_list:
-#        pass
-#    ctypedef struct objc_type:
-#        pass
-#    void va_start(va_list, id arg)
-#    void *va_arg(va_list, objc_type)
-#    void va_end(va_list)
-#    void va_copy(va_list, va_list)
-#    objc_type id_type "id"
-
-
-

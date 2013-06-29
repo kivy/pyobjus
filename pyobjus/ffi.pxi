@@ -1,9 +1,8 @@
 cdef extern from "ffi/ffi.h":
 
-
     ctypedef unsigned long  ffi_arg
     ctypedef signed long    ffi_sarg
-
+    ctypedef enum: FFI_TYPE_STRUCT
     ctypedef enum ffi_status:
         FFI_OK = 0,
         FFI_BAD_TYPEDEF,
@@ -19,9 +18,12 @@ cdef extern from "ffi/ffi.h":
     ctypedef struct ffi_cif:
         pass
 
-    ctypedef struct ffi_type:
+    ctypedef struct _ffi_type:
         size_t size
-        unsigned short _type "type"
+        unsigned short alignment
+        unsigned short type
+        _ffi_type **elements
+    ctypedef _ffi_type ffi_type
 
     cdef ffi_type ffi_type_void
     cdef ffi_type ffi_type_uint8
@@ -37,10 +39,8 @@ cdef extern from "ffi/ffi.h":
     cdef ffi_type ffi_type_longdouble
     cdef ffi_type ffi_type_pointer
 
-
     cdef ffi_status  ffi_prep_cif(ffi_cif *cif, ffi_abi abi,
                         unsigned int nargs,ffi_type *rtype, ffi_type **atypes)
 
     cdef void        ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue,
                         void **avalue)
-
