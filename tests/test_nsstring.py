@@ -1,8 +1,9 @@
+# -*- coding: utf-8 -*-
 import unittest
 from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass
 
 NSString = None
-N = lambda x: NSString().initWithUTF8String_(x)
+N = lambda x: NSString.alloc().initWithUTF8String_(x)
 
 class NSObject(unittest.TestCase):
 
@@ -18,19 +19,17 @@ class NSObject(unittest.TestCase):
     def test_length(self):
         self.assertEquals(N('hello').length(), 5)
 
-    '''
-    # TODO the returned class of initWithUTF8String_ deosn't have the
-    # required method for theses tests
     def test_lengthEncoding(self):
-        s = u'\xe9cole'
-        #self.assertEquals(N(s.encode('utf8')).lengthOfBytesUsingEncoding_(1), 6)
-        #self.assertEquals(N(s.encode('utf8')).lengthOfBytesUsingEncoding_(4), 5)
-        
+        #s = u'\xe9cole'
+        s = u"šome_str"
+        # I tested this in native objective c, and methods for this argument and encoding are returning correct             # vales in pyobjus
+        self.assertEquals(N(s.encode('utf8')).lengthOfBytesUsingEncoding_(1), 0)
+        self.assertEquals(N(s.encode('utf8')).lengthOfBytesUsingEncoding_(4), 9)
+
     def test_charactersatindex(self):
         text = N('Hello')
-        self.assertEquals(text.characterAtIndex(0), ord('H'))
-        self.assertEquals(text.characterAtIndex(1), ord('e'))
-    '''
+        self.assertEquals(text.characterAtIndex_(0), ord('H'))
+        self.assertEquals(text.characterAtIndex_(1), ord('e'))
 
     def test_utf8string(self):
         text = N('Hello')

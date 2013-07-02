@@ -16,7 +16,7 @@ static void pyobjc_internal_init() {
 }
 
 id allocAndInitAutoreleasePool() {
-  Class NSAutoreleasePoolClass = objc_getClass("NSAutoreleasePool");
+  Class NSAutoreleasePoolClass = (Class)objc_getClass("NSAutoreleasePool");
   id pool = class_createInstance(NSAutoreleasePoolClass, 0);
   return objc_msgSend(pool, sel_registerName("init"));
 }
