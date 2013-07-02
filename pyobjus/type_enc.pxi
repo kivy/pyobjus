@@ -16,11 +16,51 @@ def parse_signature(bytes signature):
     signature_args = [seperate_encoding(x) for x in zip(parts[0::2], parts[1::2])]
     return signature_return, signature_args
 
+def signature_types_to_list(type_encoding):
+
+    type_enc_list = []
+    curvy_brace_count = 0
+    begin_ind = 0
+    end_ind = 0
+    started_complex_elem = False
+    types_str = ""
+
+    if type_encoding.find('=') == -1:
+        return [ret_type for ret_type in type_encoding]
+
+    for letter in type_encoding:
+        if letter == '{':
+            if types_str:
+                begin_ind = end_ind
+                type_enc_list.append(types_str)
+                types_str = ""
+            started_complex_elem = True
+            curvy_brace_count += 1
+            end_ind += 1
+        elif letter == '}':
+            curvy_brace_count -= 1
+            if curvy_brace_count == 0:
+                end_ind += 1
+                type_enc_list.append(type_encoding[begin_ind:end_ind])
+                begin_ind = end_ind
+                started_complex_elem = False
+            else:
+                end_ind += 1
+        elif started_complex_elem is False:
+            types_str += letter
+            end_ind += 1
+        else:
+            end_ind += 1
+    if started_complex_elem is False and types_str:
+        type_enc_list.append(types_str)
+
+    return type_enc_list
 
 cdef ffi_type* type_encoding_to_ffitype(type_encoding):
-    #cdef ffi_type *tm_type = <ffi_type*>malloc(sizeof(ffi_type*))
-    #cdef ffi_type *tm_type_elements[3]
-    enc, offset, attr = type_encoding
+    cdef ffi_type** ffi_complex_type_elements
+    cdef ffi_type* ffi_complex_type
+
+    enc = type_encoding
     if enc == 'c':
         return &ffi_type_uint8
     elif enc == 'i':
@@ -58,68 +98,36 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
     elif enc == 'v':
         return &ffi_type_void
 
-    # some struct type. NOTICE: THIS DOESN'T WORK CORRECT!
-    #elif enc[0] == '{':
-    #    tm_type.size = 0
-    #    tm_type.alignment = 0
-    #    tm_type.type = FFI_TYPE_STRUCT
-    #    tm_type.elements = tm_type_elements
+    # return type is struct
+    elif enc[0] == '{':
+        # NOTE: Tested with this nested input, and it works!
+        #signature_types_to_list('{CGPoint=dd{CGPoint={CGPoint=d{CGPoint=dd}}}{CGSize=dd}dd{CSize=aa}dd}')
 
-    #    tm_type_elements[0] = &ffi_type_uint8
-    #    tm_type_elements[1] = &ffi_type_uint8
-    #    tm_type_elements[2] = NULL
-    #    return tm_type
-        
+        types_list = []
+        types_list = signature_types_to_list(enc[1:-1].split('=', 1)[1])
+
+        types_count = len(types_list)
+        ffi_complex_type = <ffi_type*>malloc(sizeof(ffi_type))
+        ffi_complex_type_elements = <ffi_type**>malloc(sizeof(ffi_type)*int(types_count+1))
+
+        ffi_complex_type.size = 0
+        ffi_complex_type.alignment = 0
+        ffi_complex_type.type = FFI_TYPE_STRUCT
+        ffi_complex_type.elements = ffi_complex_type_elements
+       
+        for i in range(types_count):
+            if types_list[i].find('=') != -1:
+                ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i])
+            else:
+                ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i])
+        ffi_complex_type_elements[types_count] = NULL
+        return ffi_complex_type
+       
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
     #[array type]    An array
-    #{name=type...}    A structure
     #(name=type...)    A union
     #bnum    A bit field of num bits
     #^type    A pointer to type
     #?    An unknown type (among other things, 
     #   this code is used for function pointers)
-
-"""
-cpdef convert_objctype_arg(signature, arg):
-    sig, offset = signature
-    if sig == 'c':
-        return <char> bytes(arg)
-    elif sig == 'i':
-        return <int> int(arg)
-    elif sig == 's':
-        return <short> int(arg)
-    elif sig == 'l':
-        return <long> int(arg)
-    elif sig == 'q':
-        return <long long> long(arg)
-    elif sig == 'C':
-        return <unsigned char> bytes(arg)
-    elif sig == 'I':
-        return <unsigned int> int(arg)
-    elif sig == 'S':
-        return <unsigned short> int(arg)
-    elif sig == 'L':
-        return <unsigned long> long(arg)
-    elif sig == 'Q':
-        return <unsigned long long> long(arg)
-    elif sig == 'f':
-        return <float> float(arg)
-    elif sig == 'd':
-        return <double> float(arg)
-    elif sig == 'B':
-        v = False
-        if arg:
-            v = True
-        return <unsigned char> v
-    elif sig == '*':
-        return arg
-    elif sig == '@':
-        return arg
-    elif sig == '#':
-        return arg
-    elif sig == ':':
-        return arg
-    else:
-        return arg
-    """

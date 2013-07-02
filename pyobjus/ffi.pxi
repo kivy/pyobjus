@@ -18,12 +18,12 @@ cdef extern from "ffi/ffi.h":
     ctypedef struct ffi_cif:
         pass
 
-    ctypedef struct _ffi_type:
+    ctypedef struct ffi_type:
         size_t size
         unsigned short alignment
         unsigned short type
-        _ffi_type **elements
-    ctypedef _ffi_type ffi_type
+        ffi_type **elements
+    ctypedef ffi_type ffi_type
 
     cdef ffi_type ffi_type_void
     cdef ffi_type ffi_type_uint8

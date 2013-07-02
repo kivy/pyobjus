@@ -10,10 +10,10 @@ include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
-include "objc_types.pxi"
 
 from debug import dprint
-from objc_py_types import NSRange
+import ctypes
+from objc_py_types import POINTER, NSRect, NSRange
 
 # do the initialization!
 pyobjc_internal_init()
@@ -107,6 +107,7 @@ cdef class ObjcSelector(object):
     def __cinit__(self, *args, **kwargs):
         self.selector = NULL
 
+
 cdef class ObjcMethod(object):
     cdef bytes name
     cdef bytes signature
@@ -143,6 +144,12 @@ cdef class ObjcMethod(object):
         if self.f_arg_types != NULL:
             free(self.f_arg_types)
             self.f_arg_types = NULL
+        if self.f_result_type != NULL:
+            if self.f_result_type.elements != NULL:
+                free(self.f_result_type.elements)
+                self.f_result_type.elements = NULL
+            free(self.f_result_type)
+            self.f_result_type = NULL
 
     def __init__(self, signature, **kwargs):
         super(ObjcMethod, self).__init__()
@@ -167,6 +174,9 @@ cdef class ObjcMethod(object):
         if name == "oclass":
             self.name = name.replace("oclass", "class")
 
+        if self.signature_return[0][0] == '{':
+            pass 
+
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
@@ -179,22 +189,8 @@ cdef class ObjcMethod(object):
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
         
-        cdef ffi_type f_type
-        cdef ffi_type* elements[3]
-        
-        if self.signature_return[0][0] != '{':
-            self.f_result_type = type_encoding_to_ffitype(self.signature_return)
-        else:
-            # currently this only works for rangeOfString: method 
-            f_type.size = 0
-            f_type.alignment = 0
-            f_type.type = FFI_TYPE_STRUCT
-            f_type.elements = elements
-            elements[0] = &ffi_type_uint64
-            elements[1] = &ffi_type_uint64
-            elements[2] = NULL
-
-            self.f_result_type = &f_type
+        # resolve f_result_type 
+        self.f_result_type = type_encoding_to_ffitype(self.signature_return[0])
         
         # allocate memory to hold ffitype* of arguments
         cdef int size = sizeof(ffi_type) * len(self.signature_args)
@@ -206,7 +202,7 @@ cdef class ObjcMethod(object):
         cdef int index = 0
         for arg in self.signature_args:
             dprint("argument ==>", arg, len(self.signature_args))
-            self.f_arg_types[index] = type_encoding_to_ffitype(arg)
+            self.f_arg_types[index] = type_encoding_to_ffitype(arg[0])
             index = index + 1
 
         # FFI PREP 
@@ -265,7 +261,7 @@ cdef class ObjcMethod(object):
         dprint('--> args def is', self.signature_args)
 
         cdef ffi_arg f_result
-        cdef void* void_ptr
+        cdef id* struct_res_ptr
         cdef void **f_args
         cdef int index
         cdef size_t size
@@ -289,7 +285,6 @@ cdef class ObjcMethod(object):
 
         f_args[1] = &self.selector
         dprint(' - selector is', pr(self.selector))
-
         # populate the rest of f_args based on method signature
         cdef void* val_ptr
         f_index = 1
@@ -297,7 +292,6 @@ cdef class ObjcMethod(object):
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
-            
             # we already know the ffitype/size being used
             val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
@@ -325,7 +319,7 @@ cdef class ObjcMethod(object):
                     (<id*>val_ptr)[0] = <id>ocl.o_instance
             # method is accepting class
             elif sig == '#':
-                dprint('===> Class arg', <ObjcClassInstance>arg)
+                dprint('==> Class arg', <ObjcClassInstance>arg)
                 ocl = <ObjcClassInstance>arg
                 (<Class*>val_ptr)[0] = <Class>ocl.o_cls
             # method is accepting selector
@@ -333,7 +327,11 @@ cdef class ObjcMethod(object):
                 dprint("==> Selector arg", <ObjcSelector>arg)
                 osel = <ObjcSelector>arg
                 (<id*>val_ptr)[0] = <id>osel.selector
-            
+            # method is accepting structure
+            elif sig[0] == '{':
+                dprint("==> Structure arg", arg)
+                (<long*>val_ptr)[0] = <long>ctypes.addressof(arg)
+
             else:
                 (<int*>val_ptr)[0] = 0
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
@@ -346,18 +344,17 @@ cdef class ObjcMethod(object):
         if self.signature_return[0][0] != '{':
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
         else:
-            void_ptr = malloc(result_size)
+            struct_res_ptr = <id*>malloc(self.f_result_type.size)
             # TODO: Need to add objc_msgSend_stret method invocation in case of big structures
-            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, void_ptr, f_args)
+            #ffi_call(&self.f_cif, <void(*)()>objc_msgSend, struct_res_ptr, f_args)
+            ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, struct_res_ptr, f_args)
 
         sig = self.signature_return[0]
         dprint("return signature", sig, type="i")
         if self.is_varargs:
             self._reset_method_attributes()
-        
-        cdef CFRange result_range
-        cdef CFRange *result_range_ptr
- 
+
+        cdef id *ret_id_ptr
         cdef id ret_id
         cdef ObjcClassInstance cret
         cdef bytes bret
@@ -427,11 +424,12 @@ cdef class ObjcMethod(object):
 
         # return type -> struct
         elif sig[0] == '{':
-            result_range_ptr = <CFRange*>void_ptr
-            result_range = <CFRange>result_range_ptr[0]
-            # TODO: Find better solution for this 
-            ns_range = NSRange(<unsigned long long>result_range.location, <unsigned long long>result_range.length)       
-            return ns_range
+            type_ret = sig[1:-1].split('=', 1)[0]
+            if type_ret == '_NSRange':
+                return ctypes.cast(<long>struct_res_ptr, ctypes.POINTER(NSRange)).contents
+
+            elif type_ret == 'CGRect':
+                return ctypes.cast(<long>struct_res_ptr[0], ctypes.POINTER(NSRect)).contents
         
         elif sig[0] == '(':
             # union

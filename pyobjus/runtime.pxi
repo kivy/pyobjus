@@ -9,7 +9,7 @@ cdef extern from "objc/runtime.h":
 
     id              objc_getClass(const_char_ptr name)
     id              objc_getRequiredClass(const_char_ptr)
-    id              objc_msgSend(id, objc_selector *, ...)
+    id              objc_msgSend(id, objc_selector *, ...) 
     void            objc_msgSend_stret(id self, SEL selector, ...)
 
     id              class_createInstance(Class cls, unsigned int)
@@ -31,4 +31,4 @@ cdef extern from "objc/runtime.h":
 cdef extern from "_runtime.h":
     void  pyobjc_internal_init()
     id    allocAndInitAutoreleasePool()
-    void  drainAutoreleasePool(id pool)
+    void  rainAutoreleasePool(id pool)
