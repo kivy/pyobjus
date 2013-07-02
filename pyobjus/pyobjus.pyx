@@ -174,9 +174,6 @@ cdef class ObjcMethod(object):
         if name == "oclass":
             self.name = name.replace("oclass", "class")
 
-        if self.signature_return[0][0] == '{':
-            pass 
-
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
@@ -354,7 +351,6 @@ cdef class ObjcMethod(object):
         if self.is_varargs:
             self._reset_method_attributes()
 
-        cdef id *ret_id_ptr
         cdef id ret_id
         cdef ObjcClassInstance cret
         cdef bytes bret
