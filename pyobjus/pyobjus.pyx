@@ -3,7 +3,7 @@ Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa
 '''
 
 __all__ = ('ObjcClassInstance', 'ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException',
-    'autoclass', 'selector')
+    'autoclass', 'selector', 'objc_py_types')
 
 
 include "common.pxi"
@@ -13,7 +13,9 @@ include "type_enc.pxi"
 
 from debug import dprint
 import ctypes
-from objc_py_types import POINTER, NSRect, NSRange
+#from objc_py_types import POINTER, NSRect, NSRange, factory
+import objc_py_types
+from objc_py_types import Factory
 
 # do the initialization!
 pyobjc_internal_init()
@@ -328,6 +330,7 @@ cdef class ObjcMethod(object):
             elif sig[0] == '{':
                 dprint("==> Structure arg", arg)
                 (<long*>val_ptr)[0] = <long>ctypes.addressof(arg)
+                ctypes_struct_cache.append(<long>ctypes.addressof(arg))
 
             else:
                 (<int*>val_ptr)[0] = 0
@@ -335,18 +338,40 @@ cdef class ObjcMethod(object):
 
             f_index += 1
             f_args[f_index] = val_ptr
-
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
+
+        sig = self.signature_return[0]
+        type_ret = sig[1:-1].split('=', 1)[0]
+        factory = Factory()
 
         if self.signature_return[0][0] != '{':
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
         else:
             struct_res_ptr = <id*>malloc(self.f_result_type.size)
-            # TODO: Need to add objc_msgSend_stret method invocation in case of big structures
-            #ffi_call(&self.f_cif, <void(*)()>objc_msgSend, struct_res_ptr, f_args)
-            ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, struct_res_ptr, f_args)
+            # TODO FIXME NOTE: Currently this only work on x86_64 architecture
+            # We need add cases for powerPC 32bit and 64bit, and IA-32 architecture
 
-        sig = self.signature_return[0]
+            IF UNAME_MACHINE == "x86_64":
+            # From docs: If the type has class MEMORY, then the caller provides space for the return
+            # value and passes the address of this storage in %rdi as if it were the ﬁrst
+            # argument to the function. In effect, this address becomes a “hidden” ﬁrst
+            # argument.
+
+            # If the size of an object is larger than two eightbytes, or in C++, 
+            # is a nonPOD structure or union type, or contains unaligned ﬁelds, it has class MEMORY
+            # SOURCE: http://www.uclibc.org/docs/psABI-x86_64.pdf
+                fun_name = ""
+                if ctypes.sizeof(factory.find_object(type_ret)) > 16:
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, struct_res_ptr, f_args)
+                    fun_name = "objc_msgSend_stret"
+                else:
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, struct_res_ptr, f_args)
+                    fun_name = "objc_msgSend"
+                dprint("x86_64 architecture {0} call".format(fun_name), type='i')
+            ELSE:
+                dprint("UNSUPPORTED ARCHITECTURE", type='e')
+                assert(0)
+
         dprint("return signature", sig, type="i")
         if self.is_varargs:
             self._reset_method_attributes()
@@ -420,13 +445,15 @@ cdef class ObjcMethod(object):
 
         # return type -> struct
         elif sig[0] == '{':
-            type_ret = sig[1:-1].split('=', 1)[0]
-            if type_ret == '_NSRange':
-                return ctypes.cast(<long>struct_res_ptr, ctypes.POINTER(NSRange)).contents
+            #NOTE: This need to be tested more! Does this way work in all cases? 
+            
+            if <long>struct_res_ptr[0] in ctypes_struct_cache:
+                dprint("ctypes struct value found in cache", type='i')
+                val = ctypes.cast(<long>struct_res_ptr[0], ctypes.POINTER(factory.find_object(type_ret))).contents
+            else:
+                val = ctypes.cast(<long>struct_res_ptr, ctypes.POINTER(factory.find_object(type_ret))).contents
+            return val
 
-            elif type_ret == 'CGRect':
-                return ctypes.cast(<long>struct_res_ptr[0], ctypes.POINTER(NSRect)).contents
-        
         elif sig[0] == '(':
             # union
             pass
@@ -525,6 +552,7 @@ cdef class ObjcClassInstance(object):
         pass
 
 registers = []
+ctypes_struct_cache = []
 
 cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods

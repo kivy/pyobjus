@@ -68,9 +68,9 @@ print array_new.objectAtIndex_(0).UTF8String()
 array_new = NSArray.alloc().initWithObjects_(None)
 print array_new.count()
 
-#ns_range_result = text.rangeOfString_(newText)
-#print "location -->", ns_range_result.location
-#print "length -->", ns_range_result.length
+ns_range_result = text.rangeOfString_(newText)
+print "location -->", ns_range_result.location
+print "length -->", ns_range_result.length
 
 NSValue = autoclass('NSValue')
 rect = NSRect(NSPoint(3, 5), NSSize(320, 480))
@@ -79,3 +79,22 @@ ns_rect = NSValue.valueWithRect_(rect)
 rv = ns_rect.rectValue()
 print rv.origin.x
 print rv.origin.y
+
+point = NSPoint(4, 8)
+print point.x
+
+pt = NSValue.valueWithPoint_(point)
+p = pt.pointValue()
+print p.x
+
+rng = NSRange(9, 10)
+rg = NSValue.valueWithRange_(rng)
+r = rg.rangeValue()
+print r.location
+
+sz = NSSize(320, 480)
+ssz = NSValue.valueWithSize_(sz)
+s = ssz.sizeValue()
+print s.width
+
+print ssz.objCType()

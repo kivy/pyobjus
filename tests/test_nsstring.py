@@ -34,3 +34,9 @@ class NSObject(unittest.TestCase):
     def test_utf8string(self):
         text = N('Hello')
         self.assertEquals(text.UTF8String(), 'Hello')
+
+    def test_rangeOfString(self):
+       text = N('some text')
+       text_new = N('text')
+       self.assertEquals(text.rangeOfString_(text_new).location, 5)
+       self.assertEquals(text.rangeOfString_(text_new).length, 4)
