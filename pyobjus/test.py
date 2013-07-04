@@ -72,6 +72,14 @@ ns_range_result = text.rangeOfString_(newText)
 print "location -->", ns_range_result.location
 print "length -->", ns_range_result.length
 
+NSData = autoclass('NSData')
+
+
+range_new = NSRange(4, 2)
+r = text.lineRangeForRange_(range_new)
+print "loc -->", r.length
+print "loc -->", r.location
+
 NSValue = autoclass('NSValue')
 rect = NSRect(NSPoint(3, 5), NSSize(320, 480))
 

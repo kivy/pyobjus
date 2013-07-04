@@ -1,3 +1,4 @@
+
 '''
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
@@ -10,10 +11,10 @@ include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
+include "objc_cy_types.pxi"
 
 from debug import dprint
 import ctypes
-#from objc_py_types import POINTER, NSRect, NSRange, factory
 import objc_py_types
 from objc_py_types import Factory
 
@@ -109,15 +110,17 @@ cdef class ObjcSelector(object):
     def __cinit__(self, *args, **kwargs):
         self.selector = NULL
 
-
 cdef class ObjcMethod(object):
     cdef bytes name
     cdef bytes signature
     cdef int is_static
     cdef object signature_return
     cdef object signature_args
+    cdef CastFactory cast_factory
+    cdef object factory
     # this attribute is required for pyobjus varargs implementation
     cdef object signature_default_args
+    cdef object return_type_str
     cdef Class o_cls
     cdef id o_instance
     cdef SEL selector 
@@ -159,6 +162,8 @@ cdef class ObjcMethod(object):
         self.signature_return, self.signature_args = parse_signature(signature)
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
+        self.cast_factory = CastFactory()
+        self.factory = Factory()
 
         py_selectors = kwargs.get('selectors', [])
         if len(py_selectors):
@@ -175,6 +180,9 @@ cdef class ObjcMethod(object):
         # we call method .oclass() and here we can set selector to be of method with name -> class
         if name == "oclass":
             self.name = name.replace("oclass", "class")
+
+        sig = self.signature_return[0]
+        self.return_type_str = sig[1:-1].split('=', 1)[0]
 
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
@@ -284,10 +292,15 @@ cdef class ObjcMethod(object):
 
         f_args[1] = &self.selector
         dprint(' - selector is', pr(self.selector))
-        # populate the rest of f_args based on method signature
+
         cdef void* val_ptr
-        f_index = 1
+        cdef id* r_ptr
+        cdef unsigned long long *str_long_ptr
+        cdef unsigned long long str_long
         cdef ObjcClassInstance ocl
+        f_index = 1
+
+        # populate the rest of f_args based on method signature
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index-2]
@@ -329,9 +342,12 @@ cdef class ObjcMethod(object):
             # method is accepting structure
             elif sig[0] == '{':
                 dprint("==> Structure arg", arg)
-                (<long*>val_ptr)[0] = <long>ctypes.addressof(arg)
-                ctypes_struct_cache.append(<long>ctypes.addressof(arg))
-
+                arg_type = sig[1:-1].split('=', 1)[0]
+                str_long = <unsigned long long>ctypes.addressof(arg)
+                str_long_ptr = <unsigned long long*>str_long
+                r_ptr = <id*>str_long_ptr
+                self.cast_factory.cast_to_cy(r_ptr, val_ptr, arg_type)
+                ctypes_struct_cache.append(str_long)
             else:
                 (<int*>val_ptr)[0] = 0
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
@@ -339,10 +355,6 @@ cdef class ObjcMethod(object):
             f_index += 1
             f_args[f_index] = val_ptr
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
-
-        sig = self.signature_return[0]
-        type_ret = sig[1:-1].split('=', 1)[0]
-        factory = Factory()
 
         if self.signature_return[0][0] != '{':
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
@@ -361,7 +373,7 @@ cdef class ObjcMethod(object):
             # is a nonPOD structure or union type, or contains unaligned ﬁelds, it has class MEMORY
             # SOURCE: http://www.uclibc.org/docs/psABI-x86_64.pdf
                 fun_name = ""
-                if ctypes.sizeof(factory.find_object(type_ret)) > 16:
+                if ctypes.sizeof(self.factory.find_object(self.return_type_str)) > 16:
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, struct_res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
                 else:
@@ -369,16 +381,19 @@ cdef class ObjcMethod(object):
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), type='i')
             ELSE:
-                dprint("UNSUPPORTED ARCHITECTURE", type='e')
-                assert(0)
+                dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", type='e')
+                raise SystemExit()
 
-        dprint("return signature", sig, type="i")
         if self.is_varargs:
             self._reset_method_attributes()
 
         cdef id ret_id
         cdef ObjcClassInstance cret
         cdef bytes bret
+
+        sig = self.signature_return[0]
+        dprint("return signature", self.signature_return[0], type="i")
+
         if sig == '@':
             dprint(' - @ f_result:', pr(<void *>f_result))
             ret_id = (<id>f_result)
@@ -446,12 +461,11 @@ cdef class ObjcMethod(object):
         # return type -> struct
         elif sig[0] == '{':
             #NOTE: This need to be tested more! Does this way work in all cases? 
-            
             if <long>struct_res_ptr[0] in ctypes_struct_cache:
                 dprint("ctypes struct value found in cache", type='i')
-                val = ctypes.cast(<long>struct_res_ptr[0], ctypes.POINTER(factory.find_object(type_ret))).contents
+                val = ctypes.cast(<unsigned long long>struct_res_ptr[0], ctypes.POINTER(self.factory.find_object(self.return_type_str))).contents
             else:
-                val = ctypes.cast(<long>struct_res_ptr, ctypes.POINTER(factory.find_object(type_ret))).contents
+                val = ctypes.cast(<unsigned long long>struct_res_ptr, ctypes.POINTER(self.factory.find_object(self.return_type_str))).contents
             return val
 
         elif sig[0] == '(':

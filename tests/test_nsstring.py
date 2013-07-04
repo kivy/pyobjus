@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
-from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass
+from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass, objc_py_types as opy
 
 NSString = None
 N = lambda x: NSString.alloc().initWithUTF8String_(x)
@@ -40,3 +40,9 @@ class NSObject(unittest.TestCase):
        text_new = N('text')
        self.assertEquals(text.rangeOfString_(text_new).location, 5)
        self.assertEquals(text.rangeOfString_(text_new).length, 4)
+
+    def test_lineRangeForRange(self):
+        text = N("some text")
+        range = opy.NSRange(0, 0)
+        self.assertEquals(text.lineRangeForRange_(range).location, 0)
+        self.assertEquals(text.lineRangeForRange_(range).length, 9)
