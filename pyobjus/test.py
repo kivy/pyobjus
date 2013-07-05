@@ -75,7 +75,7 @@ print "length -->", ns_range_result.length
 NSData = autoclass('NSData')
 
 
-range_new = NSRange(4, 2)
+range_new = NSRange(1, 3)
 r = text.lineRangeForRange_(range_new)
 print "loc -->", r.length
 print "loc -->", r.location
@@ -105,4 +105,12 @@ ssz = NSValue.valueWithSize_(sz)
 s = ssz.sizeValue()
 print s.width
 
+print text.substringWithRange_(range_new).UTF8String()
 print ssz.objCType()
+
+res = text.compare_(newText)
+
+if res == NSComparisonResult.NSOrderedAscending:
+    print "NSOrderedAscending"
+
+
