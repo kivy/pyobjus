@@ -1,7 +1,7 @@
 import ctypes
 ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 
-from pyobjus import autoclass, selector
+from pyobjus import autoclass, selector, cast_manager, ObjcClassInstance
 from objc_py_types import *
 
 NSArray = autoclass("NSArray")
@@ -75,7 +75,7 @@ print "length -->", ns_range_result.length
 NSData = autoclass('NSData')
 
 
-range_new = NSRange(1, 3)
+range_new = NSRange(5, 3)
 r = text.lineRangeForRange_(range_new)
 print "loc -->", r.length
 print "loc -->", r.location
@@ -113,4 +113,12 @@ res = text.compare_(newText)
 if res == NSComparisonResult.NSOrderedAscending:
     print "NSOrderedAscending"
 
+range_new.length = 5
+p = NSValue.valueWithPointer_(range_new)
+val_ptr = p.pointerValue()
+print cast_manager(val_ptr, NSRange).length
 
+p = NSValue.valueWithPointer_(text)
+
+p_v = p.pointerValue()
+print cast_manager(p_v, ObjcClassInstance).UTF8String()

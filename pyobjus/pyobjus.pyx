@@ -180,8 +180,9 @@ cdef class ObjcMethod(object):
         if name == "oclass":
             self.name = name.replace("oclass", "class")
 
-        sig = self.signature_return[0]
-        self.return_type_str = sig[1:-1].split('=', 1)[0]
+        if self.signature_return[0][0] == '{':
+            sig = self.signature_return[0]
+            self.return_type_str = sig[1:-1].split('=', 1)[0]
 
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
@@ -257,6 +258,16 @@ cdef class ObjcMethod(object):
         # this is little optimisation in case of calling varargs method multiple times with None as argument
         self.is_varargs = False
 
+    cdef unsigned long long _ctypes_struct_to_cy_struct(self, arg, sig, void* val_ptr):
+
+        cdef unsigned long long* str_long_ptr
+
+        arg_type = sig[1:-1].split('=', 1)[0] 
+        str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
+        self.cast_factory.cast_to_cy(<id*>str_long_ptr, val_ptr, arg_type)
+
+        return <unsigned long long>str_long_ptr
+
     def _call_instance_method(self, *args):
         
         dprint('-' * 80)
@@ -293,9 +304,6 @@ cdef class ObjcMethod(object):
         dprint(' - selector is', pr(self.selector))
 
         cdef void* val_ptr
-        cdef id* r_ptr
-        cdef unsigned long long *str_long_ptr
-        cdef unsigned long long str_long
         cdef ObjcClassInstance ocl
         f_index = 1
 
@@ -341,12 +349,20 @@ cdef class ObjcMethod(object):
             # method is accepting structure
             elif sig[0] == '{':
                 dprint("==> Structure arg", arg)
-                arg_type = sig[1:-1].split('=', 1)[0]
-                str_long = <unsigned long long>ctypes.addressof(arg)
-                str_long_ptr = <unsigned long long*>str_long
-                r_ptr = <id*>str_long_ptr
-                self.cast_factory.cast_to_cy(r_ptr, val_ptr, arg_type)
-                ctypes_struct_cache.append(str_long)
+                ctypes_struct_cache.append(self._ctypes_struct_to_cy_struct(arg, sig, val_ptr))
+            # method is accepting pointer to type
+            elif sig[0] == '^':
+                arg_type = sig.split('^', 1)[1]
+                if arg_type == 'v':
+                    if isinstance(arg, ctypes.Structure):
+                        (<unsigned long long*>val_ptr)[0] = <unsigned long long>ctypes.addressof(arg)
+                    elif isinstance(arg, ObjcClassInstance):
+                        ocl = <ObjcClassInstance>arg
+                        (<id*>val_ptr)[0] = <id>ocl.o_instance
+                    elif isinstance(arg, ObjcClass):
+                        pass
+                    elif isinstance(arg, ObjcSelector):
+                        pass
             else:
                 (<int*>val_ptr)[0] = 0
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
@@ -398,16 +414,7 @@ cdef class ObjcMethod(object):
             ret_id = (<id>f_result)
             if ret_id == self.o_instance:
                 return self.p_class
-            bret = <bytes><char *>object_getClassName(ret_id)
-            dprint(' - object_getClassName(f_result) =', bret)
-            if bret == 'nil':
-                dprint('<-- returned pointer value:', pr(ret_id), type="w")
-                return None
-            
-            cret = autoclass(bret, new_instance=True)(noinstance=True)
-            cret.instanciate_from(ret_id)
-            dprint('<-- return object', cret)
-            return cret
+            return convert_to_cy_cls_instance(<id>f_result)
 
         elif sig == 'c':
             # this should be a char. Most of the time, a BOOL is also
@@ -459,7 +466,7 @@ cdef class ObjcMethod(object):
 
         # return type -> struct
         elif sig[0] == '{':
-            #NOTE: This need to be tested more! Does this way work in all cases? 
+            #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
             if <long>struct_res_ptr[0] in ctypes_struct_cache:
                 dprint("ctypes struct value found in cache", type='i')
                 val = ctypes.cast(<unsigned long long>struct_res_ptr[0], ctypes.POINTER(self.factory.find_object(self.return_type_str))).contents
@@ -473,9 +480,11 @@ cdef class ObjcMethod(object):
         elif sig == 'b':
             # bitfield
             pass
+
+        # return type --> pointer to type
         elif sig[0] == '^':
-            # pointer to type
-            pass
+            return <unsigned long long>f_result
+
         elif sig == '?':
             # unknown type
             pass
@@ -483,6 +492,42 @@ cdef class ObjcMethod(object):
         else:
             assert(0)
 
+cdef convert_to_cy_cls_instance(id ret_id):
+    ''' Function for converting C pointer into Cython ObjcClassInstance type
+    Args:
+        ret_id: C pointer
+
+    Returns:
+        ObjcClassInstance type
+    '''    
+    cdef ObjcClassInstance cret 
+    bret = <bytes><char *>object_getClassName(ret_id)
+    dprint(' - object_getClassName(f_result) =', bret)
+    if bret == 'nil':
+        dprint('<-- returned pointer value:', pr(ret_id), type="w")
+        return None
+            
+    cret = autoclass(bret, new_instance=True)(noinstance=True)
+    cret.instanciate_from(ret_id)
+    dprint('<-- return object', cret)
+    return cret
+
+def cast_manager(obj_to_cast, type):
+    ''' Function for casting python object of one type, to another (supported type)
+    Args: 
+        obj_to_cast: Python object which will be casted into some other type
+        type: type in which object will be casted
+
+    Returns:
+        Casted Python object
+    '''
+    if issubclass(type, ctypes.Structure):
+        return ctypes.cast(<unsigned long long>obj_to_cast, ctypes.POINTER(type)).contents
+
+    cdef unsigned long long* ocl_lng_ptr
+    if issubclass(type, ObjcClassInstance):
+        ocl_lng_ptr = <unsigned long long*><unsigned long long>obj_to_cast
+        return convert_to_cy_cls_instance(<id>ocl_lng_ptr)
 
 cdef class ObjcClass(object):
     # if we are calling class method, set is_statis field to True

@@ -18,7 +18,9 @@ cdef extern from "CoreGraphics/CoreGraphics.h":
 cdef class CastFactory(object):
 
     cdef cast_to_cy(self, id *py_obj, void* val_ptr, char* type):
+        print str(type)
         if str(type) == '_NSRange':
+            print "r val ->", <unsigned long long>(py_obj)[0]
             (<CFRange*>val_ptr)[0] = (<CFRange*>py_obj)[0]
         elif str(type) == 'CGPoint':
             (<CGPoint*>val_ptr)[0] = (<CGPoint*>py_obj)[0]
