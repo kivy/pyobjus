@@ -268,6 +268,62 @@ cdef class ObjcMethod(object):
 
         return <unsigned long long>str_long_ptr
 
+    cdef void _convert_py_arg_to_cy(self, arg, sig, void* val_ptr, by_value):
+
+        if by_value:
+            by = 'value'
+        else:
+            by = 'reference'
+
+        dprint("passing argument {0} by {1}".format(arg, by), type='i')
+
+        if sig == 'c':
+            (<char*>val_ptr)[0] = bytes(arg)
+        elif sig == 'i':
+            (<int*>val_ptr)[0] = <int> int(arg)
+        elif sig == 's':
+            (<short*>val_ptr)[0] = <short> int(arg)
+        elif sig == 'Q':
+            (<unsigned long long*>val_ptr)[0] = <unsigned long long> long(arg)
+        elif sig == '*':
+            (<char **>val_ptr)[0] = <char *><bytes>arg
+        elif sig == '@':
+            dprint('====> ARG', <ObjcClassInstance>arg)
+            if arg == None:
+                (<id*>val_ptr)[0] = <id>NULL
+            else:
+                ocl = <ObjcClassInstance>arg
+                (<id*>val_ptr)[0] = <id>ocl.o_instance
+        # method is accepting class
+        elif sig == '#':
+            dprint('==> Class arg', <ObjcClassInstance>arg)
+            ocl = <ObjcClassInstance>arg
+            (<Class*>val_ptr)[0] = <Class>ocl.o_cls
+        # method is accepting selector
+        elif sig == ":":
+            dprint("==> Selector arg", <ObjcSelector>arg)
+            osel = <ObjcSelector>arg
+            (<id*>val_ptr)[0] = <id>osel.selector
+        # method is accepting structure
+        elif sig[0] == '{':
+            dprint("==> Structure arg", arg)
+            ctypes_struct_cache.append(self._ctypes_struct_to_cy_struct(arg, sig, val_ptr))
+        # method is accepting pointer to type
+        elif sig[0] == '^':
+            arg_type = sig.split('^', 1)[1]
+            if arg_type == 'v':
+                if isinstance(arg, ctypes.Structure):
+                    (<unsigned long long*>val_ptr)[0] = <unsigned long long>ctypes.addressof(arg)
+                elif isinstance(arg, ObjcClassInstance):
+                    ocl = <ObjcClassInstance>arg
+                    (<id*>val_ptr)[0] = <id>ocl.o_instance
+                elif isinstance(arg, ObjcClass):
+                    pass
+                elif isinstance(arg, ObjcSelector):
+                    pass
+        else:
+            (<int*>val_ptr)[0] = 0
+
     def _call_instance_method(self, *args):
         
         dprint('-' * 80)
@@ -318,53 +374,12 @@ cdef class ObjcMethod(object):
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
-
-            if sig == 'c':
-                (<char*>val_ptr)[0] = bytes(arg)
-            elif sig == 'i':
-                (<int*>val_ptr)[0] = <int> int(arg)
-            elif sig == 's':
-                (<short*>val_ptr)[0] = <short> int(arg)
-            elif sig == 'Q':
-                (<unsigned long long*>val_ptr)[0] = <unsigned long long> long(arg)
-            elif sig == '*':
-                (<char **>val_ptr)[0] = <char *><bytes>arg
-            elif sig == '@':
-                dprint('====> ARG', <ObjcClassInstance>arg)
-                if arg == None:
-                    (<id*>val_ptr)[0] = <id>NULL
-                else:
-                    ocl = <ObjcClassInstance>arg
-                    (<id*>val_ptr)[0] = <id>ocl.o_instance
-            # method is accepting class
-            elif sig == '#':
-                dprint('==> Class arg', <ObjcClassInstance>arg)
-                ocl = <ObjcClassInstance>arg
-                (<Class*>val_ptr)[0] = <Class>ocl.o_cls
-            # method is accepting selector
-            elif sig == ":":
-                dprint("==> Selector arg", <ObjcSelector>arg)
-                osel = <ObjcSelector>arg
-                (<id*>val_ptr)[0] = <id>osel.selector
-            # method is accepting structure
-            elif sig[0] == '{':
-                dprint("==> Structure arg", arg)
-                ctypes_struct_cache.append(self._ctypes_struct_to_cy_struct(arg, sig, val_ptr))
-            # method is accepting pointer to type
-            elif sig[0] == '^':
-                arg_type = sig.split('^', 1)[1]
-                if arg_type == 'v':
-                    if isinstance(arg, ctypes.Structure):
-                        (<unsigned long long*>val_ptr)[0] = <unsigned long long>ctypes.addressof(arg)
-                    elif isinstance(arg, ObjcClassInstance):
-                        ocl = <ObjcClassInstance>arg
-                        (<id*>val_ptr)[0] = <id>ocl.o_instance
-                    elif isinstance(arg, ObjcClass):
-                        pass
-                    elif isinstance(arg, ObjcSelector):
-                        pass
-            else:
-                (<int*>val_ptr)[0] = 0
+           
+            by_value = True
+            if sig[0][0] == '^':
+                by_value = False
+            self._convert_py_arg_to_cy(arg, sig, val_ptr, by_value)
+            
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
 
             f_index += 1
