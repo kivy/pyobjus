@@ -11,6 +11,7 @@ include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
 include "objc_cy_types.pxi"
+include "pyobjus_conversions.pxi"
 
 from debug import dprint
 import ctypes
@@ -115,7 +116,6 @@ cdef class ObjcMethod(object):
     cdef int is_static
     cdef object signature_return
     cdef object signature_args
-    cdef CastFactory cast_factory
     cdef object factory
     # this attribute is required for pyobjus varargs implementation
     cdef object signature_default_args
@@ -161,7 +161,6 @@ cdef class ObjcMethod(object):
         self.signature_return, self.signature_args = parse_signature(signature)
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
-        self.cast_factory = CastFactory()
         self.factory = Factory()
 
         py_selectors = kwargs.get('selectors', [])
@@ -258,72 +257,6 @@ cdef class ObjcMethod(object):
         # this is little optimisation in case of calling varargs method multiple times with None as argument
         self.is_varargs = False
 
-    cdef unsigned long long _ctypes_struct_to_cy_struct(self, arg, sig, void* val_ptr):
-
-        cdef unsigned long long* str_long_ptr
-
-        arg_type = sig[1:-1].split('=', 1)[0] 
-        str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
-        self.cast_factory.cast_to_cy(<id*>str_long_ptr, val_ptr, arg_type)
-
-        return <unsigned long long>str_long_ptr
-
-    cdef void _convert_py_arg_to_cy(self, arg, sig, void* val_ptr, by_value):
-
-        if by_value:
-            by = 'value'
-        else:
-            by = 'reference'
-
-        dprint("passing argument {0} by {1}".format(arg, by), type='i')
-
-        if sig == 'c':
-            (<char*>val_ptr)[0] = bytes(arg)
-        elif sig == 'i':
-            (<int*>val_ptr)[0] = <int> int(arg)
-        elif sig == 's':
-            (<short*>val_ptr)[0] = <short> int(arg)
-        elif sig == 'Q':
-            (<unsigned long long*>val_ptr)[0] = <unsigned long long> long(arg)
-        elif sig == '*':
-            (<char **>val_ptr)[0] = <char *><bytes>arg
-        elif sig == '@':
-            dprint('====> ARG', <ObjcClassInstance>arg)
-            if arg == None:
-                (<id*>val_ptr)[0] = <id>NULL
-            else:
-                ocl = <ObjcClassInstance>arg
-                (<id*>val_ptr)[0] = <id>ocl.o_instance
-        # method is accepting class
-        elif sig == '#':
-            dprint('==> Class arg', <ObjcClassInstance>arg)
-            ocl = <ObjcClassInstance>arg
-            (<Class*>val_ptr)[0] = <Class>ocl.o_cls
-        # method is accepting selector
-        elif sig == ":":
-            dprint("==> Selector arg", <ObjcSelector>arg)
-            osel = <ObjcSelector>arg
-            (<id*>val_ptr)[0] = <id>osel.selector
-        # method is accepting structure
-        elif sig[0] == '{':
-            dprint("==> Structure arg", arg)
-            ctypes_struct_cache.append(self._ctypes_struct_to_cy_struct(arg, sig, val_ptr))
-        # method is accepting pointer to type
-        elif sig[0] == '^':
-            arg_type = sig.split('^', 1)[1]
-            if arg_type == 'v':
-                if isinstance(arg, ctypes.Structure):
-                    (<unsigned long long*>val_ptr)[0] = <unsigned long long>ctypes.addressof(arg)
-                elif isinstance(arg, ObjcClassInstance):
-                    ocl = <ObjcClassInstance>arg
-                    (<id*>val_ptr)[0] = <id>ocl.o_instance
-                elif isinstance(arg, ObjcClass):
-                    pass
-                elif isinstance(arg, ObjcSelector):
-                    pass
-        else:
-            (<int*>val_ptr)[0] = 0
-
     def _call_instance_method(self, *args):
         
         dprint('-' * 80)
@@ -359,7 +292,6 @@ cdef class ObjcMethod(object):
         f_args[1] = &self.selector
         dprint(' - selector is', pr(self.selector))
 
-        cdef void* val_ptr
         cdef ObjcClassInstance ocl
         f_index = 1
 
@@ -368,22 +300,21 @@ cdef class ObjcMethod(object):
             # argument passed to call
             arg = args[index-2]
             # we already know the ffitype/size being used
-            val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
                     index, self.f_arg_types[index][0].size, arg))
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
-           
+            
             by_value = True
             if sig[0][0] == '^':
                 by_value = False
-            self._convert_py_arg_to_cy(arg, sig, val_ptr, by_value)
+                sig = sig.split('^')[1]
             
+            print sig
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
-
             f_index += 1
-            f_args[f_index] = val_ptr
+            f_args[f_index] = convert_py_arg_to_cy(arg, sig, by_value, self.f_arg_types[index][0].size)
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
 
         if self.signature_return[0][0] != '{':
@@ -498,7 +429,8 @@ cdef class ObjcMethod(object):
 
         # return type --> pointer to type
         elif sig[0] == '^':
-            return <unsigned long long>f_result
+            print int(f_result)
+            return ObjcArgReference(<unsigned long long>f_result)
 
         elif sig == '?':
             # unknown type
@@ -506,43 +438,6 @@ cdef class ObjcMethod(object):
 
         else:
             assert(0)
-
-cdef convert_to_cy_cls_instance(id ret_id):
-    ''' Function for converting C pointer into Cython ObjcClassInstance type
-    Args:
-        ret_id: C pointer
-
-    Returns:
-        ObjcClassInstance type
-    '''    
-    cdef ObjcClassInstance cret 
-    bret = <bytes><char *>object_getClassName(ret_id)
-    dprint(' - object_getClassName(f_result) =', bret)
-    if bret == 'nil':
-        dprint('<-- returned pointer value:', pr(ret_id), type="w")
-        return None
-            
-    cret = autoclass(bret, new_instance=True)(noinstance=True)
-    cret.instanciate_from(ret_id)
-    dprint('<-- return object', cret)
-    return cret
-
-def cast_manager(obj_to_cast, type):
-    ''' Function for casting python object of one type, to another (supported type)
-    Args: 
-        obj_to_cast: Python object which will be casted into some other type
-        type: type in which object will be casted
-
-    Returns:
-        Casted Python object
-    '''
-    if issubclass(type, ctypes.Structure):
-        return ctypes.cast(<unsigned long long>obj_to_cast, ctypes.POINTER(type)).contents
-
-    cdef unsigned long long* ocl_lng_ptr
-    if issubclass(type, ObjcClassInstance):
-        ocl_lng_ptr = <unsigned long long*><unsigned long long>obj_to_cast
-        return convert_to_cy_cls_instance(<id>ocl_lng_ptr)
 
 cdef class ObjcClass(object):
     # if we are calling class method, set is_statis field to True

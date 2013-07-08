@@ -1,12 +1,12 @@
 import ctypes
-#ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
+ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 
 from pyobjus import autoclass, selector, cast_manager, ObjcClassInstance
 from objc_py_types import *
 
-#NSArray = autoclass("NSArray")
+NSArray = autoclass("NSArray")
 NSString = autoclass('NSString')
-#NSMutableArray = autoclass("NSMutableArray")
+NSMutableArray = autoclass("NSMutableArray")
 
 text = NSString.stringWithUTF8String_("some text")
 
@@ -124,7 +124,7 @@ text = NSString.stringWithUTF8String_("some text")
 #print cast_manager(p_v, ObjcClassInstance).UTF8String()
 
 
-#car = autoclass('Car')
-#c = car.alloc().init()
-#print dir(c)
-#c.driveWithCar_(3)
+car = autoclass('Car')
+c = car.alloc().init()
+r = c.makeCarIddouble()
+c.driveWithCar_(r)
