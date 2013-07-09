@@ -75,12 +75,12 @@ text = NSString.stringWithUTF8String_("some text")
 #NSData = autoclass('NSData')
 
 
-#range_new = NSRange(5, 3)
+range_new = NSRange(5, 3)
 #r = text.lineRangeForRange_(range_new)
 #print "loc -->", r.length
 #print "loc -->", r.location
 
-#NSValue = autoclass('NSValue')
+NSValue = autoclass('NSValue')
 #rect = NSRect(NSPoint(3, 5), NSSize(320, 480))
 
 #ns_rect = NSValue.valueWithRect_(rect)
@@ -114,6 +114,49 @@ text = NSString.stringWithUTF8String_("some text")
     #print "NSOrderedAscending"
 
 #range_new.length = 5
+
+car = autoclass('Car')
+c = car.alloc().init()
+r = c.makeCarIdint()
+print r.type
+c.driveWithCari_(r)
+c.driveWithCari_(542354)
+
+sh = c.makeCarIdshort()
+c.driveWithCars_(sh)
+c.driveWithCars_(32000)
+
+lng = c.makeCarIdlong()
+c.driveWithCarl_(lng)
+c.driveWithCarl_(435342)
+
+uchr = c.makeCarIduChar()
+c.driveWithCaruc_(uchr)
+c.driveWithCaruc_(102)
+
+ch = c.makeCarIdChar()
+c.driveWithCarc_(ch)
+
+rng = c.makeRangePtr()
+rn = NSRange(23, 43)
+
+c.useRangePtr_(rn)
+c.useRangePtr_(rng)
+
+cls = c.makeClass()
+cl = c.oclass()
+c.driveWithClass_(cl)
+
+sel = c.makeSelector()
+ssl = selector("print")
+c.useSelector_(ssl)
+
+sel_p = c.makeSelectorPtr()
+c.useSelectorPtr_(ssl)
+print c.respondsToSelector_(ssl)
+
+c.voidToFloat_(12.35)
+c.voidToStr_("i")
 #p = NSValue.valueWithPointer_(range_new)
 #val_ptr = p.pointerValue()
 #print cast_manager(val_ptr, NSRange).length
@@ -124,7 +167,3 @@ text = NSString.stringWithUTF8String_("some text")
 #print cast_manager(p_v, ObjcClassInstance).UTF8String()
 
 
-car = autoclass('Car')
-c = car.alloc().init()
-r = c.makeCarIddouble()
-c.driveWithCar_(r)

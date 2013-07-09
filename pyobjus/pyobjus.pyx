@@ -311,7 +311,6 @@ cdef class ObjcMethod(object):
                 by_value = False
                 sig = sig.split('^')[1]
             
-            print sig
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
             f_index += 1
             f_args[f_index] = convert_py_arg_to_cy(arg, sig, by_value, self.f_arg_types[index][0].size)
@@ -401,7 +400,7 @@ cdef class ObjcMethod(object):
             ocl = ObjcClassInstance(noinstance="True", getcls="True")
             ocl.o_cls = <Class>object_getClass(<id>f_result)
             return ocl
-        # return type -> selector. TODO: Test this !!!
+        # return type -> selector
         elif sig == ':':
             osel = ObjcSelector()
             osel.selector = <SEL>f_result
@@ -428,9 +427,8 @@ cdef class ObjcMethod(object):
             pass
 
         # return type --> pointer to type
-        elif sig[0] == '^':
-            print int(f_result)
-            return ObjcArgReference(<unsigned long long>f_result)
+        elif sig[0] == '^': 
+            return ObjcReferenceToType(<unsigned long long>f_result, sig.split('^')[1])
 
         elif sig == '?':
             # unknown type
