@@ -156,7 +156,7 @@ c.useSelectorPtr_(ssl)
 print c.respondsToSelector_(ssl)
 
 c.voidToFloat_(12.35)
-c.voidToStr_("i")
+c.voidToStr_("iv")
 #p = NSValue.valueWithPointer_(range_new)
 #val_ptr = p.pointerValue()
 #print cast_manager(val_ptr, NSRange).length

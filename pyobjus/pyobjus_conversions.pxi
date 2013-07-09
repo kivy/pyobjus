@@ -1,5 +1,8 @@
 from libc.stdio cimport printf
 
+cdef extern from "string.h":
+  char *strcpy(char *dest, char *src)
+
 cdef class ObjcReferenceToType(object):
     
     cdef public unsigned long long arg_ref
@@ -107,7 +110,6 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
 
     cdef void *val_ptr = malloc(size)
     cdef void *arg_val_ptr = NULL
-    cdef object del_arg_val_ptr = True
     cdef object objc_ref = False
 
     if by_value:
@@ -284,11 +286,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             elif type(arg) is int:
                 (<int*>arg_val_ptr)[0] = <int>arg
             elif type(arg) is str:
-                free(arg_val_ptr)
-                arg_val_ptr = NULL
-                del_arg_val_ptr = False
-                # value is stored on stack (is it?), and we don't need to free this ptr
-                arg_val_ptr = <char*>arg
+                strcpy(<char*>arg_val_ptr, <char*>arg)
             (<void**>val_ptr)[0] = <void*>arg_val_ptr
         
     # TODO: bit field
@@ -300,7 +298,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     else:
         (<int*>val_ptr)[0] = 0
     
-    if arg_val_ptr != NULL and del_arg_val_ptr:
+    if arg_val_ptr != NULL:
         free(arg_val_ptr)
         arg_val_ptr = NULL
 
