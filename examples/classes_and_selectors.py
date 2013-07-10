@@ -14,6 +14,8 @@ array = NSArray.arrayWithObject_(text)
 objc_class = NSString.oclass()
 print NSString.isKindOfClass_(NSObject.oclass())
 print NSString.isKindOfClass_(NSArray.oclass())
+print text.isKindOfClass_(NSObject.oclass())
+print text.isKindOfClass_(array.oclass())
 
 # equivalent to @selector(UTF8String)
 sel_one = selector("UTF8String")

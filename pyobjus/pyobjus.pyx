@@ -368,16 +368,32 @@ cdef class_get_static_methods(Class cls):
 
 cdef class_get_super_class_name(Class cls):
     """ Get super class name of some class
+    
     Args:
         cls: Class for which we will lookup for super class name
+    
     Returns:
         Super class name of class
     """
     cdef Class cls_super = class_getSuperclass(<Class>cls)
     return object_getClassName(<id>cls_super)
 
+cdef get_class_method(Class cls, char *name):
+    ''' Function for getting class method for given Class
+    
+    Args:
+        cls: Class for which we will look up for method
+        name: name of method
+
+    Returns:
+        ObjcMethod instance
+    '''
+    cdef Method m_cls = class_getClassMethod(cls, sel_registerName(name))
+    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), static=True)
+
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
+    
     Args:
         cls: Class for which we will try to get super methods
         
@@ -424,7 +440,9 @@ def autoclass(cls_name, new_instance=False):
     else:
         class_dict.update(resolve_super_class_methods(cls))
         class_dict.update(instance_methods)
-
+        # for some reason, if we don't override this instance method with class method, it won't work correctly
+        class_dict.update({'isKindOfClass_': get_class_method(cls, 'isKindOfClass:')})
+ 
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)

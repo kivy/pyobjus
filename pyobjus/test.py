@@ -178,4 +178,9 @@ cl = c.oclass()
 print cl
 c.useClassVoidPtr_(cl)
 
+NSObject = autoclass('NSObject')
+# equivalent to [NSString class];
+objc_class = NSString.oclass()
+print text.isKindOfClass_(NSObject.oclass())
+#print NSString.isKindOfClass_(NSArray.oclass())
 

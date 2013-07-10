@@ -8,3 +8,5 @@ build/*
 output
 test.py
 docs/build/*
+pyobjus/tags
+run

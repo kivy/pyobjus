@@ -42,6 +42,7 @@ class NSObject(unittest.TestCase):
 
     def test_inheritance(self):
         a = NSObject
-        b = NSString
+        b = NSString.alloc().init()
         cls = a.oclass()
+        self.assertTrue(NSString.isKindOfClass_(cls))
         self.assertTrue(b.isKindOfClass_(cls))
