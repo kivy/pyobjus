@@ -1,10 +1,12 @@
-from libc.stdio cimport printf
+ctypes_struct_cache = []
 
 cdef extern from "string.h":
   char *strcpy(char *dest, char *src)
 
 cdef class ObjcReferenceToType(object):
-    
+    ''' Class for representing reference to some objective c type
+    '''
+
     cdef public unsigned long long arg_ref
     cdef public char *type
 
@@ -12,7 +14,7 @@ cdef class ObjcReferenceToType(object):
         self.arg_ref = arg
         self.type = _type
 
-def cast_manager(obj_to_cast, type):
+def dereference(py_ptr, **kwargs):
     ''' Function for casting python object of one type, to another (supported type)
     Args: 
         obj_to_cast: Python object which will be casted into some other type
@@ -24,13 +26,30 @@ def cast_manager(obj_to_cast, type):
     Note:
         It isn't implemented to work OK. Only started implementation!
     '''
-    if issubclass(type, ctypes.Structure):
-        return ctypes.cast(<unsigned long long>obj_to_cast, ctypes.POINTER(type)).contents
+    cdef unsigned long long *c_addr
+    if isinstance(py_ptr, ObjcReferenceToType):
+        c_addr = <unsigned long long*><unsigned long long>py_ptr.arg_ref
+    else:
+        c_addr = <unsigned long long*><unsigned long long>py_ptr
 
-    cdef unsigned long long* ocl_lng_ptr
-    if issubclass(type, ObjcClassInstance):
-        ocl_lng_ptr = <unsigned long long*><unsigned long long>obj_to_cast
-        return convert_to_cy_cls_instance(<id>ocl_lng_ptr)
+    if 'type' in kwargs:
+        type = kwargs['type']
+        if issubclass(type, ctypes.Structure):
+            return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(type)).contents
+        elif issubclass(type, ObjcClassInstance):
+            return convert_to_cy_cls_instance(<id>c_addr)
+        elif issubclass(type, ObjcClass):
+            pass
+        elif issubclass(type, ObjcSelector):
+            pass
+        # TODO: other types
+        # elif issubclass(type, MissingTypes....):
+        #    pass
+
+    # primitive types
+    else:
+        # TODO: add call to convert_cy_ret_to_py
+        pass
 
 cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=True):
     ''' Function for casting Python data type (struct, union) to some Cython type
@@ -96,6 +115,92 @@ cdef convert_to_cy_cls_instance(id ret_id):
     dprint('<-- return object', cret)
     return cret
 
+cdef object convert_cy_ret_to_py(ffi_arg f_result, id* struct_res_ptr, sig, factory, return_type_str):
+    
+    if sig == '@':
+        dprint(' - @ f_result:', pr(<void *>f_result))
+        ret_id = (<id>f_result)
+        #if ret_id == self.o_instance:
+        #    return self.p_class
+        return convert_to_cy_cls_instance(<id>f_result)
+
+    elif sig == 'c':
+        # this should be a char. Most of the time, a BOOL is also
+        # implemented as a char. So it's not a string, but just the numeric
+        # value of the char.
+        return (<int><char>f_result)
+    elif sig == 'i':
+        return (<int>f_result)
+    elif sig == 's':
+        return (<short>f_result)
+    elif sig == 'l':
+        return (<long>f_result)
+    elif sig == 'q':
+        return (<long long>f_result)
+    elif sig == 'C':
+        return (<unsigned char>f_result)
+    elif sig == 'I':
+        return (<unsigned int>f_result)
+    elif sig == 'S':
+        return (<unsigned short>f_result)
+    elif sig == 'L':
+        return (<unsigned long>f_result)
+    elif sig == 'Q':
+        return (<unsigned long long>f_result)
+    elif sig == 'f':
+        return (<float>f_result)
+    elif sig == 'd':
+        return (<double>f_result)
+    elif sig == 'b':
+        return (<bool>f_result)
+    elif sig == 'v':
+        return None
+    elif sig == '*':
+        return <bytes>(<char*>f_result)
+
+    # return type -> class
+    elif sig == '#':
+        ocls = ObjcClass()
+        ocls.o_cls = <Class>object_getClass(<id>f_result)
+        return ocls
+    # return type -> selector
+    elif sig == ':':
+        osel = ObjcSelector()
+        osel.selector = <SEL>f_result
+        return osel
+    elif sig[0] == '[':
+        # array
+        pass
+
+    # return type -> struct
+    elif sig[0] == '{':
+        #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
+        if <long>struct_res_ptr[0] in ctypes_struct_cache:
+            dprint("ctypes struct value found in cache", type='i')
+            val = ctypes.cast(<unsigned long long>struct_res_ptr[0], ctypes.POINTER(factory.find_object(return_type_str))).contents
+        else:
+            val = ctypes.cast(<unsigned long long>struct_res_ptr, ctypes.POINTER(factory.find_object(return_type_str))).contents
+        return val
+
+    elif sig[0] == '(':
+        # union
+        pass
+    elif sig == 'b':
+        # bitfield
+        pass
+
+    # return type --> pointer to type
+    elif sig[0] == '^': 
+        return ObjcReferenceToType(<unsigned long long>f_result, sig.split('^')[1])
+
+    elif sig == '?':
+        # unknown type
+        pass
+
+    else:
+        assert(0)
+
+
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
@@ -110,16 +215,18 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
 
     cdef void *val_ptr = malloc(size)
     cdef void *arg_val_ptr = NULL
+    cdef object del_arg_val_ptr = False
     cdef object objc_ref = False
 
     if by_value:
         by = 'value'
     else:
         if type(arg) is ObjcReferenceToType:
-            arg_val_ptr = <unsigned long long*><unsigned long long>ctypes.c_ulonglong(arg.arg_ref).value
+            arg_val_ptr = <unsigned long long*><unsigned long long>arg.arg_ref
             objc_ref = True
-        else:
+        elif not isinstance(arg, ctypes.Structure):
             arg_val_ptr = malloc(size)
+            del_arg_val_ptr = True
         by = 'reference'
 
     dprint("passing argument {0} by {1}".format(arg, by), type='i')
@@ -228,13 +335,13 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     # method is accepting class
     elif sig == '#':
         if by_value:
-            dprint('==> Class arg', <ObjcClassInstance>arg)
-            ocl = <ObjcClassInstance>arg
-            (<Class*>val_ptr)[0] = <Class>ocl.o_cls
+            dprint('==> Class arg', <ObjcClass>arg)
+            ocls = <ObjcClass>arg
+            (<Class*>val_ptr)[0] = <Class>ocls.o_cls
         else:
             if not objc_ref:
-                ocl = <ObjcClassInstance>arg
-                (<Class*>arg_val_ptr)[0] = <Class>ocl.o_cls
+                ocls = <ObjcClass>arg
+                (<Class*>arg_val_ptr)[0] = <Class>ocls.o_cls
             (<Class**>val_ptr)[0] = <Class*>arg_val_ptr
     # method is accepting selector
     elif sig == ":":
@@ -271,16 +378,23 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     # method is accepting void pointer (void*)
     elif sig[0] == 'v':
         if isinstance(arg, ctypes.Structure):
-            (<unsigned long long*>val_ptr)[0] = <unsigned long long>ctypes.addressof(arg)
+            (<void**>val_ptr)[0] = <void*><unsigned long long>ctypes.addressof(arg)
+        elif isinstance(arg, ObjcReferenceToType):
+            (<unsigned long long**>val_ptr)[0] = <unsigned long long*>arg_val_ptr
         elif isinstance(arg, ObjcClassInstance):
             ocl = <ObjcClassInstance>arg
-            (<id*>val_ptr)[0] = <id>ocl.o_instance
+            (<void**>val_ptr)[0] = <void*>ocl.o_instance
         elif isinstance(arg, ObjcClass):
-            pass
+            ocls = <ObjcClass>arg
+            (<void**>val_ptr)[0] = <void*>ocls.o_cls
         elif isinstance(arg, ObjcSelector):
-            pass
+            osel = <ObjcSelector>arg
+            (<void**>val_ptr)[0] = <void*>osel.selector
+        # TODO: Add other types..
+        # elif:
+            # UNION, ARRAY, ETC.
         else:
-            # TODO: Add better conversion between types!
+            # TODO: Add better conversion between primitive types!
             if type(arg) is float:
                 (<float*>arg_val_ptr)[0] = <float>arg
             elif type(arg) is int:
@@ -297,8 +411,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
         pass
     else:
         (<int*>val_ptr)[0] = 0
-    
-    if arg_val_ptr != NULL:
+
+    if arg_val_ptr != NULL and del_arg_val_ptr:
         free(arg_val_ptr)
         arg_val_ptr = NULL
 

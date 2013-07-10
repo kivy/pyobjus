@@ -100,6 +100,22 @@
     printf("location: %ld, length %ld\n", r.location, r.length);
 }
 
+- (void) useRangeVoidPtr:(void*)v_p {
+    NSRange *r = (NSRange*)v_p;
+    NSRange rng = r[0];
+    printf("location: %ld, length %ld\n", rng.location, rng.length);
+}
+
+- (void) useClassInstVoidPtr:(void*)v_p {
+    NSString *s = (NSString*)v_p;
+    printf("Hello from NSString, with value --> %s\n", [s UTF8String]);
+}
+
+- (void) useClassVoidPtr:(void*)v_p {
+    Class *cls_p = (Class*)v_p;
+    [self driveWithClass:cls_p];
+}
+
 - (SEL) makeSelector {
     SEL sel = @selector(print);
     return sel;
@@ -126,7 +142,7 @@
     printf("class !!!!");
     Class cls = cls_p[0];
     NSString *s = [cls description];
-    printf("I'm driving car with class...%s:\n", [s UTF8String]);
+    printf("I'm driving car with class...%s\n", [s UTF8String]);
 }
 
 - (void)driveWithCarc:(char*)carid {
@@ -196,7 +212,16 @@ int main() {
     *b = 233232.33;
     [c voidToFloat:(void*)b];
     char *chr = malloc(sizeof(char));
-    chr = "ivan";
-    [c voidToStr:(void*)chr];
+    chr = "iv";
+    char **ch = malloc(sizeof(char*));
+    ch[0] = chr;
+    [c voidToStr:(void*)*ch];
+    NSRange *rn = malloc(sizeof(NSRange));
+    rn[0].length = 123;
+    rn[0].location = 432;
+    [c useRangeVoidPtr:(void*)rn];
+    NSString *str = @"ivan";
+    [c useClassInstVoidPtr:(void*)str];
+    [c useClassVoidPtr:(void*)[Car class]];
 }
 
