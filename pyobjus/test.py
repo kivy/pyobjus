@@ -1,7 +1,7 @@
 import ctypes
 ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 
-from pyobjus import autoclass, selector, dereference, ObjcClassInstance
+from pyobjus import *
 from objc_py_types import *
 
 NSArray = autoclass("NSArray")
@@ -83,11 +83,6 @@ print "loc -->", r.location
 NSValue = autoclass('NSValue')
 rect = NSRect(NSPoint(3, 5), NSSize(320, 480))
 
-ns_rect = NSValue.valueWithRect_(rect)
-rv = ns_rect.rectValue()
-print rv.origin.x
-print rv.origin.y
-
 point = NSPoint(4, 8)
 print point.x
 
@@ -160,10 +155,6 @@ c.useClassInstVoidPtr_(text)
 
 c.useClassVoidPtr_(c.makeClass())
 
-p = NSValue.valueWithPointer_(text)
-p_v = p.pointerValue()
-print dereference(p_v, type=ObjcClassInstance).UTF8String()
-
 p = NSValue.valueWithPointer_(range_new)
 p_v = p.pointerValue()
 print dereference(p_v, type=NSRange).location
@@ -179,8 +170,57 @@ print cl
 c.useClassVoidPtr_(cl)
 
 NSObject = autoclass('NSObject')
-# equivalent to [NSString class];
 objc_class = NSString.oclass()
 print text.isKindOfClass_(NSObject.oclass())
-#print NSString.isKindOfClass_(NSArray.oclass())
 
+print c.makeDouble()
+
+r = NSRect(NSPoint(30, 50), NSSize(320, 480))
+ns_rect = NSValue.valueWithRect_(r)
+rv = ns_rect.rectValue()
+print rv.origin.x
+print rv.origin.y
+
+rng = c.makeCarIddouble()
+print rng
+print dereference(rng)
+
+rng =  c.makeRangePtr()
+print dereference(rng).length
+
+rct = c.makeRectPtr()
+rect = dereference(rct)
+
+print rect.origin.x
+print rect.origin.y
+print rect.size.width
+print rect.size.height
+
+cls_p = c.makeClassVoidPtr()
+cls = dereference(cls_p, type=ObjcClass)
+c.driveWithClass_(cls)
+
+s_vp = c.makeSelectorVoidPtr()
+sel = dereference(s_vp, type=ObjcSelector)
+c.useSelector_(sel)
+c.useSelectorPtr_(s_vp)
+
+p = NSValue.valueWithPointer_(text)
+p_v = p.pointerValue()
+print dereference(p_v, type=ObjcClassInstance).UTF8String()
+
+pv = NSValue.valueWithPointer_(rect)
+rct = pv.pointerValue()
+print dereference(rct, type=NSRect).origin.x
+
+cls_p = c.oclass()
+nsv = NSValue.valueWithPointer_(cls_p)
+cls_p = nsv.pointerValue()
+cls = dereference(cls_p, type=ObjcClass)
+c.driveWithClass_(cls)
+
+i_vp = c.makeIntVoidPtr()
+print dereference(i_vp, type=ObjcInt)
+
+f_vp = c.makeFloatVoidPtr()
+print dereference(f_vp, type=ObjcFloat)

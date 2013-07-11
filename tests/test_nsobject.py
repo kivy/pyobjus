@@ -46,3 +46,5 @@ class NSObject(unittest.TestCase):
         cls = a.oclass()
         self.assertTrue(NSString.isKindOfClass_(cls))
         self.assertTrue(b.isKindOfClass_(cls))
+        c = NSString.alloc().init()
+        self.assertTrue(b.isKindOfClass_(c.oclass()))

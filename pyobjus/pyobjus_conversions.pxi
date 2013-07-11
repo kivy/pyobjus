@@ -1,3 +1,6 @@
+from objc_py_types import Factory
+
+factory = Factory()
 ctypes_struct_cache = []
 
 cdef extern from "string.h":
@@ -9,10 +12,12 @@ cdef class ObjcReferenceToType(object):
 
     cdef public unsigned long long arg_ref
     cdef public char *type
+    cdef public size_t size
 
-    def __cinit__(self, unsigned long long arg, char *_type):
+    def __cinit__(self, unsigned long long arg, char *_type, size_t _size):
         self.arg_ref = arg
         self.type = _type
+        self.size = _size
 
 def dereference(py_ptr, **kwargs):
     ''' Function for casting python object of one type, to another (supported type)
@@ -24,32 +29,30 @@ def dereference(py_ptr, **kwargs):
         Casted Python object
 
     Note:
-        It isn't implemented to work OK. Only started implementation!
+        All types aren't implemented!
     '''
     cdef unsigned long long *c_addr
+    cdef void *struct_res_ptr = NULL
+
     if isinstance(py_ptr, ObjcReferenceToType):
         c_addr = <unsigned long long*><unsigned long long>py_ptr.arg_ref
     else:
         c_addr = <unsigned long long*><unsigned long long>py_ptr
-
+    
     if 'type' in kwargs:
         type = kwargs['type']
         if issubclass(type, ctypes.Structure):
             return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(type)).contents
         elif issubclass(type, ObjcClassInstance):
             return convert_to_cy_cls_instance(<id>c_addr)
-        elif issubclass(type, ObjcClass):
-            pass
-        elif issubclass(type, ObjcSelector):
-            pass
+        
+        py_ptr.type = type.enc
+        
         # TODO: other types
         # elif issubclass(type, MissingTypes....):
         #    pass
 
-    # primitive types
-    else:
-        # TODO: add call to convert_cy_ret_to_py
-        pass
+    return convert_cy_ret_to_py(<id*>c_addr, py_ptr.type, py_ptr.size)
 
 cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=True):
     ''' Function for casting Python data type (struct, union) to some Cython type
@@ -115,58 +118,57 @@ cdef convert_to_cy_cls_instance(id ret_id):
     dprint('<-- return object', cret)
     return cret
 
-cdef object convert_cy_ret_to_py(ffi_arg f_result, id* struct_res_ptr, sig, factory, return_type_str):
+cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
     
-    if sig == '@':
-        dprint(' - @ f_result:', pr(<void *>f_result))
-        ret_id = (<id>f_result)
-        #if ret_id == self.o_instance:
-        #    return self.p_class
-        return convert_to_cy_cls_instance(<id>f_result)
+    if sig[0][0] == '{':
+        return_type_str = sig[1:-1].split('=')[0]
 
     elif sig == 'c':
         # this should be a char. Most of the time, a BOOL is also
         # implemented as a char. So it's not a string, but just the numeric
         # value of the char.
-        return (<int><char>f_result)
+        return (<int><char>f_result[0])
     elif sig == 'i':
-        return (<int>f_result)
+        return (<int>f_result[0])
     elif sig == 's':
-        return (<short>f_result)
+        return (<short>f_result[0])
     elif sig == 'l':
-        return (<long>f_result)
+        return (<long>f_result[0])
     elif sig == 'q':
-        return (<long long>f_result)
+        return (<long long>f_result[0])
     elif sig == 'C':
-        return (<unsigned char>f_result)
+        return (<unsigned char>f_result[0])
     elif sig == 'I':
-        return (<unsigned int>f_result)
+        return (<unsigned int>f_result[0])
     elif sig == 'S':
-        return (<unsigned short>f_result)
+        return (<unsigned short>f_result[0])
     elif sig == 'L':
-        return (<unsigned long>f_result)
+        return (<unsigned long>f_result[0])
     elif sig == 'Q':
-        return (<unsigned long long>f_result)
+        return (<unsigned long long>f_result[0])
     elif sig == 'f':
-        return (<float>f_result)
+        return (<float>ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(ctypes.c_float)).contents.value)
     elif sig == 'd':
-        return (<double>f_result)
+        return (<double>ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(ctypes.c_double)).contents.value)
     elif sig == 'b':
-        return (<bool>f_result)
+        return (<bool>f_result[0])
     elif sig == 'v':
         return None
     elif sig == '*':
-        return <bytes>(<char*>f_result)
-
+        return <bytes>(<char*>f_result[0])
+    
+    # return type -> id
+    if sig == '@':
+        return convert_to_cy_cls_instance(<id>f_result[0])
     # return type -> class
     elif sig == '#':
         ocls = ObjcClass()
-        ocls.o_cls = <Class>object_getClass(<id>f_result)
+        ocls.o_cls = <Class>object_getClass(<id>f_result[0])
         return ocls
     # return type -> selector
     elif sig == ':':
         osel = ObjcSelector()
-        osel.selector = <SEL>f_result
+        osel.selector = <SEL>f_result[0]
         return osel
     elif sig[0] == '[':
         # array
@@ -175,11 +177,11 @@ cdef object convert_cy_ret_to_py(ffi_arg f_result, id* struct_res_ptr, sig, fact
     # return type -> struct
     elif sig[0] == '{':
         #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
-        if <long>struct_res_ptr[0] in ctypes_struct_cache:
+        if <long>f_result[0] in ctypes_struct_cache:
             dprint("ctypes struct value found in cache", type='i')
-            val = ctypes.cast(<unsigned long long>struct_res_ptr[0], ctypes.POINTER(factory.find_object(return_type_str))).contents
+            val = ctypes.cast(<unsigned long long>f_result[0], ctypes.POINTER(factory.find_object(return_type_str))).contents
         else:
-            val = ctypes.cast(<unsigned long long>struct_res_ptr, ctypes.POINTER(factory.find_object(return_type_str))).contents
+            val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type_str))).contents
         return val
 
     elif sig[0] == '(':
@@ -191,7 +193,7 @@ cdef object convert_cy_ret_to_py(ffi_arg f_result, id* struct_res_ptr, sig, fact
 
     # return type --> pointer to type
     elif sig[0] == '^': 
-        return ObjcReferenceToType(<unsigned long long>f_result, sig.split('^')[1])
+        return ObjcReferenceToType(<unsigned long long>f_result[0], sig.split('^')[1], size)
 
     elif sig == '?':
         # unknown type

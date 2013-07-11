@@ -9,16 +9,27 @@ cdef class ObjcClassStorage:
         self.o_cls = NULL
 
 
+cdef class ObjcInt:
+    enc = 'i'
+
+
+cdef class ObjcFloat:
+    enc = 'f'
+
+
 cdef class ObjcSelector(object):
     """ Class for storing selector 
     """    
+    enc = ':'
     cdef SEL selector 
 
     def __cinit__(self, *args, **kwargs):
         self.selector = NULL
 
+
 cdef class ObjcClass(object):
 
+    enc = '#'
     cdef Class o_cls
 
     def __cinit__(self, *args, **kwargs):

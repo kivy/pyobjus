@@ -2,9 +2,9 @@
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
 
-__all__ = ('ObjcClassInstance', 'ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException',
-    'autoclass', 'selector', 'objc_py_types')
-
+__all__ = ('ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
+            'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 
+            'selector', 'objc_py_types', 'dereference')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -250,8 +250,8 @@ cdef class ObjcMethod(object):
         dprint('--> return def is', self.signature_return)
         dprint('--> args def is', self.signature_args)
 
-        cdef ffi_arg f_result
-        cdef id* struct_res_ptr
+        cdef id* res_ptr
+        cdef object del_res_ptr = True
         cdef void **f_args
         cdef int index
         cdef size_t size
@@ -300,10 +300,11 @@ cdef class ObjcMethod(object):
             f_args[f_index] = convert_py_arg_to_cy(arg, sig, by_value, self.f_arg_types[index][0].size)
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
 
+        res_ptr = <id*>malloc(self.f_result_type.size)
+
         if self.signature_return[0][0] != '{':
-            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
+            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
         else:
-            struct_res_ptr = <id*>malloc(self.f_result_type.size)
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture
             # We need add cases for powerPC 32bit and 64bit, and IA-32 architecture
 
@@ -318,10 +319,11 @@ cdef class ObjcMethod(object):
             # SOURCE: http://www.uclibc.org/docs/psABI-x86_64.pdf
                 fun_name = ""
                 if ctypes.sizeof(self.factory.find_object(self.return_type_str)) > 16:
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, struct_res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
+                    del_res_ptr = False
                 else:
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, struct_res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), type='i')
             ELSE:
@@ -339,10 +341,15 @@ cdef class ObjcMethod(object):
         dprint("return signature", self.signature_return[0], type="i")
         
         if sig == '@':
-            ret_id = (<id>f_result)
+            ret_id = (<id>res_ptr[0])
             if ret_id == self.o_instance:
                 return self.p_class
-        return convert_cy_ret_to_py(f_result, struct_res_ptr, sig, self.factory, self.return_type_str) 
+        
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size) 
+        if del_res_ptr:
+            free(res_ptr)
+            res_ptr = NULL
+        return ret_py_val
 
 registers = []
 
@@ -442,7 +449,7 @@ def autoclass(cls_name, new_instance=False):
         class_dict.update(instance_methods)
         # for some reason, if we don't override this instance method with class method, it won't work correctly
         class_dict.update({'isKindOfClass_': get_class_method(cls, 'isKindOfClass:')})
- 
+
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)

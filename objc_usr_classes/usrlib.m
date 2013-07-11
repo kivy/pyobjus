@@ -1,4 +1,6 @@
 #import <Foundation/Foundation.h>
+#import <objc/runtime.h>
+#import <objc/objc-runtime.h>
 
 @interface Car : NSObject {
 }
@@ -38,6 +40,11 @@
     short *a = malloc(sizeof(short));
     *a = (short)12345;
     return a;
+}
+
+- (double)makeDouble {
+    double ret = 454.545;
+    return ret;
 }
 
 - (double*)makeCarIddouble {
@@ -81,6 +88,13 @@
     return cls;
 }
 
+- (void*) makeClassVoidPtr {
+    Class *cls = malloc(sizeof(Class));
+    Class cl = [NSString class];
+    *cls = cl;
+    return (void*)cls;
+}
+
 - (void)print {
     printf("selector printed me!\n");
 }
@@ -90,6 +104,21 @@
     NSRange r;
     r.length = 123;
     r.location = 567;
+    *r_p = r;
+    return r_p;
+}
+
+- (NSRect*) makeRectPtr {
+    NSRect *r_p = malloc(sizeof(NSRect));
+    NSRect r;
+    NSPoint p;
+    NSSize s;
+    s.width = 840;
+    s.height = 600;
+    p.x = 234;
+    p.y = 542;
+    r.origin = p;
+    r.size = s;
     *r_p = r;
     return r_p;
 }
@@ -134,15 +163,41 @@
     [self performSelector:sel];
 }
 
+- (void*) makeSelectorVoidPtr {
+    SEL *s = malloc(sizeof(SEL));
+    SEL sel = @selector(print);
+    *s = sel;
+    return (void*)s;
+}
+
+- (void) useSelectorVoidPtr:(void*)sel_v_ptr {
+    SEL *sel = (SEL*)sel_v_ptr;
+    SEL sl = *sel;
+    [self performSelector:sl];
+}
+
 - (void) useSelector:(SEL)sel {
     [self performSelector:sel];
 }
 
 - (void)driveWithClass:(Class*)cls_p {
-    printf("class !!!!");
     Class cls = cls_p[0];
+    
     NSString *s = [cls description];
+    
     printf("I'm driving car with class...%s\n", [s UTF8String]);
+}
+
+- (void*) makeIntVoidPtr {
+    int *a = malloc(sizeof(int));
+    *a = 12345;
+    return (void*)a;
+}
+
+- (void*) makeFloatVoidPtr {
+    float *f = malloc(sizeof(float));
+    *f = 2343.233322;
+    return (void*)f;
 }
 
 - (void)driveWithCarc:(char*)carid {
@@ -186,7 +241,16 @@
     printf("value --> %s\n", num);
 }
 
+- (void) test_kindOf {
+    NSString *s = [[NSString alloc] initWithUTF8String:"ivan"];
+    NSString *st = [[NSString alloc] initWithUTF8String:"pusic"];
+    NSObject *ob = [[NSObject alloc] init];
+    BOOL b = [s isKindOfClass:[st class]];
+    printf("%d", b);
+}
+
 @end
+
 
 int main() {
     Car *c = [[Car alloc] init];
@@ -223,5 +287,13 @@ int main() {
     NSString *str = @"ivan";
     [c useClassInstVoidPtr:(void*)str];
     [c useClassVoidPtr:(void*)[Car class]];
+    Class ocls = [c class];
+    NSString *desc = [ocls description];
+    NSObject *ob = [[NSObject alloc] init];
+    printf("%f\n", [c makeDouble]);
+    char *enc = @encode(NSRange);
+    void *p_s = [c makeSelectorVoidPtr];
+    [c useSelectorVoidPtr:p_s];
+    printf("End of program!");
 }
 
