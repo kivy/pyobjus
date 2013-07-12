@@ -1,3 +1,8 @@
+cdef extern from "objc/objc.h":
+    
+    ctypedef enum: YES
+    ctypedef enum: NO
+
 cdef extern from "objc/runtime.h":
 
     ctypedef struct objc_selector:
@@ -16,6 +21,7 @@ cdef extern from "objc/runtime.h":
     Method*         class_copyMethodList(Class cls, unsigned int *outCount)
     const_char_ptr  class_getName(Class cls)
     Method          class_getClassMethod(Class cls, SEL selector)
+    Method          class_getInstanceMethod(Class aClass, SEL aSelector)
     Method          class_getSuperclass(Class cls)
 
     SEL             sel_registerName(char *)

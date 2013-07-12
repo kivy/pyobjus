@@ -2,15 +2,19 @@
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
 
-__all__ = ('ObjcClassInstance', 'ObjcClass', 'ObjcMethod', 'MetaObjcClass', 'ObjcException',
-    'autoclass', 'selector', 'objc_py_types')
-
+__all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar', 'ObjcUInt', 
+        'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
+        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
+        'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
+        'dereference')
 
 include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
 include "type_enc.pxi"
 include "objc_cy_types.pxi"
+include "pyobjus_types.pxi"
+include "pyobjus_conversions.pxi"
 
 from debug import dprint
 import ctypes
@@ -26,17 +30,6 @@ cdef pr(void *pointer):
 
 cdef dict oclass_register = {}
 
-class ObjcException(Exception):
-    pass
-
-
-cdef class ObjcClassStorage:
-    cdef Class o_cls
-
-    def __cinit__(self):
-        self.o_cls = NULL
-
-
 class MetaObjcClass(type):
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
@@ -46,7 +39,7 @@ class MetaObjcClass(type):
             oclass_register[classDict['__objcclass__']] = {}
 
         # for every class we save class instance and class object to cache
-        if(ObjcClass not in bases):
+        if(ObjcClassHlp not in bases):
             oclass_register[classDict['__objcclass__']]['instance'] = tp
         else:
             oclass_register[classDict['__objcclass__']]['class'] = tp
@@ -88,6 +81,7 @@ class MetaObjcClass(type):
 
         # FIXME do the static fields resolution
 
+
 def selector(name):
     """ Function for getting selector for given method name
 
@@ -101,21 +95,12 @@ def selector(name):
     dprint(pr(osel.selector), type="i")
     return osel
 
-cdef class ObjcSelector(object):
-    """ Class for storing selector 
-    """    
-    cdef SEL selector 
-
-    def __cinit__(self, *args, **kwargs):
-        self.selector = NULL
-
 cdef class ObjcMethod(object):
     cdef bytes name
     cdef bytes signature
     cdef int is_static
     cdef object signature_return
     cdef object signature_args
-    cdef CastFactory cast_factory
     cdef object factory
     # this attribute is required for pyobjus varargs implementation
     cdef object signature_default_args
@@ -161,7 +146,6 @@ cdef class ObjcMethod(object):
         self.signature_return, self.signature_args = parse_signature(signature)
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
-        self.cast_factory = CastFactory()
         self.factory = Factory()
 
         py_selectors = kwargs.get('selectors', [])
@@ -180,8 +164,9 @@ cdef class ObjcMethod(object):
         if name == "oclass":
             self.name = name.replace("oclass", "class")
 
-        sig = self.signature_return[0]
-        self.return_type_str = sig[1:-1].split('=', 1)[0]
+        if self.signature_return[0][0] == '{':
+            sig = self.signature_return[0]
+            self.return_type_str = sig[1:-1].split('=', 1)[0]
 
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
@@ -197,9 +182,11 @@ cdef class ObjcMethod(object):
         
         # resolve f_result_type 
         self.f_result_type = type_encoding_to_ffitype(self.signature_return[0])
-        
-        # allocate memory to hold ffitype* of arguments
-        cdef int size = sizeof(ffi_type) * len(self.signature_args)
+       
+        # casting is needed here because otherwise we will get warning at compile
+        cdef unsigned int num_args = <unsigned int>len(self.signature_args)
+        cdef unsigned int size = sizeof(ffi_type) * num_args
+        # allocate memory to hold ffi_type* of arguments 
         self.f_arg_types = <ffi_type **>malloc(size)
         if self.f_arg_types == NULL:
             raise MemoryError()
@@ -214,7 +201,7 @@ cdef class ObjcMethod(object):
         # FFI PREP 
         cdef ffi_status f_status
         f_status = ffi_prep_cif(&self.f_cif, FFI_DEFAULT_ABI,
-                len(self.signature_args), self.f_result_type, self.f_arg_types)
+                num_args, self.f_result_type, self.f_arg_types)
         if f_status != FFI_OK:
             raise ObjcException(
                     'Unable to prepare the method {0!r}'.format(self.name))
@@ -266,8 +253,8 @@ cdef class ObjcMethod(object):
         dprint('--> return def is', self.signature_return)
         dprint('--> args def is', self.signature_args)
 
-        cdef ffi_arg f_result
-        cdef id* struct_res_ptr
+        cdef id* res_ptr
+        cdef object del_res_ptr = True
         cdef void **f_args
         cdef int index
         cdef size_t size
@@ -292,10 +279,6 @@ cdef class ObjcMethod(object):
         f_args[1] = &self.selector
         dprint(' - selector is', pr(self.selector))
 
-        cdef void* val_ptr
-        cdef id* r_ptr
-        cdef unsigned long long *str_long_ptr
-        cdef unsigned long long str_long
         cdef ObjcClassInstance ocl
         f_index = 1
 
@@ -304,61 +287,27 @@ cdef class ObjcMethod(object):
             # argument passed to call
             arg = args[index-2]
             # we already know the ffitype/size being used
-            val_ptr = <void*>malloc(self.f_arg_types[index][0].size)
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
                     index, self.f_arg_types[index][0].size, arg))
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
-
-            if sig == 'c':
-                (<char*>val_ptr)[0] = bytes(arg)
-            elif sig == 'i':
-                (<int*>val_ptr)[0] = <int> int(arg)
-            elif sig == 's':
-                (<short*>val_ptr)[0] = <short> int(arg)
-            elif sig == 'Q':
-                (<unsigned long long*>val_ptr)[0] = <unsigned long long> long(arg)
-            elif sig == '*':
-                (<char **>val_ptr)[0] = <char *><bytes>arg
-            elif sig == '@':
-                dprint('====> ARG', <ObjcClassInstance>arg)
-                if arg == None:
-                    (<id*>val_ptr)[0] = <id>NULL
-                else:
-                    ocl = <ObjcClassInstance>arg
-                    (<id*>val_ptr)[0] = <id>ocl.o_instance
-            # method is accepting class
-            elif sig == '#':
-                dprint('==> Class arg', <ObjcClassInstance>arg)
-                ocl = <ObjcClassInstance>arg
-                (<Class*>val_ptr)[0] = <Class>ocl.o_cls
-            # method is accepting selector
-            elif sig == ":":
-                dprint("==> Selector arg", <ObjcSelector>arg)
-                osel = <ObjcSelector>arg
-                (<id*>val_ptr)[0] = <id>osel.selector
-            # method is accepting structure
-            elif sig[0] == '{':
-                dprint("==> Structure arg", arg)
-                arg_type = sig[1:-1].split('=', 1)[0]
-                str_long = <unsigned long long>ctypes.addressof(arg)
-                str_long_ptr = <unsigned long long*>str_long
-                r_ptr = <id*>str_long_ptr
-                self.cast_factory.cast_to_cy(r_ptr, val_ptr, arg_type)
-                ctypes_struct_cache.append(str_long)
-            else:
-                (<int*>val_ptr)[0] = 0
+            
+            by_value = True
+            if sig[0][0] == '^':
+                by_value = False
+                sig = sig.split('^')[1]
+            
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
-
             f_index += 1
-            f_args[f_index] = val_ptr
+            f_args[f_index] = convert_py_arg_to_cy(arg, sig, by_value, self.f_arg_types[index][0].size)
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
 
+        res_ptr = <id*>malloc(self.f_result_type.size)
+
         if self.signature_return[0][0] != '{':
-            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, &f_result, f_args)
+            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
         else:
-            struct_res_ptr = <id*>malloc(self.f_result_type.size)
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture
             # We need add cases for powerPC 32bit and 64bit, and IA-32 architecture
 
@@ -373,10 +322,11 @@ cdef class ObjcMethod(object):
             # SOURCE: http://www.uclibc.org/docs/psABI-x86_64.pdf
                 fun_name = ""
                 if ctypes.sizeof(self.factory.find_object(self.return_type_str)) > 16:
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, struct_res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
+                    del_res_ptr = False
                 else:
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, struct_res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), type='i')
             ELSE:
@@ -392,180 +342,19 @@ cdef class ObjcMethod(object):
 
         sig = self.signature_return[0]
         dprint("return signature", self.signature_return[0], type="i")
-
+        
         if sig == '@':
-            dprint(' - @ f_result:', pr(<void *>f_result))
-            ret_id = (<id>f_result)
+            ret_id = (<id>res_ptr[0])
             if ret_id == self.o_instance:
                 return self.p_class
-            bret = <bytes><char *>object_getClassName(ret_id)
-            dprint(' - object_getClassName(f_result) =', bret)
-            if bret == 'nil':
-                dprint('<-- returned pointer value:', pr(ret_id), type="w")
-                return None
-            
-            cret = autoclass(bret, new_instance=True)(noinstance=True)
-            cret.instanciate_from(ret_id)
-            dprint('<-- return object', cret)
-            return cret
-
-        elif sig == 'c':
-            # this should be a char. Most of the time, a BOOL is also
-            # implemented as a char. So it's not a string, but just the numeric
-            # value of the char.
-            return (<int><char>f_result)
-        elif sig == 'i':
-            return (<int>f_result)
-        elif sig == 's':
-            return (<short>f_result)
-        elif sig == 'l':
-            return (<long>f_result)
-        elif sig == 'q':
-            return (<long long>f_result)
-        elif sig == 'C':
-            return (<unsigned char>f_result)
-        elif sig == 'I':
-            return (<unsigned int>f_result)
-        elif sig == 'S':
-            return (<unsigned short>f_result)
-        elif sig == 'L':
-            return (<unsigned long>f_result)
-        elif sig == 'Q':
-            return (<unsigned long long>f_result)
-        elif sig == 'f':
-            return (<float>f_result)
-        elif sig == 'd':
-            return (<double>f_result)
-        elif sig == 'b':
-            return (<bool>f_result)
-        elif sig == 'v':
-            return None
-        elif sig == '*':
-            return <bytes>(<char*>f_result)
-
-        # return type -> class
-        elif sig == '#':
-            ocl = ObjcClassInstance(noinstance="True", getcls="True")
-            ocl.o_cls = <Class>object_getClass(<id>f_result)
-            return ocl
-        # return type -> selector. TODO: Test this !!!
-        elif sig == ':':
-            osel = ObjcSelector()
-            osel.selector = <SEL>f_result
-            return osel
-        elif sig[0] == '[':
-            # array
-            pass
-
-        # return type -> struct
-        elif sig[0] == '{':
-            #NOTE: This need to be tested more! Does this way work in all cases? 
-            if <long>struct_res_ptr[0] in ctypes_struct_cache:
-                dprint("ctypes struct value found in cache", type='i')
-                val = ctypes.cast(<unsigned long long>struct_res_ptr[0], ctypes.POINTER(self.factory.find_object(self.return_type_str))).contents
-            else:
-                val = ctypes.cast(<unsigned long long>struct_res_ptr, ctypes.POINTER(self.factory.find_object(self.return_type_str))).contents
-            return val
-
-        elif sig[0] == '(':
-            # union
-            pass
-        elif sig == 'b':
-            # bitfield
-            pass
-        elif sig[0] == '^':
-            # pointer to type
-            pass
-        elif sig == '?':
-            # unknown type
-            pass
-
-        else:
-            assert(0)
-
-
-cdef class ObjcClass(object):
-    # if we are calling class method, set is_statis field to True
-    def __getattribute__(self, attr):
-        if(isinstance(object.__getattribute__(self, attr), ObjcMethod)):
-            object.__getattribute__(self, attr).set_is_static(True)
-
-        return object.__getattribute__(self, attr)
-
-
-cdef class ObjcClassInstance(object):
-    cdef Class o_cls
-    cdef id o_instance
-
-    def __cinit__(self, *args, **kwargs):
-        self.o_cls = NULL
-        self.o_instance = NULL
-
-    def __init__(self, *args, **kwargs):
-        super(ObjcClassInstance, self).__init__()
-        cdef ObjcClassStorage storage
-        if 'getcls' not in kwargs:
-            storage = self.__cls_storage
-            self.o_cls = storage.o_cls
-
-        if 'noinstance' not in kwargs:
-            self.call_constructor(args)
-            self.resolve_methods()
-            self.resolve_fields()
-
-    def __dealloc__(self):
-        if self.o_instance != NULL:
-            objc_msgSend(self.o_instance, sel_registerName('release'))
-            self.o_instance = NULL
-
-    cdef void instanciate_from(self, id o_instance) except *:
-        self.o_instance = o_instance
-        # XXX is retain is needed ?
-        self.o_instance = objc_msgSend(self.o_instance, sel_registerName('retain'))
-        #print 'retainCount', <int>objc_msgSend(self.o_instance,
-        #        sel_registerName('retainCount'))
-        self.resolve_methods()
-        self.resolve_fields()
-
-    cdef void call_constructor(self, args) except *:
-        # FIXME it seems that doing nothing is changed:
-        # -> doing alloc + init doesn't change anything, it still run
-        # -> is class_createInstance() is sufficient itself?
-        # -> make tests change with and without alloc+init, check the test_isequal
-        #print '-' * 80
-        #print 'call_constructor() for', self.__cls_storage
-        self.o_instance = class_createInstance(self.o_cls, 0);
-        #print 'o_instance (first)', pr(self.o_instance)
-        #self.o_instance = objc_msgSend(self.o_cls, sel_registerName('alloc'))
-        #print 'o_instance (alloc)', pr(self.o_instance)
-        #print 'retainCount (alloc)', <int>objc_msgSend(self.o_instance,
-        #        sel_registerName('retainCount'))
-        if self.o_instance == NULL:
-            raise ObjcException('Unable to instanciate {0}'.format(
-                self.__javaclass__))
-        #self.o_instance = objc_msgSend(self.o_instance,
-        #    sel_registerName('init'))
-        #print 'o_instance (init)', pr(self.o_instance)
-        #print 'retainCount (init)', <int>objc_msgSend(self.o_instance,
-        #        sel_registerName('retainCount'))
-
-
-    cdef void resolve_methods(self) except *:
         
-        cdef ObjcMethod om
-        for name, value in self.__class__.__dict__.iteritems():
-            if isinstance(value, ObjcMethod):
-                om = value
-                #if om.is_static:
-                #    continue
-                om.set_resolve_info(name, self.o_cls, self.o_instance)
-                om.p_class = self
-
-    cdef void resolve_fields(self) except *:
-        pass
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size) 
+        if del_res_ptr:
+            free(res_ptr)
+            res_ptr = NULL
+        return ret_py_val
 
 registers = []
-ctypes_struct_cache = []
 
 cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods
@@ -589,16 +378,32 @@ cdef class_get_static_methods(Class cls):
 
 cdef class_get_super_class_name(Class cls):
     """ Get super class name of some class
+    
     Args:
         cls: Class for which we will lookup for super class name
+    
     Returns:
         Super class name of class
     """
     cdef Class cls_super = class_getSuperclass(<Class>cls)
     return object_getClassName(<id>cls_super)
 
+cdef get_class_method(Class cls, char *name):
+    ''' Function for getting class method for given Class
+    
+    Args:
+        cls: Class for which we will look up for method
+        name: name of method
+
+    Returns:
+        ObjcMethod instance
+    '''
+    cdef Method m_cls = class_getClassMethod(cls, sel_registerName(name))
+    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), static=True)
+
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
+    
     Args:
         cls: Class for which we will try to get super methods
         
@@ -645,12 +450,14 @@ def autoclass(cls_name, new_instance=False):
     else:
         class_dict.update(resolve_super_class_methods(cls))
         class_dict.update(instance_methods)
+        # for some reason, if we don't override this instance method with class method, it won't work correctly
+        class_dict.update({'isKindOfClass_': get_class_method(cls, 'isKindOfClass:')})
 
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)
 
     if(new_instance == False):
-        return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClass), class_dict)()
+        return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()
 
     return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance,), class_dict)

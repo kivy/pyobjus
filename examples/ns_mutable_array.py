@@ -1,6 +1,4 @@
 import ctypes
-ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
-
 from pyobjus import autoclass
 
 NSString = autoclass('NSString')
@@ -34,4 +32,3 @@ array.insertObject_atIndex_(text_val_two, 1)
 returnedObject = array.objectAtIndex_(1)
 value = returnedObject.UTF8String()
 print "string value of returned object at index 1 -->", value
-

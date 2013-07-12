@@ -97,7 +97,9 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
         return &ffi_type_pointer
     elif enc == 'v':
         return &ffi_type_void
-
+    # pointer to type --> NOTE: need to be tested!
+    elif enc[0] == '^':
+        return &ffi_type_pointer
     # return type is struct
     elif enc[0] == '{':
         # NOTE: Tested with this nested input, and it works!
@@ -128,6 +130,5 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
     #[array type]    An array
     #(name=type...)    A union
     #bnum    A bit field of num bits
-    #^type    A pointer to type
     #?    An unknown type (among other things, 
     #   this code is used for function pointers)

@@ -1,6 +1,4 @@
 import ctypes
-ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
-
 from pyobjus import autoclass, selector
 
 NSObject = autoclass("NSObject")
@@ -8,12 +6,16 @@ NSArray = autoclass("NSArray")
 NSString = autoclass('NSString')
 
 text = NSString.alloc().initWithUTF8String_("some text")
+text_n = NSString.alloc().initWithUTF8String_("other text")
 array = NSArray.arrayWithObject_(text)
 
 # equivalent to [NSString class];
 objc_class = NSString.oclass()
 print NSString.isKindOfClass_(NSObject.oclass())
 print NSString.isKindOfClass_(NSArray.oclass())
+print text.isKindOfClass_(NSObject.oclass())
+print text.isKindOfClass_(array.oclass())
+print text.isKindOfClass_(text_n.oclass())
 
 # equivalent to @selector(UTF8String)
 sel_one = selector("UTF8String")

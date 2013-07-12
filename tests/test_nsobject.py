@@ -25,7 +25,7 @@ class NSObject(unittest.TestCase):
         self.assertIs(a, a.self())
 
     def test_description(self):
-        a = NSObject()
+        a = NSObject.alloc().init()
         text = a.description()
         self.assertIsNotNone(text)
 
@@ -41,6 +41,10 @@ class NSObject(unittest.TestCase):
         self.assertFalse(NSObject.isProxy())
 
     def test_inheritance(self):
-        a = NSObject()
-        b = NSString()
-        self.assertTrue(b.isKindOfClass_(a))
+        a = NSObject
+        b = NSString.alloc().init()
+        cls = a.oclass()
+        self.assertTrue(NSString.isKindOfClass_(cls))
+        self.assertTrue(b.isKindOfClass_(cls))
+        c = NSString.alloc().init()
+        self.assertTrue(b.isKindOfClass_(c.oclass()))
