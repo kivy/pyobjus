@@ -130,6 +130,5 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
     #[array type]    An array
     #(name=type...)    A union
     #bnum    A bit field of num bits
-    #^type    A pointer to type
     #?    An unknown type (among other things, 
     #   this code is used for function pointers)

@@ -7,17 +7,6 @@
 static void pyobjc_internal_init() {	
 
     static void *foundation = NULL;
-    static void *user_framework = NULL;
-
-    chdir("cd ../");
-    char *cwd;
-    if ((cwd = getcwd(NULL, 64)) == NULL) {
-        perror("pwd");
-        exit(2);
-    }
-    // user lib for testing method signatures
-    strcat(cwd, "/objc_usr_classes/usrlib.dylib");
-
     if ( foundation == NULL ) {
         foundation = dlopen(
         "/Groups/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
@@ -26,16 +15,6 @@ static void pyobjc_internal_init() {
             return;
         }
     }
-
-	if ( user_framework == NULL ) {
-		user_framework = dlopen(
-			cwd, RTLD_LAZY);
-		if ( user_framework == NULL ) {
-			printf("Got dlopen error on user framework\n");
-			return;
-		}
-	}
-    free(cwd);
 }
 
 id allocAndInitAutoreleasePool() {

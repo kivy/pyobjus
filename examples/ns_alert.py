@@ -1,6 +1,5 @@
 import ctypes
-ctypes.CDLL('/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib')
-
+ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 from pyobjus import autoclass
 
 # get both nsalert and nsstring class
@@ -13,5 +12,3 @@ alert.setMessageText_(ns('Hello world from python!'))
 alert.addButtonWithTitle_(NSString.stringWithUTF8String_("OK"))
 alert.addButtonWithTitle_(NSString.stringWithUTF8String_("Cancel"))
 alert.runModal()
-
-

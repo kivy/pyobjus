@@ -2,9 +2,11 @@
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
 
-__all__ = ('ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
-            'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 
-            'selector', 'objc_py_types', 'dereference')
+__all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar', 'ObjcUInt', 
+        'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
+        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
+        'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
+        'dereference')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -27,7 +29,6 @@ cdef pr(void *pointer):
     return '0x%x' % <unsigned long>pointer
 
 cdef dict oclass_register = {}
-
 
 class MetaObjcClass(type):
     def __new__(meta, classname, bases, classDict):
@@ -181,9 +182,11 @@ cdef class ObjcMethod(object):
         
         # resolve f_result_type 
         self.f_result_type = type_encoding_to_ffitype(self.signature_return[0])
-        
-        # allocate memory to hold ffitype* of arguments
-        cdef int size = sizeof(ffi_type) * len(self.signature_args)
+       
+        # casting is needed here because otherwise we will get warning at compile
+        cdef unsigned int num_args = <unsigned int>len(self.signature_args)
+        cdef unsigned int size = sizeof(ffi_type) * num_args
+        # allocate memory to hold ffi_type* of arguments 
         self.f_arg_types = <ffi_type **>malloc(size)
         if self.f_arg_types == NULL:
             raise MemoryError()
@@ -198,7 +201,7 @@ cdef class ObjcMethod(object):
         # FFI PREP 
         cdef ffi_status f_status
         f_status = ffi_prep_cif(&self.f_cif, FFI_DEFAULT_ABI,
-                len(self.signature_args), self.f_result_type, self.f_arg_types)
+                num_args, self.f_result_type, self.f_arg_types)
         if f_status != FFI_OK:
             raise ObjcException(
                     'Unable to prepare the method {0!r}'.format(self.name))

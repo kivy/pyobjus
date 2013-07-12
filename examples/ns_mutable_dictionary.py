@@ -1,6 +1,4 @@
 import ctypes
-ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
-
 from pyobjus import autoclass
 
 NSString = autoclass('NSString')

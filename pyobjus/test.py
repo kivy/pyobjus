@@ -1,4 +1,12 @@
 import ctypes
+import os
+
+# LOADING USER DEFINED CLASS (dylib) FROM /objc_usr_classes/ DIR #
+os.system('cd ../')
+usrlib_dir = os.getcwd() + '/objc_usr_classes/usrlib.dylib'
+ctypes.CDLL(usrlib_dir)
+# -------------------------------------------------------------- #
+
 ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
 
 from pyobjus import *
@@ -145,8 +153,7 @@ print dereference(val_ptr, type=NSRange).length
 rng = c.makeRangePtr()
 rn = NSRange(23, 43)
 
-c.useRangePtr_(rn)
-c.useRangePtr_(rng)
+c.useRangePtr_withMessage_(rng, "this is some message!")
 
 c.useRangeVoidPtr_(rn)
 c.useRangeVoidPtr_(rng)
@@ -224,3 +231,27 @@ print dereference(i_vp, type=ObjcInt)
 
 f_vp = c.makeFloatVoidPtr()
 print dereference(f_vp, type=ObjcFloat)
+
+b_ptr = c.makeBoolPtr()
+print dereference(b_ptr)
+
+b_v_ptr = c.makeBoolVoidPtr()
+print dereference(b_v_ptr, type=ObjcBool)
+
+print c.makeULongLong()
+
+c.useBool_(False)
+c.useBoolPtr_(False)
+c.useBoolPtr_(b_ptr)
+
+BOOL_ptr = c.makeBOOLPtr_(True)
+print dereference(BOOL_ptr)
+c.useBOOLPtr_(BOOL_ptr)
+
+BOOL = c.makeBOOL()
+print BOOL
+c.useBOOL_(BOOL)
+c.useBOOLPtr_(BOOL_ptr)
+
+BOOL_v_p = c.makeBOOLVoidPtr()
+print dereference(BOOL_v_p, type=ObjcBOOL)

@@ -1,3 +1,8 @@
+cdef extern from "objc/objc.h":
+    
+    ctypedef enum: YES
+    ctypedef enum: NO
+
 cdef extern from "objc/runtime.h":
 
     ctypedef struct objc_selector:

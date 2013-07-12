@@ -9,12 +9,68 @@ cdef class ObjcClassStorage:
         self.o_cls = NULL
 
 
+cdef class ObjcChar:
+    enc = 'c'
+
+
 cdef class ObjcInt:
     enc = 'i'
 
 
+cdef class ObjcShort:
+    enc = 's'
+
+
+cdef class ObjcLong:
+    enc = 'l'
+
+
+cdef class ObjcLongLong:
+    enc = 'q'
+
+
+cdef class ObjcUChar:
+    enc = 'C'
+
+
+cdef class ObjcUInt:
+    enc = 'I'
+
+
+cdef class ObjcUShort:
+    enc = 'S'
+
+
+cdef class ObjcULong:
+    enc = 'L'
+
+
+cdef class ObjcULongLong:
+    enc = 'Q'
+
+
 cdef class ObjcFloat:
     enc = 'f'
+
+
+cdef class ObjcDouble:
+    enc = 'd'
+
+
+cdef class ObjcBool:
+    enc = 'B'
+
+
+cdef class ObjcBOOL:
+    enc = 'c'
+
+
+cdef class ObjcVoid:
+    enc = 'v'
+
+
+cdef class ObjcString:
+    enc = '*'
 
 
 cdef class ObjcSelector(object):
@@ -46,6 +102,8 @@ cdef class ObjcClassHlp(object):
 
 
 cdef class ObjcClassInstance(object):
+
+    enc = '@'
     cdef Class o_cls
     cdef id o_instance
 
@@ -115,3 +173,17 @@ cdef class ObjcClassInstance(object):
 
     cdef void resolve_fields(self) except *:
         pass
+
+
+cdef class ObjcReferenceToType(object):
+    ''' Class for representing reference to some objective c type
+    '''
+
+    cdef public unsigned long long arg_ref
+    cdef public char *type
+    cdef public size_t size
+
+    def __cinit__(self, unsigned long long arg, char *_type, size_t _size):
+        self.arg_ref = arg
+        self.type = _type
+        self.size = _size

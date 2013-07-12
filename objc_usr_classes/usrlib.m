@@ -1,33 +1,17 @@
 #import <Foundation/Foundation.h>
-#import <objc/runtime.h>
-#import <objc/objc-runtime.h>
 
 @interface Car : NSObject {
 }
-
-- (void)drive;
-
-- (void)driveWithCari:(int*)carid;
-- (void)driveWithCars:(short*)carid;
-- (void)driveWithCard:(double*)carid;
-- (void)driveWithCarl:(long*)carid;
-
-- (int*)makeCarIdint;
-- (short*)makeCarIdshort;
-- (double*)makeCarIddouble;
-- (long*)makeCarIdlong;
-- (float*)makeCarIdfloat;
-- (long long*)makeCarIdlonglong;
-
-- (unsigned char)makeCarIduChar;
-//- (char)makeCarIdChar;
-
 @end
 
 @implementation Car
 
 - (void)drive {
     NSLog(@"Driving! Vrooooom!");
+}
+
+- (void)print {
+    printf("selector printed me!\n");
 }
 
 - (int*)makeCarIdint {
@@ -95,10 +79,6 @@
     return (void*)cls;
 }
 
-- (void)print {
-    printf("selector printed me!\n");
-}
-
 - (NSRange*) makeRangePtr {
     NSRange *r_p = malloc(sizeof(NSRange));
     NSRange r;
@@ -123,26 +103,37 @@
     return r_p;
 }
 
-- (void) useRangePtr:(NSRange*)r_p {
-    NSRange r = r_p[0];
-    
-    printf("location: %ld, length %ld\n", r.location, r.length);
+- (BOOL) makeBOOL {
+    return NO;
 }
 
-- (void) useRangeVoidPtr:(void*)v_p {
-    NSRange *r = (NSRange*)v_p;
-    NSRange rng = r[0];
-    printf("location: %ld, length %ld\n", rng.location, rng.length);
+- (BOOL*) makeBOOLPtr:(BOOL)val {
+    BOOL *b = malloc(sizeof(BOOL));
+    *b = val;
+    return b;
 }
 
-- (void) useClassInstVoidPtr:(void*)v_p {
-    NSString *s = (NSString*)v_p;
-    printf("Hello from NSString, with value --> %s\n", [s UTF8String]);
+- (bool*) makeBoolPtr {
+    bool *b = malloc(sizeof(bool));
+    *b = 1;
+    return b;
 }
 
-- (void) useClassVoidPtr:(void*)v_p {
-    Class *cls_p = (Class*)v_p;
-    [self driveWithClass:cls_p];
+- (void*) makeBoolVoidPtr {
+    void *b = malloc(sizeof(bool));
+    ((bool*)b)[0] = 0;
+    return b;
+}
+
+- (void*) makeBOOLVoidPtr {
+    BOOL *b = malloc(sizeof(BOOL));
+    ((BOOL*)b)[0] = YES;
+    return b;
+}
+
+- (unsigned long long) makeULongLong {
+    unsigned long long l_v = 1232432323234354534;
+    return l_v;
 }
 
 - (SEL) makeSelector {
@@ -170,6 +161,56 @@
     return (void*)s;
 }
 
+- (void*) makeIntVoidPtr {
+    int *a = malloc(sizeof(int));
+    *a = 12345;
+    return (void*)a;
+}
+
+- (void*) makeFloatVoidPtr {
+    float *f = malloc(sizeof(float));
+    *f = 2343.233322;
+    return (void*)f;
+}
+
+- (void) useRangePtr:(NSRange*)r_p withMessage:(char*)message {
+    NSRange r = r_p[0];
+    printf("recieved message: %s", message);
+    printf("location: %ld, length %ld\n", r.location, r.length);
+}
+
+- (void) useRangeVoidPtr:(void*)v_p {
+    NSRange *r = (NSRange*)v_p;
+    NSRange rng = r[0];
+    printf("location: %ld, length %ld\n", rng.location, rng.length);
+}
+
+- (void) useClassInstVoidPtr:(void*)v_p {
+    NSString *s = (NSString*)v_p;
+    printf("Hello from NSString, with value --> %s\n", [s UTF8String]);
+}
+
+- (void) useClassVoidPtr:(void*)v_p {
+    Class *cls_p = (Class*)v_p;
+    [self driveWithClass:cls_p];
+}
+
+- (void) useBool:(bool)b_v {
+    printf("Method recieved %d value!\n", b_v);
+}
+
+- (void) useBoolPtr:(bool*)b_ptr {
+    printf("Method recieved %d value\n", *b_ptr);
+}
+
+- (void) useBOOL:(BOOL)b_val {
+    printf("Method recieved %d value\n", b_val);
+}
+
+- (void) useBOOLPtr:(BOOL*)b_ptr {
+    printf("Method recieved %d value\n", *b_ptr);
+}
+
 - (void) useSelectorVoidPtr:(void*)sel_v_ptr {
     SEL *sel = (SEL*)sel_v_ptr;
     SEL sl = *sel;
@@ -186,18 +227,6 @@
     NSString *s = [cls description];
     
     printf("I'm driving car with class...%s\n", [s UTF8String]);
-}
-
-- (void*) makeIntVoidPtr {
-    int *a = malloc(sizeof(int));
-    *a = 12345;
-    return (void*)a;
-}
-
-- (void*) makeFloatVoidPtr {
-    float *f = malloc(sizeof(float));
-    *f = 2343.233322;
-    return (void*)f;
 }
 
 - (void)driveWithCarc:(char*)carid {
@@ -244,56 +273,8 @@
 - (void) test_kindOf {
     NSString *s = [[NSString alloc] initWithUTF8String:"ivan"];
     NSString *st = [[NSString alloc] initWithUTF8String:"pusic"];
-    NSObject *ob = [[NSObject alloc] init];
     BOOL b = [s isKindOfClass:[st class]];
     printf("%d", b);
 }
 
 @end
-
-
-int main() {
-    Car *c = [[Car alloc] init];
-    [c drive];
-    unsigned long long *ptr;
-    ptr = malloc(1000);
-    printf("%p %p\n", (unsigned long long*)ptr, (void*)ptr);
-
-    [c driveWithCarc:[c makeCarIdChar]];
-    SEL s = [c makeSelector];
-    [c useSelector:s];
-    SEL *s_p = malloc(sizeof(16));
-    *s_p = s;
-    [c useSelectorPtr:s_p];
-    [c useRangePtr:[c makeRangePtr]];
-    Class *_cls = malloc(sizeof(Class));
-    Class __cls = [NSArray class];
-    *_cls = __cls;
-    int *a = malloc(sizeof(int));
-    *a = 2345;
-    [c voidToInt:(void*)a];
-    float *b = malloc(sizeof(float));
-    *b = 233232.33;
-    [c voidToFloat:(void*)b];
-    char *chr = malloc(sizeof(char));
-    chr = "iv";
-    char **ch = malloc(sizeof(char*));
-    ch[0] = chr;
-    [c voidToStr:(void*)*ch];
-    NSRange *rn = malloc(sizeof(NSRange));
-    rn[0].length = 123;
-    rn[0].location = 432;
-    [c useRangeVoidPtr:(void*)rn];
-    NSString *str = @"ivan";
-    [c useClassInstVoidPtr:(void*)str];
-    [c useClassVoidPtr:(void*)[Car class]];
-    Class ocls = [c class];
-    NSString *desc = [ocls description];
-    NSObject *ob = [[NSObject alloc] init];
-    printf("%f\n", [c makeDouble]);
-    char *enc = @encode(NSRange);
-    void *p_s = [c makeSelectorVoidPtr];
-    [c useSelectorVoidPtr:p_s];
-    printf("End of program!");
-}
-

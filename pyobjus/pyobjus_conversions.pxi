@@ -6,19 +6,6 @@ ctypes_struct_cache = []
 cdef extern from "string.h":
   char *strcpy(char *dest, char *src)
 
-cdef class ObjcReferenceToType(object):
-    ''' Class for representing reference to some objective c type
-    '''
-
-    cdef public unsigned long long arg_ref
-    cdef public char *type
-    cdef public size_t size
-
-    def __cinit__(self, unsigned long long arg, char *_type, size_t _size):
-        self.arg_ref = arg
-        self.type = _type
-        self.size = _size
-
 def dereference(py_ptr, **kwargs):
     ''' Function for casting python object of one type, to another (supported type)
     Args: 
@@ -31,6 +18,7 @@ def dereference(py_ptr, **kwargs):
     Note:
         All types aren't implemented!
     '''
+    
     cdef unsigned long long *c_addr
     cdef void *struct_res_ptr = NULL
 
@@ -66,6 +54,7 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=Tr
     Returns:
         void* to eqvivalent Cython data type
     '''    
+
     cdef void *val_ptr = malloc(size)
 
     if str(type) == '_NSRange':
@@ -106,6 +95,7 @@ cdef convert_to_cy_cls_instance(id ret_id):
     Returns:
         ObjcClassInstance type
     '''    
+
     cdef ObjcClassInstance cret 
     bret = <bytes><char *>object_getClassName(ret_id)
     dprint(' - object_getClassName(f_result) =', bret)
@@ -150,8 +140,10 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
         return (<float>ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(ctypes.c_float)).contents.value)
     elif sig == 'd':
         return (<double>ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(ctypes.c_double)).contents.value)
-    elif sig == 'b':
-        return (<bool>f_result[0])
+    elif sig == 'B':
+        if <int>f_result[0]:
+            return True
+        return False
     elif sig == 'v':
         return None
     elif sig == '*':
@@ -203,6 +195,20 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
         assert(0)
 
 
+cdef char convert_py_bool_to_objc(arg):
+    ''' Function for converting python bool value (True, False, 0, 1) to objc BOOL type (YES, NO)
+    Args:
+        arg: argument to convert to objc equivalent bool value
+
+    Returns:
+        Returns objective c boolean value (YES or NO)
+    '''
+
+    if arg == True or arg == 1:
+        return YES
+    return NO
+
+
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
@@ -233,9 +239,20 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
 
     dprint("passing argument {0} by {1}".format(arg, by), type='i')
 
-    # method is accepting char
+    # method is accepting char (or BOOL, which is also interpreted as char)
     if sig == 'c':
-        (<char*>val_ptr)[0] = <char>bytes(arg)
+        if by_value:
+            if arg in [True, False, 1, 0]:
+                (<char*>val_ptr)[0] = convert_py_bool_to_objc(arg)
+            else:
+                (<char*>val_ptr)[0] = <char>bytes(arg)
+        else:
+            if not objc_ref:
+                if arg in [True, False, 1, 0]:
+                    (<char*>arg_val_ptr)[0] = convert_py_bool_to_objc(arg)
+                else:
+                    (<char*>arg_val_ptr)[0] = <char>bytes(arg)
+            (<char**>val_ptr)[0] = <char*>arg_val_ptr
     # method is accepting int
     elif sig == 'i':
         if by_value:
@@ -322,7 +339,16 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             if not objc_ref:
                 (<double*>arg_val_ptr)[0] = <double>ctypes.c_double(arg).value
             (<double**>val_ptr)[0] = <double*>arg_val_ptr
-            
+
+    # method is accepting bool
+    elif sig == 'B':
+        if by_value:
+            (<bool*>val_ptr)[0] = <bool>ctypes.c_bool(arg).value
+        else:
+            if not objc_ref:
+                (<bool*>arg_val_ptr)[0] = <bool>ctypes.c_bool(arg).value
+            (<bool**>val_ptr)[0] = <bool*>arg_val_ptr
+
     # method is accepting character string (char *)
     elif sig == '*':
         (<char **>val_ptr)[0] = <char *><bytes>arg
