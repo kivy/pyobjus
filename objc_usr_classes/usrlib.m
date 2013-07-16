@@ -1,10 +1,36 @@
 #import <Foundation/Foundation.h>
 
+
 @interface Car : NSObject {
 }
 @end
 
 @implementation Car
+
+/******************** <UNION TESTS> ***********************/
+
+typedef union testUn {
+    unsigned long long a;
+    unsigned long long b;
+    int c;
+} testUn;
+
+typedef union test_un_ {
+    NSRange range;
+    NSRect rect;
+    testUn d;
+    int e;
+    int f;
+} test_un_;
+
+- (test_un_) makeUnion {
+    test_un_ un;
+    NSRect rect = NSMakeRect(10, 30, 50, 60);
+    un.rect = rect;
+    return un;
+}
+
+/******************** </UNION TESTS> ***********************/
 
 - (void)drive {
     NSLog(@"Driving! Vrooooom!");
