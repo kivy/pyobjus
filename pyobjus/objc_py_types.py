@@ -72,3 +72,4 @@ class testUn(ctypes.Union):
 
 class test_un_(ctypes.Union):
     _fields_ = [('range', NSRange), ('rect', NSRect), ('d', testUn), ('e', ctypes.c_int), ('f', ctypes.c_int)]
+    #_fields_ = [('e', ctypes.c_int), ('f', ctypes.c_int)]

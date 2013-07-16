@@ -13,7 +13,3 @@ cdef extern from "CoreGraphics/CoreGraphics.h":
         pass
     ctypedef struct CGRect:
         pass
-
-cdef union test_un_:
-    unsigned long long a, c, e
-    float d

@@ -197,6 +197,8 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in self.signature_args:
+            if arg[0][0] == '(':
+                raise ObjcException("Currently passing unions as arguments by value isn't supported in pyobjus!")
             dprint("argument ==>", arg, len(self.signature_args))
             self.f_arg_types[index] = type_encoding_to_ffitype(arg[0])
             index = index + 1
@@ -370,9 +372,7 @@ cdef class ObjcMethod(object):
                 return self.p_class
         
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size) 
-        if del_res_ptr:
-            free(res_ptr)
-            res_ptr = NULL
+        
         return ret_py_val
 
 registers = []

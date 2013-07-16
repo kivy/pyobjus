@@ -257,4 +257,9 @@ BOOL_v_p = c.makeBOOLVoidPtr()
 print dereference(BOOL_v_p, type=ObjcBOOL)
 
 union = c.makeUnion()
+union_ptr = c.makeUnionPtr()
+print dereference(union_ptr).rect.origin.x
 print union.rect.origin.x, union.rect.origin.y, union.rect.size.width, union.rect.size.height
+c.useUnionPtr_(union_ptr)
+c.useUnionPtr_(union)
+print union.rect.origin.x

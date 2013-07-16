@@ -29,7 +29,7 @@ def dereference(py_ptr, **kwargs):
     
     if 'type' in kwargs:
         type = kwargs['type']
-        if issubclass(type, ctypes.Structure):
+        if issubclass(type, ctypes.Structure) or issubclass(type, ctypes.Union):
             return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(type)).contents
         elif issubclass(type, ObjcClassInstance):
             return convert_to_cy_cls_instance(<id>c_addr)
@@ -82,8 +82,11 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=Tr
             (<CGRect**>val_ptr)[0] = <CGRect*>py_obj
 
     else:
-        dprint("UNSUPPORTED DATA TYPE! Program will exit now...", type='e')
-        raise SystemExit()
+        if by_value:
+            (<id*>val_ptr)[0] = (<id*>py_obj)[0]
+        else:
+            (<id**>val_ptr)[0] = (<id*>py_obj)
+        dprint("Possible problems with casting, in pyobjus_conversionx.pxi", type='w')
 
     return val_ptr
 
@@ -109,8 +112,6 @@ cdef convert_to_cy_cls_instance(id ret_id):
     return cret
 
 cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
-
-    print "signature -->", sig
 
     if sig[0][0] == '{' or sig[0][0] == '(':
         return_type_str = sig[1:-1].split('=')[0]
@@ -388,8 +389,14 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     elif sig[0] == '[':
         pass
     
-    # method is accepting structure
-    elif sig[0] == '{':
+    # method is accepting structure OR union
+    # NOTE: Support for passing union as arguments by value wasn't supported with libffi,
+    # in time of writing this version of pyobjus.
+    # However we can pass union as argument if function accepts pointer to union type
+    # Return types for union are working (both, returned union is value, or returned union is pointer)
+    # NOTE: There are no problems with structs, only unions, reason -> libffi
+    # TODO: ADD SUPPORT FOR PASSING UNIONS AS ARGUMENTS BY VALUE
+    elif sig[0] in ['(', '{']:
         dprint("==> Structure arg", arg)
         arg_type = sig[1:-1].split('=', 1)[0] 
         if by_value:
@@ -402,12 +409,10 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
                 val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, by_value=False)
             else:
                 val_ptr = cast_to_cy_data_type(<id*>arg_val_ptr, size, arg_type, by_value=False)
-    # TODO: union
-    elif sig[0] == '(':
-        pass
+
     # method is accepting void pointer (void*)
     elif sig[0] == 'v':
-        if isinstance(arg, ctypes.Structure):
+        if isinstance(arg, ctypes.Structure) or isinstance(arg, ctypes.Union):
             (<void**>val_ptr)[0] = <void*><unsigned long long>ctypes.addressof(arg)
         elif isinstance(arg, ObjcReferenceToType):
             (<unsigned long long**>val_ptr)[0] = <unsigned long long*>arg_val_ptr
@@ -422,7 +427,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             (<void**>val_ptr)[0] = <void*>osel.selector
         # TODO: Add other types..
         # elif:
-            # UNION, ARRAY, ETC.
+            # ARRAY, ETC.
         else:
             # TODO: Add better conversion between primitive types!
             if type(arg) is float:

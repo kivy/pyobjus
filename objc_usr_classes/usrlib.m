@@ -30,6 +30,24 @@ typedef union test_un_ {
     return un;
 }
 
+- (test_un_*) makeUnionPtr {
+    test_un_ *un = malloc(sizeof(test_un_));
+    NSRect rect = NSMakeRect(10, 30, 50, 60);
+    un->rect = rect;
+    return un;
+}
+
+- (void) useUnion:(test_un_)un {
+    // THIS WILL RAISE EXCEPTION IN PYOBJUS, BECAUSE IT SEEMS THAT LIBFFI CURRENTLY DOESN'T SUPPORT 
+    // PASSING UNIONS AS ARGUMENTS BY VALUE
+}
+
+- (void) useUnionPtr:(test_un_*)un_p {
+    test_un_ *un_ = (test_un_*)un_p;
+    test_un_ un = un_[0];
+    printf("values --> %f %f\n", un.rect.origin.x, un.rect.origin.y);
+}
+
 /******************** </UNION TESTS> ***********************/
 
 - (void)drive {
