@@ -249,17 +249,6 @@ cdef class ObjcMethod(object):
         # this is little optimisation in case of calling varargs method multiple times with None as argument
         self.is_varargs = False
 
-    def _calculate_union_size(self, type):
-        size = 0
-        for key, val in type._fields_:
-            print val
-            if issubclass(val, ctypes.Union):
-                size += self._calculate_union_size(val)
-            size += ctypes.sizeof(val)
-
-        print "size -->", size
-        return size
-
     def _call_instance_method(self, *args):
         
         dprint('-' * 80)
