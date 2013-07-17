@@ -101,7 +101,7 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
     elif enc[0] in ['(', '{']:
         # NOTE: Tested with this nested input, and it works!
         #signature_types_to_list('{CGPoint=dd{CGPoint={CGPoint=d{CGPoint=dd}}}{CGSize=dd}dd{CSize=aa}dd}')
-
+    
         types_list = []
         obj_type = enc[1:-1].split('=', 1)
         types_list = signature_types_to_list(obj_type[1])
@@ -121,6 +121,8 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
        
         for i in range(types_count):
             if types_list[i].find('=') != -1:
+                if types_list[i].split('=', 1)[0][0] == '(':
+                    str_in_union = True
                 ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i], str_in_union=str_in_union)
             else:
                 ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i])
