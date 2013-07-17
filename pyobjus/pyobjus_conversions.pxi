@@ -113,7 +113,7 @@ cdef convert_to_cy_cls_instance(id ret_id):
 
 cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
 
-    if sig[0][0] == '{' or sig[0][0] == '(':
+    if sig[0][0] in ['(', '{']:
         return_type_str = sig[1:-1].split('=')[0]
 
     elif sig == 'c':
@@ -169,8 +169,8 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
         # array
         pass
 
-    # return type -> struct
-    elif sig[0] == '{':
+    # return type -> struct OR union
+    elif sig[0] in ['(', '{']:
         #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
         if <long>f_result[0] in ctypes_struct_cache:
             dprint("ctypes struct value found in cache", type='i')
@@ -178,9 +178,6 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
         else:
             val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type_str))).contents
         return val
-
-    elif sig[0] == '(':
-        return ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type_str))).contents
 
     elif sig == 'b':
         # bitfield
