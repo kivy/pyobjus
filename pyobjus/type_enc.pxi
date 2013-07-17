@@ -29,15 +29,14 @@ def signature_types_to_list(type_encoding):
         return [ret_type for ret_type in type_encoding]
 
     for letter in type_encoding:
-        if letter == '{':
+        if letter in ['(', '{']:
             if types_str:
                 begin_ind = end_ind
-                type_enc_list.append(types_str)
                 types_str = ""
             started_complex_elem = True
             curvy_brace_count += 1
             end_ind += 1
-        elif letter == '}':
+        elif letter in [')', '}']:
             curvy_brace_count -= 1
             if curvy_brace_count == 0:
                 end_ind += 1
@@ -48,15 +47,14 @@ def signature_types_to_list(type_encoding):
                 end_ind += 1
         elif started_complex_elem is False:
             types_str += letter
+            type_enc_list.append(letter)
             end_ind += 1
         else:
             end_ind += 1
-    if started_complex_elem is False and types_str:
-        type_enc_list.append(types_str)
 
     return type_enc_list
 
-cdef ffi_type* type_encoding_to_ffitype(type_encoding):
+cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
     cdef ffi_type** ffi_complex_type_elements
     cdef ffi_type* ffi_complex_type
 
@@ -97,29 +95,35 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
         return &ffi_type_pointer
     elif enc == 'v':
         return &ffi_type_void
-    # pointer to type --> NOTE: need to be tested!
     elif enc[0] == '^':
         return &ffi_type_pointer
-    # return type is struct
-    elif enc[0] == '{':
+    # return type is struct or union
+    elif enc[0] in ['(', '{']:
         # NOTE: Tested with this nested input, and it works!
         #signature_types_to_list('{CGPoint=dd{CGPoint={CGPoint=d{CGPoint=dd}}}{CGSize=dd}dd{CSize=aa}dd}')
-
+    
         types_list = []
-        types_list = signature_types_to_list(enc[1:-1].split('=', 1)[1])
+        obj_type = enc[1:-1].split('=', 1)
+        types_list = signature_types_to_list(obj_type[1])
+        dprint("rest list -->", types_list, type='i')
 
         types_count = len(types_list)
         ffi_complex_type = <ffi_type*>malloc(sizeof(ffi_type))
         ffi_complex_type_elements = <ffi_type**>malloc(sizeof(ffi_type)*int(types_count+1))
 
-        ffi_complex_type.size = 0
+        if enc[0] == '(' or (str_in_union and enc[0] == '{'):
+            ffi_complex_type.size = ctypes.sizeof(factory.find_object(obj_type[0]))
+        else:
+            ffi_complex_type.size = 0
         ffi_complex_type.alignment = 0
         ffi_complex_type.type = FFI_TYPE_STRUCT
         ffi_complex_type.elements = ffi_complex_type_elements
        
         for i in range(types_count):
             if types_list[i].find('=') != -1:
-                ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i])
+                if types_list[i].split('=', 1)[0][0] == '(':
+                    str_in_union = True
+                ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i], str_in_union=str_in_union)
             else:
                 ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i])
         ffi_complex_type_elements[types_count] = NULL
@@ -128,7 +132,6 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding):
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
     #[array type]    An array
-    #(name=type...)    A union
     #bnum    A bit field of num bits
     #?    An unknown type (among other things, 
     #   this code is used for function pointers)

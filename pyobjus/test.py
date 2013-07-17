@@ -7,8 +7,6 @@ usrlib_dir = os.getcwd() + '/objc_usr_classes/usrlib.dylib'
 ctypes.CDLL(usrlib_dir)
 # -------------------------------------------------------------- #
 
-ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
-
 from pyobjus import *
 from objc_py_types import *
 
@@ -255,3 +253,11 @@ c.useBOOLPtr_(BOOL_ptr)
 
 BOOL_v_p = c.makeBOOLVoidPtr()
 print dereference(BOOL_v_p, type=ObjcBOOL)
+
+union = c.makeUnion()
+union_ptr = c.makeUnionPtr()
+print dereference(union_ptr).rect.origin.x
+print union.rect.origin.x, union.rect.origin.y, union.rect.size.width, union.rect.size.height
+c.useUnionPtr_(union_ptr)
+c.useUnionPtr_(union)
+print union.rect.origin.x

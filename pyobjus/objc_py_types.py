@@ -26,7 +26,7 @@ class Factory(object):
         if type_name in globals():
             return globals()[type_name]
         else:
-            dprint("UNSUPPORTED STRUCTURE TYPE! Program will exit now...", type='e')
+            dprint("UNSUPPORTED DATA TYPE! Program will exit now...", type='e')
             raise SystemExit()
 
 
@@ -64,3 +64,12 @@ string_encodings = dict(
     NSProprietaryStringEncoding = 65536
 )
 NSStringEncoding = enum("NSStringEncoding", **string_encodings)
+
+########## USER DEFINED TYPES ##########
+
+class testUn(ctypes.Union):
+    _fields_ = [('a', ctypes.c_ulonglong), ('b', ctypes.c_ulonglong), ('c', ctypes.c_int)]
+
+class test_un_(ctypes.Union):
+    _fields_ = [('range', NSRange), ('rect', NSRect), ('d', testUn), ('e', ctypes.c_int), ('f', ctypes.c_int)]
+    #_fields_ = [('e', ctypes.c_int), ('f', ctypes.c_int)]

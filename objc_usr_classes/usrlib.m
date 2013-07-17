@@ -1,10 +1,60 @@
 #import <Foundation/Foundation.h>
 
+
 @interface Car : NSObject {
 }
 @end
 
 @implementation Car
+
+/******************** <UNION TESTS> ***********************/
+
+typedef union testUn {
+    unsigned long long a;
+    unsigned long long b;
+    int c;
+} testUn;
+
+typedef union test_un_ {
+    NSRange range;
+    NSRect rect;
+    testUn d;
+    int e;
+    int f;
+} test_un_;
+
+- (test_un_) makeUnion {
+    test_un_ un;
+    NSRect rect = NSMakeRect(20, 40, 50, 60);
+    un.rect = rect;
+    return un;
+}
+
+- (test_un_*) makeUnionPtr {
+    test_un_ *un = malloc(sizeof(test_un_));
+    NSRect rect = NSMakeRect(10, 30, 50, 60);
+    un->rect = rect;
+    return un;
+}
+
+- (void) useUnion:(test_un_)un {
+    // THIS WILL RAISE EXCEPTION IN PYOBJUS, BECAUSE IT SEEMS THAT LIBFFI CURRENTLY DOESN'T SUPPORT
+    // PASSING UNIONS AS ARGUMENTS BY VALUE
+}
+
+- (void) useUnionPtr:(test_un_*)un_p {
+    test_un_ un = un_p[0];
+    printf("values --> %f %f\n", un.rect.origin.x, un.rect.origin.y);
+}
+
+- (bool) useUnionPtrTest:(test_un_*)un_p {
+    test_un_ un = un_p[0];
+    if(un.rect.origin.x == 20 && un.rect.origin.y == 40)
+        return true;
+    return false;
+}
+
+/******************** </UNION TESTS> ***********************/
 
 - (void)drive {
     NSLog(@"Driving! Vrooooom!");
@@ -276,5 +326,4 @@
     BOOL b = [s isKindOfClass:[st class]];
     printf("%d", b);
 }
-
 @end

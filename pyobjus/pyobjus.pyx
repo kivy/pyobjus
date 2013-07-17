@@ -164,7 +164,7 @@ cdef class ObjcMethod(object):
         if name == "oclass":
             self.name = name.replace("oclass", "class")
 
-        if self.signature_return[0][0] == '{':
+        if self.signature_return[0][0] in ['(', '{']:
             sig = self.signature_return[0]
             self.return_type_str = sig[1:-1].split('=', 1)[0]
 
@@ -181,8 +181,11 @@ cdef class ObjcMethod(object):
         dprint('signature ensure_method -->', self.name, self.signature_return)
         
         # resolve f_result_type 
-        self.f_result_type = type_encoding_to_ffitype(self.signature_return[0])
-       
+        if self.signature_return[0][0] == '(':
+            self.f_result_type = type_encoding_to_ffitype(self.signature_return[0], str_in_union=True)
+        else:
+            self.f_result_type = type_encoding_to_ffitype(self.signature_return[0])
+
         # casting is needed here because otherwise we will get warning at compile
         cdef unsigned int num_args = <unsigned int>len(self.signature_args)
         cdef unsigned int size = sizeof(ffi_type) * num_args
@@ -194,6 +197,8 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in self.signature_args:
+            if arg[0][0] == '(':
+                raise ObjcException("Currently passing unions as arguments by value isn't supported in pyobjus!")
             dprint("argument ==>", arg, len(self.signature_args))
             self.f_arg_types[index] = type_encoding_to_ffitype(arg[0])
             index = index + 1
@@ -304,8 +309,8 @@ cdef class ObjcMethod(object):
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
 
         res_ptr = <id*>malloc(self.f_result_type.size)
-
-        if self.signature_return[0][0] != '{':
+        
+        if self.signature_return[0][0] not in ['(', '{']:
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
         else:
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture
@@ -321,7 +326,14 @@ cdef class ObjcMethod(object):
             # is a nonPOD structure or union type, or contains unaligned ﬁelds, it has class MEMORY
             # SOURCE: http://www.uclibc.org/docs/psABI-x86_64.pdf
                 fun_name = ""
-                if ctypes.sizeof(self.factory.find_object(self.return_type_str)) > 16:
+                obj_ret = self.factory.find_object(self.return_type_str)
+                size_ret = ctypes.sizeof(obj_ret)
+
+                stret = False
+                if self.signature_return[0][0] in ['{', '('] and size_ret > 16:
+                    stret = True
+                
+                if stret:
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
                     del_res_ptr = False
@@ -349,9 +361,7 @@ cdef class ObjcMethod(object):
                 return self.p_class
         
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size) 
-        if del_res_ptr:
-            free(res_ptr)
-            res_ptr = NULL
+        
         return ret_py_val
 
 registers = []
