@@ -25,7 +25,7 @@ typedef union test_un_ {
 
 - (test_un_) makeUnion {
     test_un_ un;
-    NSRect rect = NSMakeRect(10, 30, 50, 60);
+    NSRect rect = NSMakeRect(20, 40, 50, 60);
     un.rect = rect;
     return un;
 }
@@ -38,14 +38,20 @@ typedef union test_un_ {
 }
 
 - (void) useUnion:(test_un_)un {
-    // THIS WILL RAISE EXCEPTION IN PYOBJUS, BECAUSE IT SEEMS THAT LIBFFI CURRENTLY DOESN'T SUPPORT 
+    // THIS WILL RAISE EXCEPTION IN PYOBJUS, BECAUSE IT SEEMS THAT LIBFFI CURRENTLY DOESN'T SUPPORT
     // PASSING UNIONS AS ARGUMENTS BY VALUE
 }
 
 - (void) useUnionPtr:(test_un_*)un_p {
-    test_un_ *un_ = (test_un_*)un_p;
-    test_un_ un = un_[0];
+    test_un_ un = un_p[0];
     printf("values --> %f %f\n", un.rect.origin.x, un.rect.origin.y);
+}
+
+- (bool) useUnionPtrTest:(test_un_*)un_p {
+    test_un_ un = un_p[0];
+    if(un.rect.origin.x == 20 && un.rect.origin.y == 40)
+        return true;
+    return false;
 }
 
 /******************** </UNION TESTS> ***********************/
@@ -320,5 +326,4 @@ typedef union test_un_ {
     BOOL b = [s isKindOfClass:[st class]];
     printf("%d", b);
 }
-
 @end

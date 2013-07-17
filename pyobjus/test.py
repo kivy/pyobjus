@@ -7,8 +7,6 @@ usrlib_dir = os.getcwd() + '/objc_usr_classes/usrlib.dylib'
 ctypes.CDLL(usrlib_dir)
 # -------------------------------------------------------------- #
 
-ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib")
-
 from pyobjus import *
 from objc_py_types import *
 
