@@ -71,6 +71,28 @@ typedef union test_un_ {
 
 /******************** </UNION TESTS> ***********************/
 
+/********************* <UNKNOWN TYPE TESTS> ***********************/
+
+typedef struct {
+    int a;
+    int b;
+    NSRect rect;
+} unknown_str_new;
+
+typedef struct {
+    int a;
+    int b;
+} unknown_str;
+
+- (unknown_str) makeUnknownStr {
+    unknown_str str;
+    str.a = 10;
+    return str;
+}
+
+
+/******************** </UNKNOWN TYPE TESTS> ***********************/
+
 - (void)drive {
     NSLog(@"Driving! Vrooooom!");
 }
@@ -142,6 +164,13 @@ typedef union test_un_ {
     Class cl = [NSString class];
     *cls = cl;
     return (void*)cls;
+}
+
+- (NSRange) makeRange {
+    NSRange r;
+    r.length = 123;
+    r.location = 567;
+    return r;
 }
 
 - (NSRange*) makeRangePtr {
@@ -236,6 +265,11 @@ typedef union test_un_ {
     float *f = malloc(sizeof(float));
     *f = 2343.233322;
     return (void*)f;
+}
+
+- (NSRange) useRange:(NSRange)r{
+    printf("location: %ld, length %ld\n", r.location, r.length);
+    return r;
 }
 
 - (void) useRangePtr:(NSRange*)r_p withMessage:(char*)message {
@@ -342,3 +376,8 @@ typedef union test_un_ {
     printf("%d", b);
 }
 @end
+
+int main() {
+    Car *c = [[Car alloc] init];
+    [c makeUnionPtr];
+}

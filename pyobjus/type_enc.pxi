@@ -2,7 +2,7 @@ import re
 
 def seperate_encoding(sig):
     c = sig[0][0]
-    #print 'seperate_encoding', sig, c
+
     if c in 'rnNoORV':
         sig = (sig[0][1:], sig[1], c)
     else:
@@ -112,7 +112,7 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
         ffi_complex_type_elements = <ffi_type**>malloc(sizeof(ffi_type)*int(types_count+1))
 
         if enc[0] == '(' or (str_in_union and enc[0] == '{'):
-            ffi_complex_type.size = ctypes.sizeof(factory.find_object(obj_type[0]))
+            ffi_complex_type.size = ctypes.sizeof(factory.find_object(obj_type))
         else:
             ffi_complex_type.size = 0
         ffi_complex_type.alignment = 0
@@ -126,10 +126,14 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
                 ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i], str_in_union=str_in_union)
             else:
                 ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i])
+
         ffi_complex_type_elements[types_count] = NULL
         return ffi_complex_type
     elif enc == 'b':
         raise ObjcException("Bit fields aren't supported in pyobjus!")
+
+    elif enc == '?':
+        return &ffi_type_pointer;
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
     #[array type]    An array

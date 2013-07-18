@@ -6,7 +6,7 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
         'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
-        'dereference')
+        'dereference', 'signature_types_to_list')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -104,7 +104,8 @@ cdef class ObjcMethod(object):
     cdef object factory
     # this attribute is required for pyobjus varargs implementation
     cdef object signature_default_args
-    cdef object return_type_str
+    cdef object return_type
+    cdef object members
     cdef Class o_cls
     cdef id o_instance
     cdef SEL selector 
@@ -166,7 +167,7 @@ cdef class ObjcMethod(object):
 
         if self.signature_return[0][0] in ['(', '{']:
             sig = self.signature_return[0]
-            self.return_type_str = sig[1:-1].split('=', 1)[0]
+            self.return_type = sig[1:-1].split('=', 1)
 
         self.name = self.name or name.replace("_", ":")
         self.selector = sel_registerName(<bytes>self.name)
@@ -221,6 +222,9 @@ cdef class ObjcMethod(object):
         return self
 
     def __call__(self, *args, **kwargs):
+        if 'members' in kwargs:
+            self.members = kwargs['members']
+
         if len(args) > (len(self.signature_args) - 2):
             dprint("preparing potential varargs method...", type='i')
             self.is_varargs = True
@@ -326,7 +330,12 @@ cdef class ObjcMethod(object):
             # is a nonPOD structure or union type, or contains unaligned ﬁelds, it has class MEMORY
             # SOURCE: http://www.uclibc.org/docs/psABI-x86_64.pdf
                 fun_name = ""
-                obj_ret = self.factory.find_object(self.return_type_str)
+                if self.return_type[0] == '?':
+                    met_sig = self.return_type[1]
+                else:
+                    met_sig = None
+
+                obj_ret = self.factory.find_object(self.return_type)
                 size_ret = ctypes.sizeof(obj_ret)
 
                 stret = False
@@ -360,7 +369,7 @@ cdef class ObjcMethod(object):
             if ret_id == self.o_instance:
                 return self.p_class
         
-        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size) 
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members) 
         
         return ret_py_val
 

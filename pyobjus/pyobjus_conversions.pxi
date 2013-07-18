@@ -111,10 +111,10 @@ cdef convert_to_cy_cls_instance(id ret_id):
     dprint('<-- return object', cret)
     return cret
 
-cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
+cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None):
 
     if sig[0][0] in ['(', '{']:
-        return_type_str = sig[1:-1].split('=')[0]
+        return_type = sig[1:-1].split('=', 1)
 
     elif sig == 'c':
         # this should be a char. Most of the time, a BOOL is also
@@ -174,9 +174,10 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
         #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
         if <long>f_result[0] in ctypes_struct_cache:
             dprint("ctypes struct value found in cache", type='i')
-            val = ctypes.cast(<unsigned long long>f_result[0], ctypes.POINTER(factory.find_object(return_type_str))).contents
+            val = ctypes.cast(<unsigned long long>f_result[0], ctypes.POINTER(factory.find_object(return_type, members=members))).contents
         else:
-            val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type_str))).contents
+            val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type, members=members))).contents
+        factory.empty_cache()
         return val
 
     # TODO:  return type -> bit field
@@ -187,9 +188,9 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
     elif sig[0] == '^': 
         return ObjcReferenceToType(<unsigned long long>f_result[0], sig.split('^')[1], size)
 
+    # return type --> unknown type
     elif sig == '?':
-        # unknown type
-        pass
+        print "unknown type!"
 
     else:
         assert(0)

@@ -1,6 +1,8 @@
-from ctypes import Structure
 import ctypes
+import itertools
+from ctypes import Structure
 from debug import dprint
+from pyobjus import signature_types_to_list
 
 ########## NS STRUCT TYPES ##########
 
@@ -20,15 +22,97 @@ class NSRect(Structure):
     _fields_ = [('origin', NSPoint), ('size', NSSize)]
 CGRect = NSRect
 
+types = dict(
+    i = ctypes.c_int,
+    f = ctypes.c_float
+)
+
+letter = 26
+perm_n = 1
+field_name_ind = 0
+letters = 'abcdefghijklmnopqrstuvwxyz'
+perms = []
+cached_unknown_type = []
+
 class Factory(object):
 
-    def find_object(self, type_name):
-        if type_name in globals():
-            return globals()[type_name]
+    def _reset_globals(self):
+        global letter, perm_n, perms
+        letter = 26
+        perm_n = 1
+        perms = []
+
+    def _generate_variable_name(self):
+        global letter, perm_n, letters, perms
+
+        if len(perms) > letter:
+            ltr = perms[letter]
+            letter += 1
+            return ltr
+        else:
+            perms = [''.join(x) for x in itertools.permutations(letters, perm_n)]
+            perm_n += 1
+            letter = 0
+            return self._generate_variable_name()
+
+    def _resolve_field(self, signature):
+
+        for type in signature:
+            yield (self._generate_variable_name(), types[type])
+
+    def make_type(self, obj_type, members=None):
+
+        if obj_type[0] in globals():
+            return globals()[obj_type[0]]
+        field_list = []
+        self._reset_globals()
+        class UnknownType(Structure):
+            pass
+
+        for type in signature_types_to_list(obj_type[1]):
+            field_name = ""
+            if members is not None:
+                global field_name_ind
+                field_name = members[field_name_ind]
+                field_name_ind += 1
+
+            if type.find('=') != -1:
+                type_obj = type[1:-1].split('=', 1)
+                if type_obj[0] == '?':
+                    if not field_name:
+                        field_name = self._generate_variable_name()
+                else:
+                    if not field_name:
+                        field_name = type_obj[0]
+                if members is None:
+                    field_list.append((field_name, self.find_object(type_obj)))
+                else:
+                    field_list.append((field_name, members[field_name_ind:]))
+            else:
+                if not field_name:
+                    field_list.append((self._generate_variable_name(), types[type]))
+                else:
+                    field_list.append((field_name, types[type]))
+
+        UnknownType._fields_ = field_list
+
+        return UnknownType
+
+    def find_object(self, obj_type, members=None):
+        if obj_type[0] in globals():
+            return globals()[obj_type[0]]
+
+        elif obj_type[0] == '?':
+            #if len(cached_unknown_type):
+            #    return cached_unknown_type[0]
+            return self.make_type(obj_type, members=members)
+
         else:
             dprint("UNSUPPORTED DATA TYPE! Program will exit now...", type='e')
             raise SystemExit()
 
+    def empty_cache(self):
+        del cached_unknown_type[:]
 
 ########## NS ENUM TYPES ##########
 
@@ -72,4 +156,3 @@ class testUn(ctypes.Union):
 
 class test_un_(ctypes.Union):
     _fields_ = [('range', NSRange), ('rect', NSRect), ('d', testUn), ('e', ctypes.c_int), ('f', ctypes.c_int)]
-    #_fields_ = [('e', ctypes.c_int), ('f', ctypes.c_int)]
