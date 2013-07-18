@@ -179,9 +179,9 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size):
             val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type_str))).contents
         return val
 
+    # TODO:  return type -> bit field
     elif sig == 'b':
-        # bitfield
-        pass
+        raise ObjcException("Bit fields aren't supported in pyobjus!")
 
     # return type --> pointer to type
     elif sig[0] == '^': 
@@ -435,9 +435,10 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
                 strcpy(<char*>arg_val_ptr, <char*>arg)
             (<void**>val_ptr)[0] = <void*>arg_val_ptr
         
-    # TODO: bit field
+    # TODO: method is accepting bit field
     elif sig[0] == 'b':
-        pass
+        raise ObjcException("Bit fields aren't supported in pyobjus!")
+
     # TODO: unknown type
     elif sig[0] == '?':
         pass

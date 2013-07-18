@@ -7,6 +7,21 @@
 
 @implementation Car
 
+/******************** <BIT FIELD TESTS> ***********************/
+
+typedef struct bitfield {
+    int a :1;
+    int b :1;
+} bitfield;
+
+- (bitfield) makeBitField {
+    bitfield bf;
+    bf.a = 0;
+    return bf;
+}
+
+/******************* </BIT FIELD TESTS> ***********************/
+
 /******************** <UNION TESTS> ***********************/
 
 typedef union testUn {

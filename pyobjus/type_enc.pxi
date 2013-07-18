@@ -128,10 +128,10 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
                 ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i])
         ffi_complex_type_elements[types_count] = NULL
         return ffi_complex_type
-       
+    elif enc == 'b':
+        raise ObjcException("Bit fields aren't supported in pyobjus!")
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
     #[array type]    An array
-    #bnum    A bit field of num bits
     #?    An unknown type (among other things, 
     #   this code is used for function pointers)
