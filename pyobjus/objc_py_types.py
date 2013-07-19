@@ -22,96 +22,159 @@ class NSRect(Structure):
     _fields_ = [('origin', NSPoint), ('size', NSSize)]
 CGRect = NSRect
 
-types = dict(
-    i = ctypes.c_int,
-    f = ctypes.c_float
-)
+types = {
+    'c': ctypes.c_char,
+    'i': ctypes.c_int,
+    's': ctypes.c_short,
+    'l': ctypes.c_long,
+    'q': ctypes.c_longlong,
+    'C': ctypes.c_ubyte,
+    'I': ctypes.c_uint,
+    'S': ctypes.c_ushort,
+    'L': ctypes.c_ulong,
+    'Q': ctypes.c_ulonglong,
+    'f': ctypes.c_float,
+    'd': ctypes.c_double,
+    'B': ctypes.c_bool,
+    '*': ctypes.c_char_p
+}
 
-letter = 26
-perm_n = 1
-field_name_ind = 0
 letters = 'abcdefghijklmnopqrstuvwxyz'
-perms = []
 cached_unknown_type = []
 
 class Factory(object):
+    ''' Class for making and returning some of objective c types '''
+
+    field_name_ind = None
+    letter = 26
+    perm_n = 1
+    perms = []
 
     def _reset_globals(self):
-        global letter, perm_n, perms
-        letter = 26
-        perm_n = 1
-        perms = []
+        ''' Helper private method for reseting some instance variables'''
+        self.letter = 26
+        self.perm_n = 1
+        self.perms = []
 
     def _generate_variable_name(self):
-        global letter, perm_n, letters, perms
+        ''' Helper private method for generating name for field
 
-        if len(perms) > letter:
-            ltr = perms[letter]
-            letter += 1
+        Returns:
+            Some name (letter/letters)
+        '''
+        global letters
+
+        if len(self.perms) > self.letter:
+            ltr = self.perms[self.letter]
+            self.letter += 1
             return ltr
         else:
-            perms = [''.join(x) for x in itertools.permutations(letters, perm_n)]
-            perm_n += 1
-            letter = 0
+            self.perms = [''.join(x) for x in itertools.permutations(letters, self.perm_n)]
+            self.perm_n += 1
+            self.letter = 0
             return self._generate_variable_name()
 
-    def _resolve_field(self, signature):
-
-        for type in signature:
-            yield (self._generate_variable_name(), types[type])
-
     def make_type(self, obj_type, members=None):
+        ''' Method for making type from method signature
+        Args:
+            obj_type: array with two elements, containing info about new type.
+                On index 0 is type name, and on index 1 are field types of new type
+            members: Optional argument. If it is provided it need to contain info about field names of new type
+
+        Returns:
+            UnknownType instance, representing new type
+        '''
 
         if obj_type[0] in globals():
             return globals()[obj_type[0]]
-        field_list = []
+
         self._reset_globals()
+
         class UnknownType(Structure):
-            pass
+            '''
+            Class for representing some unknown type instance
+            '''
 
-        for type in signature_types_to_list(obj_type[1]):
-            field_name = ""
-            if members is not None:
-                global field_name_ind
-                field_name = members[field_name_ind]
-                field_name_ind += 1
+            def getMembers(self, *args, **kwargs):
+                ''' Method for getting members (fields and types) of some unknown type
+                Args:
+                    only_fields: If this kwarg is set to True, user will get only fields of some unknown type
+                    only_types: If this kwarg is set to True, user will get only types of some unknown type
 
-            if type.find('=') != -1:
+                Returns:
+                    Method returns list of unknown type members
+                '''
+                if 'only_fields' not in kwargs and 'only_types' not in kwargs:
+                    return self._fields_
+                if 'only_types' in kwargs:
+                    return [type[1] for type in self._fields_]
+                return [type[0] for type in self._fields_]
+
+        self.field_name_ind = 0
+        sig_list = signature_types_to_list(obj_type[1])
+
+        members_cpy = None
+        members_keys = []
+        field_list = []
+        if members is not None and len(members):
+            members_cpy = members[:]
+
+            for val in members_cpy:
+                if isinstance(val, dict):
+                    members_keys.append(val.keys()[0])
+                else:
+                    members_keys.append(val)
+
+        for type in sig_list:
+            field_name = None
+            if members_cpy is not None and len(members_cpy) > self.field_name_ind:
+                field_name = members_keys[self.field_name_ind]
+
+            if type.find('=') is not -1:
                 type_obj = type[1:-1].split('=', 1)
-                if type_obj[0] == '?':
+                if type_obj[0] is '?':
                     if not field_name:
                         field_name = self._generate_variable_name()
+                        members = None
+                    else:
+                        members = members[self.field_name_ind:-1]
                 else:
                     if not field_name:
                         field_name = type_obj[0]
-                if members is None:
-                    field_list.append((field_name, self.find_object(type_obj)))
-                else:
-                    field_list.append((field_name, members[field_name_ind:]))
+                        members = None
+                    else:
+                        members = members[self.field_name_ind:-1]
+
+                field_list.append((field_name, self.find_object(type_obj, members=members)))
             else:
                 if not field_name:
                     field_list.append((self._generate_variable_name(), types[type]))
                 else:
                     field_list.append((field_name, types[type]))
-
+            self.field_name_ind += 1
         UnknownType._fields_ = field_list
-
         return UnknownType
 
     def find_object(self, obj_type, members=None):
+        ''' Method for searching for, and returning some objective c type
+        Args:
+            obj_type: array with two elements, containing info about new type.
+                On index 0 is type name, and on index 1 are field types of new type
+            members: Optional argument. If it is provided it need to contain info about field names of new type
+
+        Returns:
+            Requested type
+        '''
         if obj_type[0] in globals():
             return globals()[obj_type[0]]
 
-        elif obj_type[0] == '?':
+        else:
             #if len(cached_unknown_type):
             #    return cached_unknown_type[0]
             return self.make_type(obj_type, members=members)
 
-        else:
-            dprint("UNSUPPORTED DATA TYPE! Program will exit now...", type='e')
-            raise SystemExit()
-
     def empty_cache(self):
+        ''' Method for deleting cache of some unknown type '''
         del cached_unknown_type[:]
 
 ########## NS ENUM TYPES ##########

@@ -82,14 +82,19 @@ typedef struct {
 typedef struct {
     int a;
     int b;
+    NSRect rect;
 } unknown_str;
 
 - (unknown_str) makeUnknownStr {
     unknown_str str;
     str.a = 10;
+    str.rect = NSMakeRect(20, 30, 40, 50);
     return str;
 }
 
+- (void) useUnknownStr:(unknown_str)str {
+    printf("%f\n", str.rect.origin.x);
+}
 
 /******************** </UNKNOWN TYPE TESTS> ***********************/
 
@@ -379,5 +384,5 @@ typedef struct {
 
 int main() {
     Car *c = [[Car alloc] init];
-    [c makeUnionPtr];
+    [c useUnknownStr:[c makeUnknownStr]];
 }

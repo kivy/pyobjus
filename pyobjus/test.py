@@ -262,5 +262,8 @@ c.useUnionPtr_(union_ptr)
 c.useUnionPtr_(union)
 print union.rect.origin.x
 
-ret_unknown = c.makeUnknownStr(members=['sum', 'd'])
-print ret_unknown.sum
+ret_unknown = c.makeUnknownStr(members=['a', 'b', 'rect'])
+print ret_unknown.a
+print ret_unknown.getMembers()
+print ret_unknown.getMembers(only_types=True)
+print ret_unknown.getMembers(only_fields=True)
