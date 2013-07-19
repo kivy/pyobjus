@@ -92,7 +92,10 @@ typedef struct {
     return str;
 }
 
-- (void) useUnknownStr:(unknown_str)str {
+- (void) useUnknownStr:(void*)str_vp {
+    unknown_str *str_p = (unknown_str*)str_vp;
+    unknown_str str = str_p[0];
+    
     printf("%f\n", str.rect.origin.x);
 }
 
@@ -384,5 +387,6 @@ typedef struct {
 
 int main() {
     Car *c = [[Car alloc] init];
-    [c useUnknownStr:[c makeUnknownStr]];
+    unknown_str str = [c makeUnknownStr];
+    [c useUnknownStr:(void*)&str];
 }

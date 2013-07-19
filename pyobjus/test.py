@@ -267,3 +267,4 @@ print ret_unknown.a
 print ret_unknown.getMembers()
 print ret_unknown.getMembers(only_types=True)
 print ret_unknown.getMembers(only_fields=True)
+c.useUnknownStr_(ret_unknown)
