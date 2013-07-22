@@ -19,10 +19,10 @@ NSAlert = autoclass('NSAlert')
 NSString = autoclass('NSString')
 
 # shortcut to mimic the @"hello" in objective C
-ns = lambda x: NSString().initWithUTF8String_(x)
+ns = lambda x: NSString.alloc().initWithUTF8String_(x)
 
 # create an NSAlert object, and show it.
-alert = NSAlert().init()
+alert = NSAlert.alloc().init()
 alert.setMessageText_(ns('Hello world!'))
 alert.runModal()
 ```
