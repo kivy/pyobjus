@@ -187,3 +187,6 @@ cdef class ObjcReferenceToType(object):
         self.arg_ref = arg
         self.type = _type
         self.size = _size
+
+cdef class ObjcIvar(object):
+    pass
