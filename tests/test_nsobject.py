@@ -15,22 +15,22 @@ class NSObject(unittest.TestCase):
         self.assertIsInstance(NSObject.hash(), long)
 
     def test_isequal(self):
-        a = NSObject().init()
-        b = NSObject().init()
+        a = NSObject.alloc().init()
+        b = NSObject.alloc().init()
         self.assertTrue(a.isEqual_(a))
         self.assertFalse(a.isEqual_(b))
 
     def test_self(self):
-        a = NSObject()
+        a = NSObject.alloc()
         self.assertIs(a, a.self())
 
     def test_description(self):
-        a = NSObject()
+        a = NSObject.alloc().init()
         text = a.description()
         self.assertIsNotNone(text)
 
     def test_debugDescription(self):
-        a = NSObject()
+        a = NSObject.alloc()
         text = a.debugDescription()
         text = a.description()
         self.assertIsNotNone(text)
@@ -38,10 +38,13 @@ class NSObject(unittest.TestCase):
         self.assertTrue(text.cString().startswith('<NSObject:'))
 
     def test_isproxy(self):
-        self.assertFalse(NSObject().isProxy())
+        self.assertFalse(NSObject.isProxy())
 
-    # inherited methods doesn't work yet.
-    #def test_inheritance(self):
-    #    a = NSObject()
-    #    b = NSString()
-    #    self.assertTrue(b.isKindOfClass_(a))
+    def test_inheritance(self):
+        a = NSObject
+        b = NSString.alloc().init()
+        cls = a.oclass()
+        self.assertTrue(NSString.isKindOfClass_(cls))
+        self.assertTrue(b.isKindOfClass_(cls))
+        c = NSString.alloc().init()
+        self.assertTrue(b.isKindOfClass_(c.oclass()))
