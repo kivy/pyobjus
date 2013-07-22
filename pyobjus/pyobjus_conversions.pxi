@@ -440,9 +440,13 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     elif sig[0] == 'b':
         raise ObjcException("Bit fields aren't supported in pyobjus!")
 
-    # TODO: unknown type
+    # method is accepting unknown type (^?)
     elif sig[0] == '?':
-        pass
+        if by_value:
+            assert(0)
+        else:
+            (<void**>val_ptr)[0] = arg_val_ptr
+
     else:
         (<int*>val_ptr)[0] = 0
 

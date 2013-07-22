@@ -132,10 +132,9 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
     elif enc == 'b':
         raise ObjcException("Bit fields aren't supported in pyobjus!")
 
+    # TODO: Check is this solution in all cases?
     elif enc == '?':
         return &ffi_type_pointer;
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
     #[array type]    An array
-    #?    An unknown type (among other things, 
-    #   this code is used for function pointers)

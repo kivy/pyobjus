@@ -40,23 +40,13 @@ types = {
 }
 
 letters = 'abcdefghijklmnopqrstuvwxyz'
-cached_unknown_type = []
 
 class Factory(object):
     ''' Class for making and returning some of objective c types '''
 
     field_name_ind = None
-    letter = 26
-    perm_n = 1
-    perms = []
 
-    def _reset_globals(self):
-        ''' Helper private method for reseting some instance variables'''
-        self.letter = 26
-        self.perm_n = 1
-        self.perms = []
-
-    def _generate_variable_name(self):
+    def _generate_variable_name(self, letter, perm_n, perms):
         ''' Helper private method for generating name for field
 
         Returns:
@@ -64,15 +54,15 @@ class Factory(object):
         '''
         global letters
 
-        if len(self.perms) > self.letter:
-            ltr = self.perms[self.letter]
-            self.letter += 1
-            return ltr
+        if len(perms) > letter:
+            ltr = perms[letter]
+            letter += 1
+            return ltr, letter, perm_n, perms
         else:
-            self.perms = [''.join(x) for x in itertools.permutations(letters, self.perm_n)]
-            self.perm_n += 1
-            self.letter = 0
-            return self._generate_variable_name()
+            perms = [''.join(x) for x in itertools.permutations(letters, perm_n)]
+            perm_n += 1
+            letter = 0
+            return self._generate_variable_name(letter, perm_n, perms)
 
     def make_type(self, obj_type, members=None):
         ''' Method for making type from method signature
@@ -88,8 +78,6 @@ class Factory(object):
         if obj_type[0] in globals():
             return globals()[obj_type[0]]
 
-        self._reset_globals()
-
         class UnknownType(Structure):
             '''
             Class for representing some unknown type instance
@@ -104,7 +92,7 @@ class Factory(object):
                 Returns:
                     Method returns list of unknown type members
                 '''
-                if 'only_fields' not in kwargs and 'only_types' not in kwargs:
+                if True not in kwargs.values():
                     return self._fields_
                 if 'only_types' in kwargs:
                     return [type[1] for type in self._fields_]
@@ -113,6 +101,9 @@ class Factory(object):
         self.field_name_ind = 0
         sig_list = signature_types_to_list(obj_type[1])
 
+        letter = 26
+        perm_n = 1
+        perms = []
         members_cpy = None
         members_keys = []
         field_list = []
@@ -134,7 +125,11 @@ class Factory(object):
                 type_obj = type[1:-1].split('=', 1)
                 if type_obj[0] is '?':
                     if not field_name:
-                        field_name = self._generate_variable_name()
+                        # TODO: This is temporary solution. Find more efficient solution for this! 
+                        while True:
+                            field_name, letter, perm_n, perms = self._generate_variable_name(letter, perm_n, perms)
+                            if field_name not in [x for x, y in field_list]:
+                                break
                         members = None
                     else:
                         members = members[self.field_name_ind:-1]
@@ -148,7 +143,8 @@ class Factory(object):
                 field_list.append((field_name, self.find_object(type_obj, members=members)))
             else:
                 if not field_name:
-                    field_list.append((self._generate_variable_name(), types[type]))
+                    field_name, letter, perm_n, perms = self._generate_variable_name(letter, perm_n, perms)
+                    field_list.append((field_name, types[type]))
                 else:
                     field_list.append((field_name, types[type]))
             self.field_name_ind += 1
@@ -174,8 +170,9 @@ class Factory(object):
             return self.make_type(obj_type, members=members)
 
     def empty_cache(self):
-        ''' Method for deleting cache of some unknown type '''
-        del cached_unknown_type[:]
+        pass
+    #    ''' Method for deleting cache of some unknown type '''
+    #    del cached_unknown_type[:]
 
 ########## NS ENUM TYPES ##########
 

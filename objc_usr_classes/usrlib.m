@@ -74,7 +74,7 @@ typedef union test_un_ {
 /********************* <UNKNOWN TYPE TESTS> ***********************/
 
 typedef struct {
-    int a;
+    float a;
     int b;
     NSRect rect;
 } unknown_str_new;
@@ -83,12 +83,15 @@ typedef struct {
     int a;
     int b;
     NSRect rect;
+    unknown_str_new u_str;
 } unknown_str;
 
 - (unknown_str) makeUnknownStr {
     unknown_str str;
     str.a = 10;
     str.rect = NSMakeRect(20, 30, 40, 50);
+    str.u_str.a = 2.0;
+    str.u_str.b = 4;
     return str;
 }
 
@@ -99,6 +102,19 @@ typedef struct {
     printf("%f\n", str.rect.origin.x);
 }
 
+- (int) getSumOf:(int)a and:(int)b {
+    return a + b;
+}
+
+- (IMP) getImp {
+    return [self methodForSelector:@selector(getSumOf:and:)];
+}
+
+- (int) useImp:(IMP)imp withA:(int)a andB:(int)b {
+    return (int)imp(self, @selector(getSumOf:and:), a, b);
+}
+
+
 /******************** </UNKNOWN TYPE TESTS> ***********************/
 
 - (void)drive {
@@ -107,6 +123,10 @@ typedef struct {
 
 - (void)print {
     printf("selector printed me!\n");
+}
+
+- (void)printWithMessage:(char*)message {
+    printf("selector printed me! Message: %s\n", message);
 }
 
 - (int*)makeCarIdint {
@@ -389,4 +409,7 @@ int main() {
     Car *c = [[Car alloc] init];
     unknown_str str = [c makeUnknownStr];
     [c useUnknownStr:(void*)&str];
+    IMP imp = [c getImp];
+    int sum = [c useImp:imp withA:5 andB:6];
+    printf("sum of numbers --> %d", sum);
 }

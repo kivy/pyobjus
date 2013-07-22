@@ -268,3 +268,14 @@ print ret_unknown.getMembers()
 print ret_unknown.getMembers(only_types=True)
 print ret_unknown.getMembers(only_fields=True)
 c.useUnknownStr_(ret_unknown)
+
+imp = c.getImp()
+c.useImp_withA_andB_(imp, 5, 6)
+
+imp = c.methodForSelector_(selector('getSumOf:and:'))
+print c.useImp_withA_andB_(imp, 5, 7)
+
+sign = c.methodSignatureForSelector_(selector("getSumOf:and:"))
+print sign.getArgumentTypeAtIndex_(2)
+print sign.numberOfArguments()
+print c.makeUnknownStr().getMembers()
