@@ -8,6 +8,11 @@ cdef extern from "objc/runtime.h":
     ctypedef struct objc_selector:
         pass
     ctypedef objc_selector* SEL
+
+    ctypedef struct objc_ivar:
+        pass
+    ctypedef objc_ivar* Ivar
+
     ctypedef void* id
     ctypedef void* Class
     ctypedef void* Method
@@ -23,6 +28,10 @@ cdef extern from "objc/runtime.h":
     Method          class_getClassMethod(Class cls, SEL selector)
     Method          class_getInstanceMethod(Class aClass, SEL aSelector)
     Method          class_getSuperclass(Class cls)
+    Ivar*           class_copyIvarList(Class cls, unsigned int *outCount)
+
+    const_char_ptr  ivar_getName(Ivar ivar)
+    const_char_ptr  ivar_getTypeEncoding(Ivar ivar)
 
     SEL             sel_registerName(char *)
     const_char_ptr  sel_getName(SEL)

@@ -52,6 +52,10 @@ class MetaObjcClass(type):
         cls_method_sel = <SEL>(<bytes>sel_name)
         return None
 
+    def __getattribute__(self, *args):
+        print args
+        return type.__getattribute__(self, *args)
+
     @staticmethod
     def get_objcclass(name):
         return oclass_register.get(name)
@@ -444,6 +448,14 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
 
     return super_cls_methods_dict
 
+cdef get_class_ivars(Class cls):
+    cdef unsigned int num_ivars
+
+    cdef Ivar *ivars = class_copyIvarList(cls, &num_ivars)
+    print "num -->", num_ivars
+    for i in range(num_ivars):
+        print ivar_getName(ivars[i])
+
 def autoclass(cls_name, new_instance=False):
     # if class or class instance is already in cache, return requested value
     if cls_name in oclass_register:
@@ -460,6 +472,11 @@ def autoclass(cls_name, new_instance=False):
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
     cdef dict class_dict = {'__objcclass__':  cls_name}
+
+    get_class_ivars(cls)
+
+    #if cls_name is 'Car':
+    #    assert(0)
 
     # if this isn't new instance of some class, retrieve only static methods
     if(new_instance == False):

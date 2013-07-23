@@ -1,11 +1,16 @@
 #import <Foundation/Foundation.h>
-
+#import <objc/runtime.h>
 
 @interface Car : NSObject {
 }
+
+@property (assign) int prop_int;
+
 @end
 
-@implementation Car
+@implementation Car {
+    int ivar_a, ivar_b;
+}
 
 /******************** <BIT FIELD TESTS> ***********************/
 
@@ -114,8 +119,13 @@ typedef struct {
     return (int)imp(self, @selector(getSumOf:and:), a, b);
 }
 
-
 /******************** </UNKNOWN TYPE TESTS> ***********************/
+
+/******************** <IVARS TESTS> ***********************/
+
+@synthesize prop_int;
+
+/******************** </IVARS TESTS> ***********************/
 
 - (void)drive {
     NSLog(@"Driving! Vrooooom!");
@@ -411,5 +421,7 @@ int main() {
     [c useUnknownStr:(void*)&str];
     IMP imp = [c getImp];
     int sum = [c useImp:imp withA:5 andB:6];
-    printf("sum of numbers --> %d", sum);
+    printf("sum of numbers --> %d\n", sum);
+    c.prop_int = 10;
+    printf("value --> %d\n", c.prop_int);
 }
