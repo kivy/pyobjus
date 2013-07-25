@@ -13,6 +13,11 @@ cdef extern from "objc/runtime.h":
         pass
     ctypedef objc_ivar* Ivar
 
+    ctypedef struct objc_property:
+        pass
+    ctypedef objc_property* objc_property_t
+    ctypedef objc_property* Property
+
     ctypedef void* id
     ctypedef void* Class
     ctypedef void* Method
@@ -29,6 +34,8 @@ cdef extern from "objc/runtime.h":
     Method          class_getInstanceMethod(Class aClass, SEL aSelector)
     Method          class_getSuperclass(Class cls)
     Ivar*           class_copyIvarList(Class cls, unsigned int *outCount)
+    objc_property_t* class_copyPropertyList(Class cls, unsigned int *outCount)
+    Ivar            class_getInstanceVariable(Class cls, const_char_ptr name)
 
     const_char_ptr  ivar_getName(Ivar ivar)
     const_char_ptr  ivar_getTypeEncoding(Ivar ivar)
@@ -42,6 +49,12 @@ cdef extern from "objc/runtime.h":
 
     Class           object_getClass(id obj)
     const_char_ptr  object_getClassName(id obj)
+    id              object_getIvar(id object, Ivar ivar)
+    Ivar            object_getInstanceVariable(id obj, const_char_ptr name, void **outValue)
+    void            object_setIvar(id object, Ivar ivar, id value)
+
+    const_char_ptr  property_getAttributes(objc_property_t property)
+    const_char_ptr  property_getName(objc_property_t property)
 
 cdef extern from "_runtime.h":
     void  pyobjc_internal_init()

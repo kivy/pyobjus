@@ -279,3 +279,27 @@ sign = c.methodSignatureForSelector_(selector("getSumOf:and:"))
 print sign.getArgumentTypeAtIndex_(2)
 print sign.numberOfArguments()
 print c.makeUnknownStr().getMembers()
+
+c.setProp()
+print c.prop_int
+print c.void_ptr
+print c.prop_double
+print c.prop_nsstring
+print c.prop_nsstring
+print c.prop_string
+print c.prop_float
+print c.prop_ulnglng
+
+c.prop_int = 15
+print c.prop_int
+
+c.prop_double = 43.5454
+print c.prop_double
+
+c.prop_nsstring = text
+print c.prop_nsstring
+print c.prop_nsstring.UTF8String()
+
+print c.prop_rect.origin.x
+print rect.origin.x
+c.prop_rect = rect

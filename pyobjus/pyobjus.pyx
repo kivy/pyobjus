@@ -52,10 +52,6 @@ class MetaObjcClass(type):
         cls_method_sel = <SEL>(<bytes>sel_name)
         return None
 
-    def __getattribute__(self, *args):
-        print args
-        return type.__getattribute__(self, *args)
-
     @staticmethod
     def get_objcclass(name):
         return oclass_register.get(name)
@@ -449,12 +445,16 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
     return super_cls_methods_dict
 
 cdef get_class_ivars(Class cls):
-    cdef unsigned int num_ivars
+    cdef unsigned int num_props
+    cdef dict props_dict = {}
+    cdef objc_property_t *properties = class_copyPropertyList(cls, &num_props)
+    cdef const char* prop_attrs
 
-    cdef Ivar *ivars = class_copyIvarList(cls, &num_ivars)
-    print "num -->", num_ivars
-    for i in range(num_ivars):
-        print ivar_getName(ivars[i])
+    for i in range(num_props):
+        prop_attrs = property_getAttributes(properties[i])
+        name = property_getName(properties[i])
+        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs)
+    return props_dict
 
 def autoclass(cls_name, new_instance=False):
     # if class or class instance is already in cache, return requested value
@@ -473,11 +473,6 @@ def autoclass(cls_name, new_instance=False):
     cdef dict class_methods = class_get_static_methods(cls)
     cdef dict class_dict = {'__objcclass__':  cls_name}
 
-    get_class_ivars(cls)
-
-    #if cls_name is 'Car':
-    #    assert(0)
-
     # if this isn't new instance of some class, retrieve only static methods
     if(new_instance == False):
         class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
@@ -492,6 +487,8 @@ def autoclass(cls_name, new_instance=False):
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)
+
+    class_dict.update(get_class_ivars(cls))
 
     if(new_instance == False):
         return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()

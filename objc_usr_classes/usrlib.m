@@ -1,10 +1,31 @@
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 
+typedef struct {
+    float a;
+    int b;
+    NSRect rect;
+} unknown_str_new;
+
+typedef struct {
+    int a;
+    int b;
+    NSRect rect;
+    unknown_str_new u_str;
+} unknown_str;
+
 @interface Car : NSObject {
 }
 
 @property (assign) int prop_int;
+@property (assign) void* void_ptr;
+@property (assign) double prop_double;
+@property (assign) float prop_float;
+@property (assign) unsigned long long prop_ulnglng;
+@property (assign) char *prop_string;
+@property (assign) NSString *prop_nsstring;
+@property (assign) NSRect prop_rect;
+@property (assign) unknown_str prop_ustr;
 
 @end
 
@@ -78,22 +99,10 @@ typedef union test_un_ {
 
 /********************* <UNKNOWN TYPE TESTS> ***********************/
 
-typedef struct {
-    float a;
-    int b;
-    NSRect rect;
-} unknown_str_new;
-
-typedef struct {
-    int a;
-    int b;
-    NSRect rect;
-    unknown_str_new u_str;
-} unknown_str;
-
 - (unknown_str) makeUnknownStr {
     unknown_str str;
     str.a = 10;
+    str.b = 250;
     str.rect = NSMakeRect(20, 30, 40, 50);
     str.u_str.a = 2.0;
     str.u_str.b = 4;
@@ -124,6 +133,24 @@ typedef struct {
 /******************** <IVARS TESTS> ***********************/
 
 @synthesize prop_int;
+@synthesize void_ptr;
+@synthesize prop_double;
+@synthesize prop_nsstring;
+@synthesize prop_float;
+@synthesize prop_string;
+@synthesize prop_ulnglng;
+@synthesize prop_rect;
+@synthesize prop_ustr;
+
+- (void) setProp {
+    self.prop_int = 10;
+    self.prop_double = 10.11112;
+    self.prop_nsstring = @"string of property";
+    self.prop_float = 10.212121;
+    self.prop_string = "some string";
+    self.prop_ulnglng = 1223405442353453432;
+    self.prop_rect = NSMakeRect(30, 40, 50, 60);
+}
 
 /******************** </IVARS TESTS> ***********************/
 
@@ -424,4 +451,6 @@ int main() {
     printf("sum of numbers --> %d\n", sum);
     c.prop_int = 10;
     printf("value --> %d\n", c.prop_int);
+    [c setProp];
+    printf("%f\n", c.prop_double);
 }

@@ -101,11 +101,102 @@ cdef class ObjcClassHlp(object):
         return object.__getattribute__(self, attr)
 
 
+cdef class ObjcProperty:
+    ''' Class for representing Objective c properties '''
+
+    cdef objc_property_t *property
+    cdef public object prop_enc
+    cdef object prop_type
+    cdef object prop_name
+    cdef object attrs
+    cdef id o_instance
+    cdef Ivar ivar
+    cdef id ivar_val
+    cdef object prop_attrs_dict
+
+    def __cinit__(self, property, attrs, **kwargs):
+        self.o_instance = NULL
+        self.ivar = NULL
+        self.property = <objc_property_t*>malloc(sizeof(objc_property_t))
+        self.property[0] = (<objc_property_t*><unsigned long long*><unsigned long long>property)[0]
+        self.attrs = attrs
+
+        self.prop_attrs_dict = {
+            'isReadOnly': False, 
+            'isCopy': False,
+            'isRetain': False,
+            'isNonAtomic': False,
+            'isDynamic': False,
+            'isWeak': False,
+            'isEligibleForGC': False,
+            'isOldStyleEnc': False,
+            'isCustomGetter': False,
+            'isCustomSetter': False
+        }
+
+        self.parse_attributes(attrs)
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+    def __dealloc__(self):
+        if self.property is not NULL:
+            free(self.property)
+
+    def parse_attributes(self, attrs):
+        ''' Method for parsing property signature
+    
+        Args:
+            attrs: String containing info about property, eg. Ti,Vprop_int -> @property (assign) int prop_int
+        '''
+        dprint('Parsing property attributes --> {0}'.format(attrs), type='d')
+
+        for attr in attrs.split(','):
+            if attr[0] is 'T':
+                attr_splt_res = attr.split('T')[1]
+                if attr_splt_res[0] is '@':
+                    self.prop_type = attr_splt_res.split('@')[1]
+                    self.prop_enc = attr_splt_res[0]
+                else:
+                    self.prop_enc = attr_splt_res
+
+            elif attr[0] is 'V':
+                self.prop_name = attr.split('V')[1]
+
+    def get_value(self, obj_ptr):
+        ''' Method for retrieveing value of some object property
+        
+        Args:
+            obj_ptr: Pointer to objective c instance object -> o_instance
+        Returns:
+            Python representation of objective c property value
+        '''
+        dprint('getting value of {0} property with attrs {1}'.format(self.prop_name, self.attrs), type='d')
+        if self.o_instance == NULL:
+            self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
+        if self.ivar == NULL:
+            self.ivar = object_getInstanceVariable(self.o_instance, <char*>self.prop_name, <void**>&self.ivar_val)
+        else:
+            # if we already have Ivar value, then object_getIvar is faster than object_getInstanceVariable
+            self.ivar_val = object_getIvar(self.o_instance, self.ivar)
+        return convert_cy_ret_to_py(&self.ivar_val, self.prop_enc, 0)
+
+    def set_value(self, obj_ptr, value):
+        ''' Method for setting value of some object property
+        
+        Args:
+            obj_ptr: Pointer to objective c instance object -> o_instance
+            value: Value to set to property
+        '''
+        dprint('setting property {0} value'.format(self.prop_name), type='d')
+        object_setIvar(self.o_instance, self.ivar, <id>(<id*><unsigned long long>value)[0])
+
 cdef class ObjcClassInstance(object):
 
     enc = '@'
     cdef Class o_cls
     cdef id o_instance
+    cdef int val
 
     def __cinit__(self, *args, **kwargs):
         self.o_cls = NULL
@@ -122,6 +213,24 @@ cdef class ObjcClassInstance(object):
             self.call_constructor(args)
             self.resolve_methods()
             self.resolve_fields()
+
+    def __getattribute__(self, name):
+        if isinstance(object.__getattribute__(self, name), ObjcProperty):
+            return object.__getattribute__(self, name).get_value(<unsigned long long>&self.o_instance)
+        return object.__getattribute__(self, name)
+
+    def __setattr__(self, name, value):
+        cdef void *val_ptr
+
+        if isinstance(object.__getattribute__(self, name), ObjcProperty):
+            property = object.__getattribute__(self, name)
+            size = 0
+            if isinstance(value, ctypes.Structure):
+                size = ctypes.sizeof(value)
+            val_ptr = convert_py_arg_to_cy(value, property.prop_enc, True, size)
+            object.__getattribute__(self, name).set_value(<unsigned long long>&self.o_instance, <unsigned long long>val_ptr)
+        else:
+            object.__setattr__(self, name, value)
 
     def __dealloc__(self):
         if self.o_instance != NULL:
@@ -187,6 +296,3 @@ cdef class ObjcReferenceToType(object):
         self.arg_ref = arg
         self.type = _type
         self.size = _size
-
-cdef class ObjcIvar(object):
-    pass
