@@ -445,11 +445,19 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
     return super_cls_methods_dict
 
 cdef get_class_ivars(Class cls):
+    ''' Function for getting a list of properties of some objective c class
+    
+    Args:
+        cls: Class which properties we want to obtain
+    Returns:
+        List of ObjcProperty objects. Native objc property will be converted to ObjcProperty Python type
+    '''
     cdef unsigned int num_props
     cdef dict props_dict = {}
     cdef objc_property_t *properties = class_copyPropertyList(cls, &num_props)
     cdef const char* prop_attrs
     cdef Ivar ivar
+    cdef void **out_val = NULL
 
     for i in range(num_props):
         prop_attrs = property_getAttributes(properties[i])
@@ -458,25 +466,43 @@ cdef get_class_ivars(Class cls):
         props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar)
     return props_dict
 
-def autoclass(cls_name, new_instance=False):
+def check_copy_properties(cls_name):
+    if oclass_register[cls_name].get('class') is not None:
+        return oclass_register[cls_name].get('class').__copy_properties__
+    return None
+
+def autoclass(cls_name, **kwargs):
+
+    new_instance = kwargs.get('new_instance', False)
     # if class or class instance is already in cache, return requested value
     if cls_name in oclass_register:
-        if new_instance == False and "class" in oclass_register[cls_name]:
+        if not new_instance and "class" in oclass_register[cls_name]:
             dprint("getting class from cache...", type='i')
             return oclass_register[cls_name]['class']
-        elif new_instance == True and "instance" in oclass_register[cls_name]:
+        elif new_instance and "instance" in oclass_register[cls_name]:
             dprint('getting instance from cache...', type='i')
             return oclass_register[cls_name]['instance']
+
+    # Resolving does user want to copy properties of class, or it doesn't
+    # TODO:  This need to be tested more!
+    if cls_name in oclass_register.keys():
+        copy_properties = check_copy_properties(cls_name)
+        if copy_properties is None:
+            copy_properties = check_copy_properties(class_get_super_class_name(<Class>objc_getClass(cls_name)))
+            if copy_properties is None:
+                copy_properties = True
+    else:
+        copy_properties = kwargs.get('copy_properties', True)
 
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
 
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
-    cdef dict class_dict = {'__objcclass__':  cls_name}
+    cdef dict class_dict = {'__objcclass__':  cls_name, '__copy_properties__': copy_properties}
 
     # if this isn't new instance of some class, retrieve only static methods
-    if(new_instance == False):
+    if not new_instance:
         class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
         class_dict.update(class_methods)
     # otherwise retrieve instance methods
@@ -490,9 +516,10 @@ def autoclass(cls_name, new_instance=False):
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)
 
-    class_dict.update(get_class_ivars(cls))
+    if copy_properties:
+        class_dict.update(get_class_ivars(cls))
 
-    if(new_instance == False):
+    if not new_instance:
         return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()
 
     return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance,), class_dict)

@@ -125,22 +125,25 @@ cdef class ObjcProperty:
         self.attrs = attrs
 
         self.prop_attrs_dict = {
-            'isReadOnly': False, 
-            'isCopy': False,
-            'isRetain': False,
-            'isNonAtomic': False,
-            'isDynamic': False,
-            'isWeak': False,
-            'isEligibleForGC': False,
-            'isOldStyleEnc': False,
-            'isCustomGetter': False,
-            'isCustomSetter': False
+            'readonly': False, 
+            'copy': False,
+            'retain': False,
+            # NOTE: With "atomic", the synthesized setter/getter will ensure that a whole value is always 
+            # returned from the getter or set by the setter, regardless of setter activity on any other thread. 
+            # That is, if thread A is in the middle of the getter while thread B calls the setter, 
+            # an actual viable value -- an autoreleased object, 
+            # most likely -- will be returned to the caller in A.
+            # In nonatomic, no such guarantees are made. Thus, nonatomic is considerably faster than "atomic"
+            'nonatomic': False,
+            'dynamic': False,
+            'weak': False,
+            'eligibleForGC': False,
+            'oldStyleEnc': False,
+            'customGetter': False,
+            'customSetter': False
         }
 
-        self.parse_attributes(attrs)
-
-    def __call__(self, *args, **kwargs):
-        pass
+        self._parse_attributes(attrs)
 
     def __dealloc__(self):
         if self.property is not NULL:
@@ -148,7 +151,7 @@ cdef class ObjcProperty:
         if self.ivar is not NULL:
             free(self.ivar)
 
-    def parse_attributes(self, attrs):
+    def _parse_attributes(self, attrs):
         ''' Method for parsing property signature
     
         Args:
@@ -170,9 +173,17 @@ cdef class ObjcProperty:
                         self.prop_type = self.prop_type[1:-1].split('=', 1)
                 else:
                     self.prop_enc = attr_splt_res
-
             elif attr[0] is 'V':
                 self.prop_name = attr.split('V')[1]
+            elif attr is 'R':
+                self.prop_attrs_dict['readonly'] = True
+            elif attr is 'N':
+                self.prop_attrs_dict['nonatomic'] = True
+            elif attr is '&':
+                self.prop_attrs_dict['retain'] = True
+            elif attr is 'C':
+                self.prop_attrs_dict['copy'] = True
+            # TODO: Missing options
 
     def get_value(self, obj_ptr):
         ''' Method for retrieveing value of some object property
@@ -184,7 +195,8 @@ cdef class ObjcProperty:
         '''
         dprint('getting value of {0} property with attrs {1}'.format(self.prop_name, self.attrs), type='d')
 
-        self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
+        if self.o_instance is NULL:
+            self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
         self.ivar_val = object_getIvar(self.o_instance, self.ivar[0])
 
         if not self.by_value:
@@ -199,10 +211,14 @@ cdef class ObjcProperty:
             obj_ptr: Pointer to objective c instance object -> o_instance
             value: Value to set to property
         '''
-        cdef int *int_ptr
-        self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
-
         dprint('setting property {0} value'.format(self.prop_name), type='d')
+
+        if self.prop_attrs_dict['readonly']:
+            raise ObjcException('Assignment to readonly property')
+
+        if self.o_instance is NULL:
+            self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
+
         if not self.by_value:
             object_setIvar(self.o_instance, self.ivar[0], <id><unsigned long long>value)
         else:
@@ -262,7 +278,10 @@ cdef class ObjcClassInstance(object):
 
             property.set_value(<unsigned long long>&self.o_instance, val_ulng_ptr)
         else:
-            object.__setattr__(self, name, value)
+            try:
+                object.__setattr__(self, name, value)
+            except:
+                dprint('Unknown error occured while setting attribute to {0} object'.format(self), type='e')
 
     def __dealloc__(self):
         if self.o_instance != NULL:

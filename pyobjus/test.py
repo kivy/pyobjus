@@ -282,16 +282,12 @@ print c.makeUnknownStr().getMembers()
 
 c.setProp()
 print c.prop_int
-#print c.void_ptr
 print c.prop_double
 print c.prop_nsstring
 print c.prop_nsstring
 print c.prop_string
 print c.prop_float
 print c.prop_ulnglng
-
-c.prop_int = 15
-print c.prop_int
 
 c.prop_double = 43.5454
 print c.prop_double
@@ -310,3 +306,18 @@ print rng.length
 print rng.location
 c.prop_int_ptr = 12345
 print dereference(c.prop_int_ptr)
+
+c.prop_float_ptr = 123.4
+print dereference(c.prop_float_ptr)
+c.prop_double_ptr = 4321.543
+print dereference(c.prop_double_ptr)
+print dereference(c.prop_long_ptr)
+c.prop_long_ptr = dereference(c.prop_int_ptr)
+print dereference(c.prop_long_ptr)
+c.prop_long_ptr_tmp = c.prop_long_ptr
+print dereference(c.prop_long_ptr_tmp)
+c.testProp()
+print c.prop_int
+print c.prop_double
+print c.prop_nsstring
+print c.prop_array

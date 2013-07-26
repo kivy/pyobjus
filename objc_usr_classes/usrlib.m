@@ -17,17 +17,22 @@ typedef struct {
 @interface Car : NSObject {
 }
 
-@property (assign) int prop_int;
+@property (readonly, atomic) int prop_int;
 @property (assign) void* void_ptr;
-@property (assign) double prop_double;
+@property (assign, nonatomic) double prop_double;
 @property (assign) float prop_float;
 @property (assign) unsigned long long prop_ulnglng;
 @property (assign) char *prop_string;
-@property (assign) NSString *prop_nsstring;
+@property (retain) NSString *prop_nsstring;
+@property (nonatomic, copy) NSMutableArray *prop_array;
 @property (assign) NSRect prop_rect;
 @property (assign) unknown_str prop_ustr;
 @property (assign) NSRange *prop_range_ptr;
 @property (assign) int *prop_int_ptr;
+@property (assign) float *prop_float_ptr;
+@property (assign) long *prop_long_ptr;
+@property (assign) long *prop_long_ptr_tmp;
+@property (assign) double *prop_double_ptr;
 
 @end
 
@@ -145,9 +150,13 @@ typedef union test_un_ {
 @synthesize prop_ustr;
 @synthesize prop_range_ptr;
 @synthesize prop_int_ptr;
+@synthesize prop_float_ptr;
+@synthesize prop_long_ptr;
+@synthesize prop_long_ptr_tmp;
+@synthesize prop_double_ptr;
+@synthesize prop_array;
 
 - (void) setProp {
-    self.prop_int = 10;
     self.prop_double = 10.11112;
     self.prop_nsstring = @"string of property";
     self.prop_float = 10.212121;
@@ -161,10 +170,11 @@ typedef union test_un_ {
 }
 
 - (void) testProp {
-    int *int_ptr = malloc(sizeof(int));
-    *int_ptr = 777;
-    self.prop_int_ptr = int_ptr;
-    printf("from objc %d\n", self.prop_int_ptr[0]);
+    //int *int_ptr = malloc(sizeof(int));
+    //*int_ptr = 777;
+    //self.prop_int_ptr = int_ptr;
+    printf("from objc --> prop_int_ptr %d\n", self.prop_int_ptr[0]);
+    printf("from objc --> prop_double_ptr %f\n", self.prop_double_ptr[0]);
 }
 
 /******************** </IVARS TESTS> ***********************/
@@ -464,8 +474,8 @@ int main() {
     IMP imp = [c getImp];
     int sum = [c useImp:imp withA:5 andB:6];
     printf("sum of numbers --> %d\n", sum);
-    c.prop_int = 10;
-    printf("value --> %d\n", c.prop_int);
+    //c.prop_int = 10;
+    //printf("value --> %d\n", c.prop_int);
     [c setProp];
     printf("%f\n", c.prop_double);
     NSRange *rng = malloc(sizeof(NSRange));
@@ -473,13 +483,11 @@ int main() {
     rng[0].location = 12345;
     c.prop_range_ptr = rng;
     printf("%ld", (unsigned long)c.prop_range_ptr[0].length);
-    void **out_val = malloc(16);
     Ivar prop_rng_ivar = class_getInstanceVariable([c class], "prop_range_ptr");
     object_setIvar(c, prop_rng_ivar, (id)rng);
-    //object_setInstanceVariable(c, "prop_range_ptr", rng);
-    //object_getInstanceVariable(c, "prop_range_ptr", out_val);
-    id out_r = object_getIvar(c, prop_rng_ivar);
-    NSRange *r = (NSRange*)out_r;
-    NSRange rang = NSMakeRange(400, 500);
-    printf("dada");
+    long *lng_ptr = malloc(sizeof(long));
+    lng_ptr[0] = 123456;
+    c.prop_long_ptr = lng_ptr;
+    c.prop_long_ptr_tmp = c.prop_long_ptr;
+    printf("%ld\n", c.prop_long_ptr_tmp[0]);
 }

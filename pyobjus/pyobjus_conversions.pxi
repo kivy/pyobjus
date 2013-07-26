@@ -19,7 +19,9 @@ def dereference(py_ptr, **kwargs):
     Note:
         All types aren't implemented!
     '''
-    
+    if py_ptr is None:
+        return None
+
     cdef unsigned long long *c_addr
     cdef void *struct_res_ptr = NULL
 
@@ -103,13 +105,17 @@ cdef convert_to_cy_cls_instance(id ret_id):
     if bret == 'nil':
         dprint('<-- returned pointer value:', pr(ret_id), type="w")
         return None
-            
+    
     cret = autoclass(bret, new_instance=True)(noinstance=True)
     cret.instanciate_from(ret_id)
     dprint('<-- return object', cret)
     return cret
 
 cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False):
+
+    if f_result is NULL:
+        dprint('null pointer in convert_cy_ret_to_py function', type='w')
+        return None
 
     if sig[0][0] in ['(', '{']:
         return_type = sig[1:-1].split('=', 1)
