@@ -51,6 +51,7 @@ cdef extern from "objc/runtime.h":
     const_char_ptr  object_getClassName(id obj)
     id              object_getIvar(id object, Ivar ivar)
     Ivar            object_getInstanceVariable(id obj, const_char_ptr name, void **outValue)
+    Ivar            object_setInstanceVariable(id obj, const_char_ptr name, void *value)
     void            object_setIvar(id object, Ivar ivar, id value)
 
     const_char_ptr  property_getAttributes(objc_property_t property)

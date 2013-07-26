@@ -26,6 +26,8 @@ typedef struct {
 @property (assign) NSString *prop_nsstring;
 @property (assign) NSRect prop_rect;
 @property (assign) unknown_str prop_ustr;
+@property (assign) NSRange *prop_range_ptr;
+@property (assign) int *prop_int_ptr;
 
 @end
 
@@ -141,6 +143,8 @@ typedef union test_un_ {
 @synthesize prop_ulnglng;
 @synthesize prop_rect;
 @synthesize prop_ustr;
+@synthesize prop_range_ptr;
+@synthesize prop_int_ptr;
 
 - (void) setProp {
     self.prop_int = 10;
@@ -150,6 +154,17 @@ typedef union test_un_ {
     self.prop_string = "some string";
     self.prop_ulnglng = 1223405442353453432;
     self.prop_rect = NSMakeRect(30, 40, 50, 60);
+    NSRange *rng_ptr = malloc(sizeof(NSRange));
+    rng_ptr[0].location = 444;
+    rng_ptr[0].length = 555;
+    self.prop_range_ptr = rng_ptr;
+}
+
+- (void) testProp {
+    int *int_ptr = malloc(sizeof(int));
+    *int_ptr = 777;
+    self.prop_int_ptr = int_ptr;
+    printf("from objc %d\n", self.prop_int_ptr[0]);
 }
 
 /******************** </IVARS TESTS> ***********************/
@@ -453,4 +468,18 @@ int main() {
     printf("value --> %d\n", c.prop_int);
     [c setProp];
     printf("%f\n", c.prop_double);
+    NSRange *rng = malloc(sizeof(NSRange));
+    rng[0].length = 124;
+    rng[0].location = 12345;
+    c.prop_range_ptr = rng;
+    printf("%ld", (unsigned long)c.prop_range_ptr[0].length);
+    void **out_val = malloc(16);
+    Ivar prop_rng_ivar = class_getInstanceVariable([c class], "prop_range_ptr");
+    object_setIvar(c, prop_rng_ivar, (id)rng);
+    //object_setInstanceVariable(c, "prop_range_ptr", rng);
+    //object_getInstanceVariable(c, "prop_range_ptr", out_val);
+    id out_r = object_getIvar(c, prop_rng_ivar);
+    NSRange *r = (NSRange*)out_r;
+    NSRange rang = NSMakeRange(400, 500);
+    printf("dada");
 }

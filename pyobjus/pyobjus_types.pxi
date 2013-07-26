@@ -105,20 +105,23 @@ cdef class ObjcProperty:
     ''' Class for representing Objective c properties '''
 
     cdef objc_property_t *property
+    cdef Ivar *ivar
     cdef public object prop_enc
-    cdef object prop_type
+    cdef public object by_value
+    cdef public object prop_type
     cdef object prop_name
     cdef object attrs
     cdef id o_instance
-    cdef Ivar ivar
     cdef id ivar_val
     cdef object prop_attrs_dict
 
-    def __cinit__(self, property, attrs, **kwargs):
+    def __cinit__(self, property, attrs, ivar, **kwargs):
         self.o_instance = NULL
-        self.ivar = NULL
+        self.ivar = <Ivar*>malloc(sizeof(Ivar))
+        self.by_value = True
         self.property = <objc_property_t*>malloc(sizeof(objc_property_t))
         self.property[0] = (<objc_property_t*><unsigned long long*><unsigned long long>property)[0]
+        self.ivar[0] = (<Ivar*><unsigned long long*><unsigned long long>ivar)[0]
         self.attrs = attrs
 
         self.prop_attrs_dict = {
@@ -142,6 +145,8 @@ cdef class ObjcProperty:
     def __dealloc__(self):
         if self.property is not NULL:
             free(self.property)
+        if self.ivar is not NULL:
+            free(self.ivar)
 
     def parse_attributes(self, attrs):
         ''' Method for parsing property signature
@@ -157,6 +162,12 @@ cdef class ObjcProperty:
                 if attr_splt_res[0] is '@':
                     self.prop_type = attr_splt_res.split('@')[1]
                     self.prop_enc = attr_splt_res[0]
+                elif attr_splt_res[0] is '^':
+                    self.by_value = False
+                    self.prop_enc = attr_splt_res
+                    self.prop_type = attr_splt_res.split('^')[1]
+                    if self.prop_type.find('=') is not -1:
+                        self.prop_type = self.prop_type[1:-1].split('=', 1)
                 else:
                     self.prop_enc = attr_splt_res
 
@@ -172,14 +183,14 @@ cdef class ObjcProperty:
             Python representation of objective c property value
         '''
         dprint('getting value of {0} property with attrs {1}'.format(self.prop_name, self.attrs), type='d')
-        if self.o_instance == NULL:
-            self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
-        if self.ivar == NULL:
-            self.ivar = object_getInstanceVariable(self.o_instance, <char*>self.prop_name, <void**>&self.ivar_val)
-        else:
-            # if we already have Ivar value, then object_getIvar is faster than object_getInstanceVariable
-            self.ivar_val = object_getIvar(self.o_instance, self.ivar)
-        return convert_cy_ret_to_py(&self.ivar_val, self.prop_enc, 0)
+
+        self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
+        self.ivar_val = object_getIvar(self.o_instance, self.ivar[0])
+
+        if not self.by_value:
+            py_type = factory.find_object(self.prop_type)
+            return convert_cy_ret_to_py(<id*>self.ivar_val, self.prop_enc, ctypes.sizeof(py_type), members=None, objc_prop=True)
+        return convert_cy_ret_to_py(&self.ivar_val, self.prop_enc, 0, members=None, objc_prop=True)
 
     def set_value(self, obj_ptr, value):
         ''' Method for setting value of some object property
@@ -188,8 +199,14 @@ cdef class ObjcProperty:
             obj_ptr: Pointer to objective c instance object -> o_instance
             value: Value to set to property
         '''
+        cdef int *int_ptr
+        self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
+
         dprint('setting property {0} value'.format(self.prop_name), type='d')
-        object_setIvar(self.o_instance, self.ivar, <id>(<id*><unsigned long long>value)[0])
+        if not self.by_value:
+            object_setIvar(self.o_instance, self.ivar[0], <id><unsigned long long>value)
+        else:
+            object_setIvar(self.o_instance, self.ivar[0], <id>(<id*><unsigned long long>value)[0])
 
 cdef class ObjcClassInstance(object):
 
@@ -221,14 +238,29 @@ cdef class ObjcClassInstance(object):
 
     def __setattr__(self, name, value):
         cdef void *val_ptr
+        cdef unsigned long long val_ulng_ptr
 
         if isinstance(object.__getattribute__(self, name), ObjcProperty):
             property = object.__getattribute__(self, name)
+
             size = 0
-            if isinstance(value, ctypes.Structure):
+            if not property.by_value:
+                size = py_type = ctypes.sizeof(factory.find_object(property.prop_type))
+            elif isinstance(value, ctypes.Structure) or isinstance(value, ctypes.Union):
                 size = ctypes.sizeof(value)
-            val_ptr = convert_py_arg_to_cy(value, property.prop_enc, True, size)
-            object.__getattribute__(self, name).set_value(<unsigned long long>&self.o_instance, <unsigned long long>val_ptr)
+
+            if property.prop_enc[0] is '^':
+                prop_enc = property.prop_enc.split('^')[1]
+            else:
+                prop_enc = property.prop_enc
+
+            val_ptr = convert_py_arg_to_cy(value, prop_enc, property.by_value, size)
+            if not property.by_value:
+                val_ulng_ptr = (<unsigned long long*>val_ptr)[0]
+            else:
+                val_ulng_ptr = <unsigned long long>val_ptr
+
+            property.set_value(<unsigned long long>&self.o_instance, val_ulng_ptr)
         else:
             object.__setattr__(self, name, value)
 

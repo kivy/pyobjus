@@ -282,7 +282,7 @@ print c.makeUnknownStr().getMembers()
 
 c.setProp()
 print c.prop_int
-print c.void_ptr
+#print c.void_ptr
 print c.prop_double
 print c.prop_nsstring
 print c.prop_nsstring
@@ -303,3 +303,10 @@ print c.prop_nsstring.UTF8String()
 print c.prop_rect.origin.x
 print rect.origin.x
 c.prop_rect = rect
+range = NSRange(50, 70)
+c.prop_range_ptr = range
+rng = dereference(c.prop_range_ptr)
+print rng.length
+print rng.location
+c.prop_int_ptr = 12345
+print dereference(c.prop_int_ptr)

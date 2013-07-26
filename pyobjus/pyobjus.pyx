@@ -449,11 +449,13 @@ cdef get_class_ivars(Class cls):
     cdef dict props_dict = {}
     cdef objc_property_t *properties = class_copyPropertyList(cls, &num_props)
     cdef const char* prop_attrs
+    cdef Ivar ivar
 
     for i in range(num_props):
         prop_attrs = property_getAttributes(properties[i])
         name = property_getName(properties[i])
-        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs)
+        ivar = class_getInstanceVariable(cls, <char*>name)
+        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar)
     return props_dict
 
 def autoclass(cls_name, new_instance=False):
