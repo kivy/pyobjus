@@ -1,6 +1,21 @@
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 
+#define ADD_DYNAMIC_PROPERTY(PROPERTY_TYPE, PROPERTY_NAME, SETTER_NAME) \
+\
+@dynamic PROPERTY_NAME; \
+- ( PROPERTY_TYPE ) PROPERTY_NAME \
+{ \
+printf("returning value of dynamic property\n"); \
+return ( PROPERTY_TYPE ) objc_getAssociatedObject(self, @selector(PROPERTY_NAME)); \
+} \
+\
+- (void) SETTER_NAME :( PROPERTY_TYPE ) PROPERTY_NAME \
+{ \
+printf("setting value of dynamic property\n"); \
+objc_setAssociatedObject(self, @selector(PROPERTY_NAME), PROPERTY_NAME, OBJC_ASSOCIATION_RETAIN); \
+} \
+
 typedef struct {
     float a;
     int b;
@@ -30,6 +45,7 @@ typedef struct {
 @property (assign) NSRange *prop_range_ptr;
 @property (assign) int *prop_int_ptr;
 @property (assign) float *prop_float_ptr;
+@property (assign) NSString *prop_nsstring_dyn;
 @property (assign) long *prop_long_ptr;
 @property (assign) long *prop_long_ptr_tmp;
 @property (assign) double *prop_double_ptr;
@@ -142,8 +158,8 @@ typedef union test_un_ {
 @synthesize prop_int;
 @synthesize void_ptr;
 @synthesize prop_double;
-@synthesize prop_nsstring;
 @synthesize prop_float;
+@synthesize prop_nsstring;
 @synthesize prop_string;
 @synthesize prop_ulnglng;
 @synthesize prop_rect;
@@ -156,6 +172,9 @@ typedef union test_un_ {
 @synthesize prop_double_ptr;
 @synthesize prop_array;
 
+
+ADD_DYNAMIC_PROPERTY(NSString*, prop_nsstring_dyn, setProp_nsstring_dyn);
+
 - (void) setProp {
     self.prop_double = 10.11112;
     self.prop_nsstring = @"string of property";
@@ -167,6 +186,7 @@ typedef union test_un_ {
     rng_ptr[0].location = 444;
     rng_ptr[0].length = 555;
     self.prop_range_ptr = rng_ptr;
+    self.prop_nsstring_dyn = @"setted from objc";
 }
 
 - (void) testProp {
@@ -469,25 +489,11 @@ typedef union test_un_ {
 
 int main() {
     Car *c = [[Car alloc] init];
-    unknown_str str = [c makeUnknownStr];
-    [c useUnknownStr:(void*)&str];
-    IMP imp = [c getImp];
-    int sum = [c useImp:imp withA:5 andB:6];
-    printf("sum of numbers --> %d\n", sum);
-    //c.prop_int = 10;
-    //printf("value --> %d\n", c.prop_int);
-    [c setProp];
-    printf("%f\n", c.prop_double);
-    NSRange *rng = malloc(sizeof(NSRange));
-    rng[0].length = 124;
-    rng[0].location = 12345;
-    c.prop_range_ptr = rng;
-    printf("%ld", (unsigned long)c.prop_range_ptr[0].length);
-    Ivar prop_rng_ivar = class_getInstanceVariable([c class], "prop_range_ptr");
-    object_setIvar(c, prop_rng_ivar, (id)rng);
-    long *lng_ptr = malloc(sizeof(long));
-    lng_ptr[0] = 123456;
-    c.prop_long_ptr = lng_ptr;
-    c.prop_long_ptr_tmp = c.prop_long_ptr;
-    printf("%ld\n", c.prop_long_ptr_tmp[0]);
+    c.prop_nsstring_dyn = @"test str";
+    printf("%s\n", [c.prop_nsstring_dyn UTF8String]);
+    Ivar prop_dyn_ivar = class_getInstanceVariable([c class], "prop_nsstring_dyn");
+    object_setIvar(c, prop_dyn_ivar, @"for dyn property");
+    objc_setAssociatedObject(c, @selector(property), @"test set", OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    object_getInstanceVariable(c, "prop_nsstring_dyn", NULL);
+    printf("END OF PROGRAM!\n");
 }

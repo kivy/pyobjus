@@ -109,13 +109,14 @@ cdef class ObjcProperty:
     cdef public object prop_enc
     cdef public object by_value
     cdef public object prop_type
+    cdef object cls_name
     cdef object prop_name
     cdef object attrs
     cdef id o_instance
     cdef id ivar_val
     cdef object prop_attrs_dict
 
-    def __cinit__(self, property, attrs, ivar, **kwargs):
+    def __cinit__(self, property, attrs, ivar, name, cls_name, **kwargs):
         self.o_instance = NULL
         self.ivar = <Ivar*>malloc(sizeof(Ivar))
         self.by_value = True
@@ -123,6 +124,8 @@ cdef class ObjcProperty:
         self.property[0] = (<objc_property_t*><unsigned long long*><unsigned long long>property)[0]
         self.ivar[0] = (<Ivar*><unsigned long long*><unsigned long long>ivar)[0]
         self.attrs = attrs
+        self.prop_name = name
+        self.cls_name = cls_name
 
         self.prop_attrs_dict = {
             'readonly': False, 
@@ -135,6 +138,9 @@ cdef class ObjcProperty:
             # most likely -- will be returned to the caller in A.
             # In nonatomic, no such guarantees are made. Thus, nonatomic is considerably faster than "atomic"
             'nonatomic': False,
+            # NOTE: @synthesize will generate getter and setter methods for your property. 
+            # @dynamic just tells the compiler that the getter and setter methods 
+            # are implemented not by the class itself but somewhere else
             'dynamic': False,
             'weak': False,
             'eligibleForGC': False,
@@ -150,6 +156,14 @@ cdef class ObjcProperty:
             free(self.property)
         if self.ivar is not NULL:
             free(self.ivar)
+
+    def _get_attributes(self):
+        ''' Method for getting list of property attributes
+        
+        Returns:
+            List of attributes, eg. ['nonatomic', 'copy'] -> @property (nonatomic, copy) ...
+        '''
+        return [x for x, y in self.prop_attrs_dict.iteritems() if y is True]
 
     def _parse_attributes(self, attrs):
         ''' Method for parsing property signature
@@ -183,8 +197,39 @@ cdef class ObjcProperty:
                 self.prop_attrs_dict['retain'] = True
             elif attr is 'C':
                 self.prop_attrs_dict['copy'] = True
-            # TODO: Missing options
+            elif attr is 'D':
+                self.prop_attrs_dict['dynamic'] = True
+            elif attr is 'W':
+                self.prop_attrs_dict['weak'] = True
+            elif attr is 'P':
+                self.prop_attrs_dict['eligibleForGC'] = True
+            # TODO: t<encoding>, G<name>, S<name>
 
+    def _manage_dynamic_property(self, **kwargs):
+        ''' Method for managing getting/setting values of dynamic (@dynamic) properties
+        
+        Returns:
+            If user want to retrieve value, he will get actual Python representation of value for objc property
+        '''
+
+        cdef id key_val = NULL
+        cdef id objc_val = NULL
+        value = kwargs.get('value', None)
+        by_value = kwargs.get('by_value', None)
+
+        from pyobjus import autoclass
+        NSString = autoclass("NSString")
+        key_val = (<id*>convert_py_arg_to_cy(NSString.stringWithUTF8String_(self.prop_name), '@', True, 0))[0]
+
+        if kwargs.get('mode') is 'Set':
+            if by_value:
+                objc_val = (<id*><unsigned long long>value)[0]
+            else:
+                objc_val = <id><unsigned long long>value
+            objc_msgSend(self.o_instance, sel_registerName('setValue:forKey:'), objc_val, key_val)
+        else:
+            return oclass_register[self.cls_name]['instance'].valueForKey_(NSString.stringWithUTF8String_(self.prop_name))
+ 
     def get_value(self, obj_ptr):
         ''' Method for retrieveing value of some object property
         
@@ -202,6 +247,8 @@ cdef class ObjcProperty:
         if not self.by_value:
             py_type = factory.find_object(self.prop_type)
             return convert_cy_ret_to_py(<id*>self.ivar_val, self.prop_enc, ctypes.sizeof(py_type), members=None, objc_prop=True)
+        if self.prop_attrs_dict['dynamic']:
+            return self._manage_dynamic_property()
         return convert_cy_ret_to_py(&self.ivar_val, self.prop_enc, 0, members=None, objc_prop=True)
 
     def set_value(self, obj_ptr, value):
@@ -218,11 +265,17 @@ cdef class ObjcProperty:
 
         if self.o_instance is NULL:
             self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
-
         if not self.by_value:
-            object_setIvar(self.o_instance, self.ivar[0], <id><unsigned long long>value)
+            # this is case where property doesn't have default getters/setters
+            if self.prop_attrs_dict['dynamic']:
+                self._manage_dynamic_property(value=value, by_value=self.by_value, mode='Set')
+            else:
+                object_setIvar(self.o_instance, self.ivar[0], <id><unsigned long long>value)
         else:
-            object_setIvar(self.o_instance, self.ivar[0], <id>(<id*><unsigned long long>value)[0])
+            if self.prop_attrs_dict['dynamic']:
+                self._manage_dynamic_property(value=value, by_value=self.by_value, mode='Set')
+            else:
+                object_setIvar(self.o_instance, self.ivar[0], (<id*><unsigned long long>value)[0])
 
 cdef class ObjcClassInstance(object):
 

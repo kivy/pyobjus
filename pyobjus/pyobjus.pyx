@@ -444,7 +444,7 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
 
     return super_cls_methods_dict
 
-cdef get_class_ivars(Class cls):
+cdef get_class_ivars(Class cls, cls_name):
     ''' Function for getting a list of properties of some objective c class
     
     Args:
@@ -463,10 +463,16 @@ cdef get_class_ivars(Class cls):
         prop_attrs = property_getAttributes(properties[i])
         name = property_getName(properties[i])
         ivar = class_getInstanceVariable(cls, <char*>name)
-        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar)
+        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name, cls_name)
     return props_dict
 
 def check_copy_properties(cls_name):
+    ''' Function for checking value of __copy_properties__ attribute
+    
+    Returns:
+        True if user want to copy properties, or false if he doesn't want to do that.
+        Value None is returned if object haven't __copy_properties__ attribute
+    '''
     if oclass_register[cls_name].get('class') is not None:
         return oclass_register[cls_name].get('class').__copy_properties__
     return None
@@ -517,7 +523,7 @@ def autoclass(cls_name, **kwargs):
         class_dict.pop("class", None)
 
     if copy_properties:
-        class_dict.update(get_class_ivars(cls))
+        class_dict.update(get_class_ivars(cls, cls_name))
 
     if not new_instance:
         return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()

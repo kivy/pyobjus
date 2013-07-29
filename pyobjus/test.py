@@ -321,3 +321,7 @@ print c.prop_int
 print c.prop_double
 print c.prop_nsstring
 print c.prop_array
+print text.UTF8String()
+print c.prop_nsstring_dyn
+c.prop_nsstring_dyn = text
+print c.prop_nsstring_dyn.UTF8String()
