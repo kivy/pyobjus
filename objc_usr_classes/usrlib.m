@@ -32,7 +32,7 @@ typedef struct {
 @interface Car : NSObject {
 }
 
-@property (readonly, atomic) int prop_int;
+@property (atomic) int prop_int;
 @property (assign) void* void_ptr;
 @property (assign, nonatomic) double prop_double;
 @property (assign) float prop_float;
@@ -49,11 +49,12 @@ typedef struct {
 @property (assign) long *prop_long_ptr;
 @property (assign) long *prop_long_ptr_tmp;
 @property (assign) double *prop_double_ptr;
+@property (nonatomic, assign, getter = get_prop_int_gtr, setter = set_prop_int:) int prop_int_cst;
+@property (nonatomic, assign, getter = get_prop_int_gtr_ptr, setter = set_prop_int_ptr:) int *prop_int_cst_ptr;
 
 @end
 
 @implementation Car {
-    int ivar_a, ivar_b;
 }
 
 /******************** <BIT FIELD TESTS> ***********************/
@@ -171,9 +172,26 @@ typedef union test_un_ {
 @synthesize prop_long_ptr_tmp;
 @synthesize prop_double_ptr;
 @synthesize prop_array;
-
+@synthesize prop_int_cst = _prop_int_cst;
+@synthesize prop_int_cst_ptr = _prop_int_cst_ptr;
 
 ADD_DYNAMIC_PROPERTY(NSString*, prop_nsstring_dyn, setProp_nsstring_dyn);
+
+- (int) get_prop_int_gtr {
+    return _prop_int_cst;
+}
+
+- (void) set_prop_int:(int)prop_int_cst {
+    _prop_int_cst = prop_int_cst;
+}
+
+- (int*) get_prop_int_cst_ptr {
+    return _prop_int_cst_ptr;
+}
+
+- (void) set_prop_int_cst_ptr:(int*)prop_int_cst_ptr {
+    _prop_int_cst_ptr = prop_int_cst_ptr;
+}
 
 - (void) setProp {
     self.prop_double = 10.11112;
@@ -190,9 +208,6 @@ ADD_DYNAMIC_PROPERTY(NSString*, prop_nsstring_dyn, setProp_nsstring_dyn);
 }
 
 - (void) testProp {
-    //int *int_ptr = malloc(sizeof(int));
-    //*int_ptr = 777;
-    //self.prop_int_ptr = int_ptr;
     printf("from objc --> prop_int_ptr %d\n", self.prop_int_ptr[0]);
     printf("from objc --> prop_double_ptr %f\n", self.prop_double_ptr[0]);
 }
@@ -489,11 +504,7 @@ ADD_DYNAMIC_PROPERTY(NSString*, prop_nsstring_dyn, setProp_nsstring_dyn);
 
 int main() {
     Car *c = [[Car alloc] init];
-    c.prop_nsstring_dyn = @"test str";
-    printf("%s\n", [c.prop_nsstring_dyn UTF8String]);
-    Ivar prop_dyn_ivar = class_getInstanceVariable([c class], "prop_nsstring_dyn");
-    object_setIvar(c, prop_dyn_ivar, @"for dyn property");
-    objc_setAssociatedObject(c, @selector(property), @"test set", OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    object_getInstanceVariable(c, "prop_nsstring_dyn", NULL);
+    objc_msgSend(c, @selector(set_prop_int:), 12345);
+    printf("%d\n", (int)objc_msgSend(c, @selector(get_prop_int_gtr)));
     printf("END OF PROGRAM!\n");
 }

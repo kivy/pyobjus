@@ -14,7 +14,7 @@ NSArray = autoclass("NSArray")
 NSString = autoclass('NSString')
 NSMutableArray = autoclass("NSMutableArray")
 
-text = NSString.stringWithUTF8String_("some text")
+text = NSString.stringWithUTF8String_("some text from Python")
 print text.UTF8String()
 newText = NSString.stringWithUTF8String_("text")
 string_for_static_array = text
@@ -325,3 +325,7 @@ print text.UTF8String()
 print c.prop_nsstring_dyn
 c.prop_nsstring_dyn = text
 print c.prop_nsstring_dyn.UTF8String()
+c.prop_int_cst = 123456321
+print c.prop_int_cst
+c.prop_int_cst_ptr = 12344321
+print dereference(c.prop_int_cst_ptr)

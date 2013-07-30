@@ -116,6 +116,9 @@ cdef class ObjcProperty:
     cdef id ivar_val
     cdef object prop_attrs_dict
 
+    cdef object getter_func
+    cdef object setter_func
+
     def __cinit__(self, property, attrs, ivar, name, cls_name, **kwargs):
         self.o_instance = NULL
         self.ivar = <Ivar*>malloc(sizeof(Ivar))
@@ -203,7 +206,13 @@ cdef class ObjcProperty:
                 self.prop_attrs_dict['weak'] = True
             elif attr is 'P':
                 self.prop_attrs_dict['eligibleForGC'] = True
-            # TODO: t<encoding>, G<name>, S<name>
+            elif attr[0] is 'G':
+                self.getter_func = attr.split('G')[1]
+                self.prop_attrs_dict['customGetter'] = True
+            elif attr[0] is 'S':
+                self.setter_func = attr.split('S')[1]
+                self.prop_attrs_dict['customSetter'] = True
+            # TODO: t<encoding>
 
     def _manage_dynamic_property(self, **kwargs):
         ''' Method for managing getting/setting values of dynamic (@dynamic) properties
@@ -242,13 +251,19 @@ cdef class ObjcProperty:
 
         if self.o_instance is NULL:
             self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
-        self.ivar_val = object_getIvar(self.o_instance, self.ivar[0])
+
+        # if we don't have custom getter call object_getIvar for getting actual value of property
+        if not self.prop_attrs_dict['customGetter']:
+            self.ivar_val = object_getIvar(self.o_instance, self.ivar[0])
+        else:
+            self.ivar_val = objc_msgSend(self.o_instance, sel_registerName(self.getter_func))
+
+        if self.prop_attrs_dict['dynamic']:
+            return self._manage_dynamic_property()
 
         if not self.by_value:
             py_type = factory.find_object(self.prop_type)
             return convert_cy_ret_to_py(<id*>self.ivar_val, self.prop_enc, ctypes.sizeof(py_type), members=None, objc_prop=True)
-        if self.prop_attrs_dict['dynamic']:
-            return self._manage_dynamic_property()
         return convert_cy_ret_to_py(&self.ivar_val, self.prop_enc, 0, members=None, objc_prop=True)
 
     def set_value(self, obj_ptr, value):
@@ -269,11 +284,15 @@ cdef class ObjcProperty:
             # this is case where property doesn't have default getters/setters
             if self.prop_attrs_dict['dynamic']:
                 self._manage_dynamic_property(value=value, by_value=self.by_value, mode='Set')
+            elif self.prop_attrs_dict['customGetter']:
+                objc_msgSend(self.o_instance, sel_registerName(self.setter_func), <id><unsigned long long>value)
             else:
                 object_setIvar(self.o_instance, self.ivar[0], <id><unsigned long long>value)
         else:
             if self.prop_attrs_dict['dynamic']:
                 self._manage_dynamic_property(value=value, by_value=self.by_value, mode='Set')
+            elif self.prop_attrs_dict['customSetter']:
+                objc_msgSend(self.o_instance, sel_registerName(self.setter_func), (<id*><unsigned long long>value)[0])
             else:
                 object_setIvar(self.o_instance, self.ivar[0], (<id*><unsigned long long>value)[0])
 
