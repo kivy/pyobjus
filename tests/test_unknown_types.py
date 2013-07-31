@@ -1,20 +1,15 @@
 import unittest
 import os
 import ctypes
-from pyobjus import autoclass, selector
+from pyobjus import autoclass, selector, load_usr_lib
 
 Car = car = None
 
 class UnknownTypesTest(unittest.TestCase):
 
     def setUp(self):
-        # LOADING USER DEFINED CLASS (dylib) FROM /objc_usr_classes/ DIR #
-        root_pyobjus = os.path.abspath("../")
-        usrlib_dir = root_pyobjus + '/objc_usr_classes/usrlib.dylib'
-        ctypes.CDLL(usrlib_dir)
-        # -------------------------------------------------------------- #
-
         global Car, car
+        load_usr_lib('usrlib.dylib', usr_path=False)
         Car = autoclass('Car')
         car = Car.alloc().init()
 

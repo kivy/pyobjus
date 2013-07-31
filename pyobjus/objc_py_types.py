@@ -163,7 +163,8 @@ class Factory(object):
         '''
         if obj_type[0] in globals():
             return globals()[obj_type[0]]
-
+        elif obj_type in types.keys():
+            return types[obj_type]
         else:
             #if len(cached_unknown_type):
             #    return cached_unknown_type[0]

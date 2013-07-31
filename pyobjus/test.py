@@ -14,7 +14,7 @@ NSArray = autoclass("NSArray")
 NSString = autoclass('NSString')
 NSMutableArray = autoclass("NSMutableArray")
 
-text = NSString.stringWithUTF8String_("some text")
+text = NSString.stringWithUTF8String_("some text from Python")
 print text.UTF8String()
 newText = NSString.stringWithUTF8String_("text")
 string_for_static_array = text
@@ -279,3 +279,35 @@ sign = c.methodSignatureForSelector_(selector("getSumOf:and:"))
 print sign.getArgumentTypeAtIndex_(2)
 print sign.numberOfArguments()
 print c.makeUnknownStr().getMembers()
+
+c.setProp()
+print c.propInt
+print c.propDouble
+print c.propNSString
+print c.prop_string
+print c.propFloat
+print c.propUlnglng
+
+rect = NSRect(NSPoint(4, 4), NSSize(7, 7))
+c.propRect = rect
+c.propFloatPtr = 123.4
+c.propDoublePtr = 4321.543
+print c.propNsstringDyn
+print "-"*80
+c.propNsstringDyn = text
+print c.propNsstringDyn.UTF8String()
+c.propIntCst = 123456321
+print c.propIntCst
+c.propCstInt = 12344
+print dereference(c.propCstInt)
+print dereference(c.propDoublePtr)
+print dereference(c.propFloatPtr)
+c.propFloat = 111.333
+print c.propFloat
+print c.propRect.origin.x
+print c.propRect.origin.y
+c.propUlnglng = 777777777555
+print c.propUlnglng
+print c.propInt
+c.propNSString = text
+print c.propNSString.UTF8String()
