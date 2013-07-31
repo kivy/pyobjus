@@ -291,7 +291,6 @@ print c.propUlnglng
 rect = NSRect(NSPoint(4, 4), NSSize(7, 7))
 c.propRect = rect
 c.propFloatPtr = 123.4
-c.propDoublePtr = 4321.543
 print c.propNsstringDyn
 print "-"*80
 c.propNsstringDyn = text
@@ -300,7 +299,6 @@ c.propIntCst = 123456321
 print c.propIntCst
 c.propCstInt = 12344
 print dereference(c.propCstInt)
-print dereference(c.propDoublePtr)
 print dereference(c.propFloatPtr)
 c.propFloat = 111.333
 print c.propFloat
@@ -311,3 +309,10 @@ print c.propUlnglng
 print c.propInt
 c.propNSString = text
 print c.propNSString.UTF8String()
+
+c.prop_int_ptr = 223344
+print c.prop_int_ptr
+print dereference(c.prop_int_ptr)
+
+c.prop_double_ptr = 1010.3030
+print dereference(c.prop_double_ptr)
