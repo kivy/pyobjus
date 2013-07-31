@@ -282,7 +282,7 @@ print c.makeUnknownStr().getMembers()
 
 c.setProp()
 print c.propInt
-print c.prop_double
+print c.propDouble
 print c.propNSString
 print c.prop_string
 print c.propFloat

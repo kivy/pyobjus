@@ -109,17 +109,15 @@ cdef class ObjcProperty:
     cdef public object prop_enc
     cdef public object by_value
     cdef public object prop_type
-    cdef object cls_name
     cdef object prop_name
     cdef object attrs
     cdef id o_instance
-    cdef id ivar_val
     cdef public object prop_attrs_dict
 
     cdef public object getter_func
     cdef public object setter_func
 
-    def __cinit__(self, property, attrs, ivar, name, cls_name, **kwargs):
+    def __cinit__(self, property, attrs, ivar, name, **kwargs):
         self.o_instance = NULL
         self.ivar = <Ivar*>malloc(sizeof(Ivar))
         self.by_value = True
@@ -128,7 +126,6 @@ cdef class ObjcProperty:
         self.ivar[0] = (<Ivar*><unsigned long long*><unsigned long long>ivar)[0]
         self.attrs = attrs
         self.prop_name = name
-        self.cls_name = cls_name
 
         self.prop_attrs_dict = {
             'readonly': False, 

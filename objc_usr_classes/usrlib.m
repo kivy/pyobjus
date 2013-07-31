@@ -6,13 +6,11 @@
 @dynamic PROPERTY_NAME; \
 - ( PROPERTY_TYPE ) PROPERTY_NAME \
 { \
-printf("returning value of dynamic property\n"); \
 return ( PROPERTY_TYPE ) objc_getAssociatedObject(self, @selector(PROPERTY_NAME)); \
 } \
 \
 - (void) SETTER_NAME :( PROPERTY_TYPE ) PROPERTY_NAME \
 { \
-printf("setting value of dynamic property\n"); \
 objc_setAssociatedObject(self, @selector(PROPERTY_NAME), PROPERTY_NAME, OBJC_ASSOCIATION_RETAIN); \
 } \
 
@@ -32,8 +30,9 @@ typedef struct {
 @interface Car : NSObject {
 }
 
-@property (readonly) int propInt;
-@property (assign, nonatomic) double prop_double;
+@property (assign) int propInt;
+@property (readonly) int propIntRO;
+@property (assign, nonatomic) double propDouble;
 @property (assign) float propFloat;
 @property (assign) unsigned long long propUlnglng;
 @property (assign) char *prop_string;
@@ -48,7 +47,7 @@ typedef struct {
 @property (assign) long *prop_long_ptr;
 @property (assign) long *prop_long_ptr_tmp;
 @property (assign) double *propDoublePtr;
-@property (nonatomic, assign, getter = getPropIntGtr, setter = postaviPropInt:) int propIntCst;
+@property (nonatomic, assign, getter = getPropIntGtr, setter = customSetPropInt:) int propIntCst;
 @property (nonatomic, assign, getter = getPropIntGtrPtr) int *propCstInt;
 
 @end
@@ -156,7 +155,8 @@ typedef union test_un_ {
 /******************** <IVARS TESTS> ***********************/
 
 @synthesize propInt;
-@synthesize prop_double;
+@synthesize propIntRO;
+@synthesize propDouble;
 @synthesize propFloat;
 @synthesize propNSString;
 @synthesize prop_string;
@@ -179,7 +179,7 @@ ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
     return _prop_int_cst;
 }
 
-- (void) postaviPropInt:(int)prop_int_cst {
+- (void) customSetPropInt:(int)prop_int_cst {
     _prop_int_cst = prop_int_cst;
 }
 
@@ -188,7 +188,7 @@ ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
 }
 
 - (void) setProp {
-    self.prop_double = 10.11112;
+    self.propDouble = 10.11112;
     self.propFloat = 10.212121;
     self.propUlnglng = 1223405442353453432;
     self.propRect = NSMakeRect(30, 40, 50, 60);
@@ -197,6 +197,7 @@ ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
     rng_ptr[0].length = 555;
     self.prop_range_ptr = rng_ptr;
     self.propIntCst = 54321;
+    self.propNsstringDyn = @"from objective c";
 }
 
 - (void) testProp {

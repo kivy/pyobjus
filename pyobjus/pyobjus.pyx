@@ -6,7 +6,7 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
         'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
-        'dereference', 'signature_types_to_list')
+        'dereference', 'signature_types_to_list', 'load_usr_lib')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -20,6 +20,7 @@ from debug import dprint
 import ctypes
 import objc_py_types
 from objc_py_types import Factory
+from dylib_manager import load_usr_lib
 
 # do the initialization!
 pyobjc_internal_init()
@@ -453,7 +454,7 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
 
     return super_cls_methods_dict
 
-cdef get_class_ivars(Class cls, cls_name):
+cdef get_class_ivars(Class cls):
     ''' Function for getting a list of properties of some objective c class
     
     Args:
@@ -472,7 +473,7 @@ cdef get_class_ivars(Class cls, cls_name):
         prop_attrs = property_getAttributes(properties[i])
         name = property_getName(properties[i])
         ivar = class_getInstanceVariable(cls, <char*>name)
-        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name, cls_name)
+        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name)
     return props_dict
 
 def check_copy_properties(cls_name):
@@ -514,7 +515,7 @@ def autoclass(cls_name, **kwargs):
 
     properties_dict = {}
     if copy_properties:
-        properties_dict = get_class_ivars(cls, cls_name)
+        properties_dict = get_class_ivars(cls)
         global tmp_properties_keys
         tmp_properties_keys = properties_dict.keys()
 
