@@ -169,7 +169,12 @@ cdef class ObjcMethod(object):
             sig = self.signature_return[0]
             self.return_type = sig[1:-1].split('=', 1)
 
-        self.name = self.name or name.replace("_", ":")
+        if name.find('__getter__') is not -1:
+            name = name.replace('__getter__', '')
+        else:
+            name = name.replace('_', ':')
+
+        self.name = self.name or name
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
         self.o_instance = o_instance
@@ -374,6 +379,7 @@ cdef class ObjcMethod(object):
         return ret_py_val
 
 registers = []
+tmp_properties_keys = []
 
 cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods
@@ -387,7 +393,10 @@ cdef class_get_methods(Class cls, static=False):
         method_args = <char*>method_getTypeEncoding(class_methods[i])
         py_name = (<bytes>method_name).replace(":", "_")
         
-        methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
+        if py_name not in tmp_properties_keys:
+            methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
+        else:
+            methods['__getter__' + py_name] = ObjcMethod(<bytes>method_args, static=static)
     free(class_methods)
     return methods
 
@@ -503,6 +512,12 @@ def autoclass(cls_name, **kwargs):
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
 
+    properties_dict = {}
+    if copy_properties:
+        properties_dict = get_class_ivars(cls, cls_name)
+        global tmp_properties_keys
+        tmp_properties_keys = properties_dict.keys()
+
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
     cdef dict class_dict = {'__objcclass__':  cls_name, '__copy_properties__': copy_properties}
@@ -522,8 +537,7 @@ def autoclass(cls_name, **kwargs):
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)
 
-    if copy_properties:
-        class_dict.update(get_class_ivars(cls, cls_name))
+    class_dict.update(properties_dict)
 
     if not new_instance:
         return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()

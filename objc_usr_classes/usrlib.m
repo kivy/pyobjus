@@ -32,25 +32,24 @@ typedef struct {
 @interface Car : NSObject {
 }
 
-@property (atomic) int prop_int;
-@property (assign) void* void_ptr;
+@property (readonly) int propInt;
 @property (assign, nonatomic) double prop_double;
-@property (assign) float prop_float;
-@property (assign) unsigned long long prop_ulnglng;
+@property (assign) float propFloat;
+@property (assign) unsigned long long propUlnglng;
 @property (assign) char *prop_string;
-@property (retain) NSString *prop_nsstring;
+@property (retain) NSString *propNSString;
 @property (nonatomic, copy) NSMutableArray *prop_array;
-@property (assign) NSRect prop_rect;
+@property (assign) NSRect propRect;
 @property (assign) unknown_str prop_ustr;
 @property (assign) NSRange *prop_range_ptr;
 @property (assign) int *prop_int_ptr;
-@property (assign) float *prop_float_ptr;
-@property (assign) NSString *prop_nsstring_dyn;
+@property (assign) float *propFloatPtr;
+@property (assign) NSString *propNsstringDyn;
 @property (assign) long *prop_long_ptr;
 @property (assign) long *prop_long_ptr_tmp;
-@property (assign) double *prop_double_ptr;
-@property (nonatomic, assign, getter = get_prop_int_gtr, setter = set_prop_int:) int prop_int_cst;
-@property (nonatomic, assign, getter = get_prop_int_gtr_ptr, setter = set_prop_int_ptr:) int *prop_int_cst_ptr;
+@property (assign) double *propDoublePtr;
+@property (nonatomic, assign, getter = getPropIntGtr, setter = postaviPropInt:) int propIntCst;
+@property (nonatomic, assign, getter = getPropIntGtrPtr) int *propCstInt;
 
 @end
 
@@ -156,60 +155,53 @@ typedef union test_un_ {
 
 /******************** <IVARS TESTS> ***********************/
 
-@synthesize prop_int;
-@synthesize void_ptr;
+@synthesize propInt;
 @synthesize prop_double;
-@synthesize prop_float;
-@synthesize prop_nsstring;
+@synthesize propFloat;
+@synthesize propNSString;
 @synthesize prop_string;
-@synthesize prop_ulnglng;
-@synthesize prop_rect;
+@synthesize propUlnglng;
+@synthesize propRect;
 @synthesize prop_ustr;
 @synthesize prop_range_ptr;
 @synthesize prop_int_ptr;
-@synthesize prop_float_ptr;
+@synthesize propFloatPtr;
 @synthesize prop_long_ptr;
 @synthesize prop_long_ptr_tmp;
-@synthesize prop_double_ptr;
+@synthesize propDoublePtr;
 @synthesize prop_array;
-@synthesize prop_int_cst = _prop_int_cst;
-@synthesize prop_int_cst_ptr = _prop_int_cst_ptr;
+@synthesize propIntCst = _prop_int_cst;
+@synthesize propCstInt = _prop_int_cst_ptr;
 
-ADD_DYNAMIC_PROPERTY(NSString*, prop_nsstring_dyn, setProp_nsstring_dyn);
+ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
 
-- (int) get_prop_int_gtr {
+- (int) getPropIntGtr {
     return _prop_int_cst;
 }
 
-- (void) set_prop_int:(int)prop_int_cst {
+- (void) postaviPropInt:(int)prop_int_cst {
     _prop_int_cst = prop_int_cst;
 }
 
-- (int*) get_prop_int_cst_ptr {
+- (int*) getPropIntGtrPtr {
     return _prop_int_cst_ptr;
-}
-
-- (void) set_prop_int_cst_ptr:(int*)prop_int_cst_ptr {
-    _prop_int_cst_ptr = prop_int_cst_ptr;
 }
 
 - (void) setProp {
     self.prop_double = 10.11112;
-    self.prop_nsstring = @"string of property";
-    self.prop_float = 10.212121;
-    self.prop_string = "some string";
-    self.prop_ulnglng = 1223405442353453432;
-    self.prop_rect = NSMakeRect(30, 40, 50, 60);
+    self.propFloat = 10.212121;
+    self.propUlnglng = 1223405442353453432;
+    self.propRect = NSMakeRect(30, 40, 50, 60);
     NSRange *rng_ptr = malloc(sizeof(NSRange));
     rng_ptr[0].location = 444;
     rng_ptr[0].length = 555;
     self.prop_range_ptr = rng_ptr;
-    self.prop_nsstring_dyn = @"setted from objc";
+    self.propIntCst = 54321;
 }
 
 - (void) testProp {
     printf("from objc --> prop_int_ptr %d\n", self.prop_int_ptr[0]);
-    printf("from objc --> prop_double_ptr %f\n", self.prop_double_ptr[0]);
+    printf("from objc --> prop_double_ptr %f\n", self.propDoublePtr[0]);
 }
 
 /******************** </IVARS TESTS> ***********************/
@@ -504,7 +496,5 @@ ADD_DYNAMIC_PROPERTY(NSString*, prop_nsstring_dyn, setProp_nsstring_dyn);
 
 int main() {
     Car *c = [[Car alloc] init];
-    objc_msgSend(c, @selector(set_prop_int:), 12345);
-    printf("%d\n", (int)objc_msgSend(c, @selector(get_prop_int_gtr)));
     printf("END OF PROGRAM!\n");
 }

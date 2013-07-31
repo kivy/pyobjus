@@ -98,13 +98,12 @@ cdef convert_to_cy_cls_instance(id ret_id):
     Returns:
         ObjcClassInstance type
     '''    
-
     cdef ObjcClassInstance cret 
     bret = <bytes><char *>object_getClassName(ret_id)
     dprint(' - object_getClassName(f_result) =', bret)
     if bret == 'nil':
         dprint('<-- returned pointer value:', pr(ret_id), type="w")
-        return None
+        return <unsigned long long>ret_id
     
     cret = autoclass(bret, new_instance=True)(noinstance=True)
     cret.instanciate_from(ret_id)
@@ -154,8 +153,10 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
     elif sig == 'v':
         return None
     elif sig == '*':
-        return <bytes>(<char*>f_result[0])
-    
+        if f_result[0] is not NULL:
+            return <bytes>(<char*>f_result[0])
+        else:
+            return None
     # return type -> id
     if sig == '@':
         return convert_to_cy_cls_instance(<id>f_result[0])

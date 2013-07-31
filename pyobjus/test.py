@@ -281,51 +281,33 @@ print sign.numberOfArguments()
 print c.makeUnknownStr().getMembers()
 
 c.setProp()
-print c.prop_int
+print c.propInt
 print c.prop_double
-print c.prop_nsstring
-print c.prop_nsstring
+print c.propNSString
 print c.prop_string
-print c.prop_float
-print c.prop_ulnglng
+print c.propFloat
+print c.propUlnglng
 
-c.prop_double = 43.5454
-print c.prop_double
-
-c.prop_nsstring = text
-print c.prop_nsstring
-print c.prop_nsstring.UTF8String()
-
-print c.prop_rect.origin.x
-print rect.origin.x
-c.prop_rect = rect
-range = NSRange(50, 70)
-c.prop_range_ptr = range
-rng = dereference(c.prop_range_ptr)
-print rng.length
-print rng.location
-c.prop_int_ptr = 12345
-print dereference(c.prop_int_ptr)
-
-c.prop_float_ptr = 123.4
-print dereference(c.prop_float_ptr)
-c.prop_double_ptr = 4321.543
-print dereference(c.prop_double_ptr)
-print dereference(c.prop_long_ptr)
-c.prop_long_ptr = dereference(c.prop_int_ptr)
-print dereference(c.prop_long_ptr)
-c.prop_long_ptr_tmp = c.prop_long_ptr
-print dereference(c.prop_long_ptr_tmp)
-c.testProp()
-print c.prop_int
-print c.prop_double
-print c.prop_nsstring
-print c.prop_array
-print text.UTF8String()
-print c.prop_nsstring_dyn
-c.prop_nsstring_dyn = text
-print c.prop_nsstring_dyn.UTF8String()
-c.prop_int_cst = 123456321
-print c.prop_int_cst
-c.prop_int_cst_ptr = 12344321
-print dereference(c.prop_int_cst_ptr)
+rect = NSRect(NSPoint(4, 4), NSSize(7, 7))
+c.propRect = rect
+c.propFloatPtr = 123.4
+c.propDoublePtr = 4321.543
+print c.propNsstringDyn
+print "-"*80
+c.propNsstringDyn = text
+print c.propNsstringDyn.UTF8String()
+c.propIntCst = 123456321
+print c.propIntCst
+c.propCstInt = 12344
+print dereference(c.propCstInt)
+print dereference(c.propDoublePtr)
+print dereference(c.propFloatPtr)
+c.propFloat = 111.333
+print c.propFloat
+print c.propRect.origin.x
+print c.propRect.origin.y
+c.propUlnglng = 777777777555
+print c.propUlnglng
+print c.propInt
+c.propNSString = text
+print c.propNSString.UTF8String()

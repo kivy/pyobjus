@@ -114,10 +114,10 @@ cdef class ObjcProperty:
     cdef object attrs
     cdef id o_instance
     cdef id ivar_val
-    cdef object prop_attrs_dict
+    cdef public object prop_attrs_dict
 
-    cdef object getter_func
-    cdef object setter_func
+    cdef public object getter_func
+    cdef public object setter_func
 
     def __cinit__(self, property, attrs, ivar, name, cls_name, **kwargs):
         self.o_instance = NULL
@@ -207,94 +207,13 @@ cdef class ObjcProperty:
             elif attr is 'P':
                 self.prop_attrs_dict['eligibleForGC'] = True
             elif attr[0] is 'G':
-                self.getter_func = attr.split('G')[1]
+                self.getter_func = attr.split('G', 1)[1]
                 self.prop_attrs_dict['customGetter'] = True
             elif attr[0] is 'S':
-                self.setter_func = attr.split('S')[1]
+                self.setter_func = attr.split('S', 1)[1][0:-1]
+                self.setter_func += '_'
                 self.prop_attrs_dict['customSetter'] = True
             # TODO: t<encoding>
-
-    def _manage_dynamic_property(self, **kwargs):
-        ''' Method for managing getting/setting values of dynamic (@dynamic) properties
-        
-        Returns:
-            If user want to retrieve value, he will get actual Python representation of value for objc property
-        '''
-
-        cdef id key_val = NULL
-        cdef id objc_val = NULL
-        value = kwargs.get('value', None)
-        by_value = kwargs.get('by_value', None)
-
-        from pyobjus import autoclass
-        NSString = autoclass("NSString")
-        key_val = (<id*>convert_py_arg_to_cy(NSString.stringWithUTF8String_(self.prop_name), '@', True, 0))[0]
-
-        if kwargs.get('mode') is 'Set':
-            if by_value:
-                objc_val = (<id*><unsigned long long>value)[0]
-            else:
-                objc_val = <id><unsigned long long>value
-            objc_msgSend(self.o_instance, sel_registerName('setValue:forKey:'), objc_val, key_val)
-        else:
-            return oclass_register[self.cls_name]['instance'].valueForKey_(NSString.stringWithUTF8String_(self.prop_name))
- 
-    def get_value(self, obj_ptr):
-        ''' Method for retrieveing value of some object property
-        
-        Args:
-            obj_ptr: Pointer to objective c instance object -> o_instance
-        Returns:
-            Python representation of objective c property value
-        '''
-        dprint('getting value of {0} property with attrs {1}'.format(self.prop_name, self.attrs), type='d')
-
-        if self.o_instance is NULL:
-            self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
-
-        # if we don't have custom getter call object_getIvar for getting actual value of property
-        if not self.prop_attrs_dict['customGetter']:
-            self.ivar_val = object_getIvar(self.o_instance, self.ivar[0])
-        else:
-            self.ivar_val = objc_msgSend(self.o_instance, sel_registerName(self.getter_func))
-
-        if self.prop_attrs_dict['dynamic']:
-            return self._manage_dynamic_property()
-
-        if not self.by_value:
-            py_type = factory.find_object(self.prop_type)
-            return convert_cy_ret_to_py(<id*>self.ivar_val, self.prop_enc, ctypes.sizeof(py_type), members=None, objc_prop=True)
-        return convert_cy_ret_to_py(&self.ivar_val, self.prop_enc, 0, members=None, objc_prop=True)
-
-    def set_value(self, obj_ptr, value):
-        ''' Method for setting value of some object property
-        
-        Args:
-            obj_ptr: Pointer to objective c instance object -> o_instance
-            value: Value to set to property
-        '''
-        dprint('setting property {0} value'.format(self.prop_name), type='d')
-
-        if self.prop_attrs_dict['readonly']:
-            raise ObjcException('Assignment to readonly property')
-
-        if self.o_instance is NULL:
-            self.o_instance = (<id*><unsigned long long>obj_ptr)[0]
-        if not self.by_value:
-            # this is case where property doesn't have default getters/setters
-            if self.prop_attrs_dict['dynamic']:
-                self._manage_dynamic_property(value=value, by_value=self.by_value, mode='Set')
-            elif self.prop_attrs_dict['customGetter']:
-                objc_msgSend(self.o_instance, sel_registerName(self.setter_func), <id><unsigned long long>value)
-            else:
-                object_setIvar(self.o_instance, self.ivar[0], <id><unsigned long long>value)
-        else:
-            if self.prop_attrs_dict['dynamic']:
-                self._manage_dynamic_property(value=value, by_value=self.by_value, mode='Set')
-            elif self.prop_attrs_dict['customSetter']:
-                objc_msgSend(self.o_instance, sel_registerName(self.setter_func), (<id*><unsigned long long>value)[0])
-            else:
-                object_setIvar(self.o_instance, self.ivar[0], (<id*><unsigned long long>value)[0])
 
 cdef class ObjcClassInstance(object):
 
@@ -320,35 +239,32 @@ cdef class ObjcClassInstance(object):
             self.resolve_fields()
 
     def __getattribute__(self, name):
-        if isinstance(object.__getattribute__(self, name), ObjcProperty):
-            return object.__getattribute__(self, name).get_value(<unsigned long long>&self.o_instance)
-        return object.__getattribute__(self, name)
-
-    def __setattr__(self, name, value):
-        cdef void *val_ptr
-        cdef unsigned long long val_ulng_ptr
 
         if isinstance(object.__getattribute__(self, name), ObjcProperty):
             property = object.__getattribute__(self, name)
-
-            size = 0
-            if not property.by_value:
-                size = py_type = ctypes.sizeof(factory.find_object(property.prop_type))
-            elif isinstance(value, ctypes.Structure) or isinstance(value, ctypes.Union):
-                size = ctypes.sizeof(value)
-
-            if property.prop_enc[0] is '^':
-                prop_enc = property.prop_enc.split('^')[1]
+            # if we have custom getter for property, call custom getter
+            if property.prop_attrs_dict['customGetter']:
+                return self.__getattribute__(property.getter_func)()
+            # otherwise call default getter
             else:
-                prop_enc = property.prop_enc
+                return self.__getattribute__('__getter__' + name)()
+        return object.__getattribute__(self, name)
 
-            val_ptr = convert_py_arg_to_cy(value, prop_enc, property.by_value, size)
-            if not property.by_value:
-                val_ulng_ptr = (<unsigned long long*>val_ptr)[0]
+    def upcase_first_letter(self, string):
+        return string[0].upper() + string[1:]
+
+    def __setattr__(self, name, value):
+
+        if isinstance(object.__getattribute__(self, name), ObjcProperty):
+            property = object.__getattribute__(self, name)
+            
+            # property is using custom setter
+            if property.prop_attrs_dict['customSetter']:
+                self.__getattribute__(property.setter_func)(value)
+            # property is using default setter
             else:
-                val_ulng_ptr = <unsigned long long>val_ptr
-
-            property.set_value(<unsigned long long>&self.o_instance, val_ulng_ptr)
+                setter = 'set' + self.upcase_first_letter(name) + '_'
+                self.__getattribute__(setter)(value)
         else:
             try:
                 object.__setattr__(self, name, value)
