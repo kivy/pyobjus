@@ -46,7 +46,7 @@ typedef struct {
 @property (assign) NSString *propNsstringDyn;
 @property (assign) long *prop_long_ptr;
 @property (assign) long *prop_long_ptr_tmp;
-@property (assign) double *propDoublePtr;
+@property (nonatomic, setter = custom_set_prop_double_ptr:) double *prop_double_ptr;
 @property (nonatomic, assign, getter = getPropIntGtr, setter = customSetPropInt:) int propIntCst;
 @property (nonatomic, assign, getter = getPropIntGtrPtr) int *propCstInt;
 
@@ -168,12 +168,16 @@ typedef union test_un_ {
 @synthesize propFloatPtr;
 @synthesize prop_long_ptr;
 @synthesize prop_long_ptr_tmp;
-@synthesize propDoublePtr;
+@synthesize prop_double_ptr = _prop_double_ptr;
 @synthesize prop_array;
 @synthesize propIntCst = _prop_int_cst;
 @synthesize propCstInt = _prop_int_cst_ptr;
 
 ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
+
+- (void)custom_set_prop_double_ptr:(double *)prop_double_ptr {
+    _prop_double_ptr = prop_double_ptr;
+}
 
 - (int) getPropIntGtr {
     return _prop_int_cst;
@@ -202,7 +206,7 @@ ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
 
 - (void) testProp {
     printf("from objc --> prop_int_ptr %d\n", self.prop_int_ptr[0]);
-    printf("from objc --> prop_double_ptr %f\n", self.propDoublePtr[0]);
+    printf("from objc --> prop_double_ptr %f\n", self.prop_double_ptr[0]);
 }
 
 /******************** </IVARS TESTS> ***********************/
@@ -494,8 +498,3 @@ ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
     printf("%d", b);
 }
 @end
-
-int main() {
-    Car *c = [[Car alloc] init];
-    printf("END OF PROGRAM!\n");
-}

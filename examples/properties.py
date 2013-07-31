@@ -26,12 +26,12 @@ print car.propInt
 # .
 # .
 # @synthesize propDoublePtr;
-car.propDoublePtr = 345.543
+car.prop_double_ptr = 345.543
 
 # As you can see, you don't need to worry about dereferencing pointer when you asigning value, 
 # pyobjus will do it for you :)
 # After this you can get actual value on which pointer points
-print dereference(car.propDoublePtr)
+print dereference(car.prop_double_ptr)
 
 # But can pyobjus deal with @dynamic properties? Yes, it can
 # @property (assign) NSString *propNsstringDyn;

@@ -20,8 +20,8 @@ class ObjcPropertyTest(unittest.TestCase):
         car.propDouble = 3456.2345
         self.assertEquals(car.propDouble, 3456.2345)
 
-        car.propDoublePtr = 333.444
-        self.assertEquals(dereference(car.propDoublePtr), 333.444)
+        car.prop_double_ptr = 333.444
+        self.assertEquals(dereference(car.prop_double_ptr), 333.444)
 
         car.propNSString = autoclass('NSString').stringWithUTF8String_('string for test')
         self.assertEquals(car.propNSString.UTF8String(), 'string for test')

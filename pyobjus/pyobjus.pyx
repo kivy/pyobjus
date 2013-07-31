@@ -46,13 +46,6 @@ class MetaObjcClass(type):
             oclass_register[classDict['__objcclass__']]['class'] = tp
         return tp
 
-    def __getattr__(self, name):
-        ocls = self.get_objcclass(self.__name__)
-        sel_name = name.replace("_",":")
-        cdef SEL cls_method_sel
-        cls_method_sel = <SEL>(<bytes>sel_name)
-        return None
-
     @staticmethod
     def get_objcclass(name):
         return oclass_register.get(name)
@@ -117,8 +110,9 @@ cdef class ObjcMethod(object):
     cdef ffi_cif f_cif
     cdef ffi_type* f_result_type
     cdef ffi_type **f_arg_types
+    cdef object objc_name
 
-    def __cinit__(self, signature, **kwargs):
+    def __cinit__(self, signature, objc_name, **kwargs):
         self.is_ready = 0
         self.f_result_type = NULL
         self.f_arg_types = NULL
@@ -142,12 +136,13 @@ cdef class ObjcMethod(object):
             free(self.f_result_type)
             self.f_result_type = NULL
 
-    def __init__(self, signature, **kwargs):
+    def __init__(self, signature, objc_name, **kwargs):
         super(ObjcMethod, self).__init__()
         self.signature = <bytes>signature
         self.signature_return, self.signature_args = parse_signature(signature)
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
+        self.objc_name = objc_name
         self.factory = Factory()
 
         py_selectors = kwargs.get('selectors', [])
@@ -170,12 +165,7 @@ cdef class ObjcMethod(object):
             sig = self.signature_return[0]
             self.return_type = sig[1:-1].split('=', 1)
 
-        if name.find('__getter__') is not -1:
-            name = name.replace('__getter__', '')
-        else:
-            name = name.replace('_', ':')
-
-        self.name = self.name or name
+        self.name = self.objc_name
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
         self.o_instance = o_instance
@@ -393,11 +383,11 @@ cdef class_get_methods(Class cls, static=False):
         method_name = <char*>sel_getName(method_getName(class_methods[i]))
         method_args = <char*>method_getTypeEncoding(class_methods[i])
         py_name = (<bytes>method_name).replace(":", "_")
-        
+
         if py_name not in tmp_properties_keys:
-            methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
+            methods[py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
         else:
-            methods['__getter__' + py_name] = ObjcMethod(<bytes>method_args, static=static)
+            methods['__getter__' + py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
     free(class_methods)
     return methods
 
@@ -428,7 +418,7 @@ cdef get_class_method(Class cls, char *name):
         ObjcMethod instance
     '''
     cdef Method m_cls = class_getClassMethod(cls, sel_registerName(name))
-    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), static=True)
+    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), name, static=True)
 
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
