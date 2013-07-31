@@ -1,11 +1,59 @@
 #import <Foundation/Foundation.h>
+#import <objc/runtime.h>
 
+#define ADD_DYNAMIC_PROPERTY(PROPERTY_TYPE, PROPERTY_NAME, SETTER_NAME) \
+\
+@dynamic PROPERTY_NAME; \
+- ( PROPERTY_TYPE ) PROPERTY_NAME \
+{ \
+return ( PROPERTY_TYPE ) objc_getAssociatedObject(self, @selector(PROPERTY_NAME)); \
+} \
+\
+- (void) SETTER_NAME :( PROPERTY_TYPE ) PROPERTY_NAME \
+{ \
+objc_setAssociatedObject(self, @selector(PROPERTY_NAME), PROPERTY_NAME, OBJC_ASSOCIATION_RETAIN); \
+} \
+
+typedef struct {
+    float a;
+    int b;
+    NSRect rect;
+} unknown_str_new;
+
+typedef struct {
+    int a;
+    int b;
+    NSRect rect;
+    unknown_str_new u_str;
+} unknown_str;
 
 @interface Car : NSObject {
 }
+
+@property (assign) int propInt;
+@property (readonly) int propIntRO;
+@property (assign, nonatomic) double propDouble;
+@property (assign) float propFloat;
+@property (assign) unsigned long long propUlnglng;
+@property (assign) char *prop_string;
+@property (retain) NSString *propNSString;
+@property (nonatomic, copy) NSMutableArray *prop_array;
+@property (assign) NSRect propRect;
+@property (assign) unknown_str prop_ustr;
+@property (assign) NSRange *prop_range_ptr;
+@property (assign) int *prop_int_ptr;
+@property (assign) float *propFloatPtr;
+@property (assign) NSString *propNsstringDyn;
+@property (assign) long *prop_long_ptr;
+@property (assign) long *prop_long_ptr_tmp;
+@property (nonatomic, setter = custom_set_prop_double_ptr:) double *prop_double_ptr;
+@property (nonatomic, assign, getter = getPropIntGtr, setter = customSetPropInt:) int propIntCst;
+@property (nonatomic, assign, getter = getPropIntGtrPtr) int *propCstInt;
+
 @end
 
-@implementation Car
+@implementation Car {
+}
 
 /******************** <BIT FIELD TESTS> ***********************/
 
@@ -73,22 +121,10 @@ typedef union test_un_ {
 
 /********************* <UNKNOWN TYPE TESTS> ***********************/
 
-typedef struct {
-    float a;
-    int b;
-    NSRect rect;
-} unknown_str_new;
-
-typedef struct {
-    int a;
-    int b;
-    NSRect rect;
-    unknown_str_new u_str;
-} unknown_str;
-
 - (unknown_str) makeUnknownStr {
     unknown_str str;
     str.a = 10;
+    str.b = 250;
     str.rect = NSMakeRect(20, 30, 40, 50);
     str.u_str.a = 2.0;
     str.u_str.b = 4;
@@ -114,8 +150,66 @@ typedef struct {
     return (int)imp(self, @selector(getSumOf:and:), a, b);
 }
 
-
 /******************** </UNKNOWN TYPE TESTS> ***********************/
+
+/******************** <IVARS TESTS> ***********************/
+
+@synthesize propInt;
+@synthesize propIntRO;
+@synthesize propDouble;
+@synthesize propFloat;
+@synthesize propNSString;
+@synthesize prop_string;
+@synthesize propUlnglng;
+@synthesize propRect;
+@synthesize prop_ustr;
+@synthesize prop_range_ptr;
+@synthesize prop_int_ptr;
+@synthesize propFloatPtr;
+@synthesize prop_long_ptr;
+@synthesize prop_long_ptr_tmp;
+@synthesize prop_double_ptr = _prop_double_ptr;
+@synthesize prop_array;
+@synthesize propIntCst = _prop_int_cst;
+@synthesize propCstInt = _prop_int_cst_ptr;
+
+ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
+
+- (void)custom_set_prop_double_ptr:(double *)prop_double_ptr {
+    _prop_double_ptr = prop_double_ptr;
+}
+
+- (int) getPropIntGtr {
+    return _prop_int_cst;
+}
+
+- (void) customSetPropInt:(int)prop_int_cst {
+    _prop_int_cst = prop_int_cst;
+}
+
+- (int*) getPropIntGtrPtr {
+    return _prop_int_cst_ptr;
+}
+
+- (void) setProp {
+    self.propDouble = 10.11112;
+    self.propFloat = 10.212121;
+    self.propUlnglng = 1223405442353453432;
+    self.propRect = NSMakeRect(30, 40, 50, 60);
+    NSRange *rng_ptr = malloc(sizeof(NSRange));
+    rng_ptr[0].location = 444;
+    rng_ptr[0].length = 555;
+    self.prop_range_ptr = rng_ptr;
+    self.propIntCst = 54321;
+    self.propNsstringDyn = @"from objective c";
+}
+
+- (void) testProp {
+    printf("from objc --> prop_int_ptr %d\n", self.prop_int_ptr[0]);
+    printf("from objc --> prop_double_ptr %f\n", self.prop_double_ptr[0]);
+}
+
+/******************** </IVARS TESTS> ***********************/
 
 - (void)drive {
     NSLog(@"Driving! Vrooooom!");
@@ -404,12 +498,3 @@ typedef struct {
     printf("%d", b);
 }
 @end
-
-int main() {
-    Car *c = [[Car alloc] init];
-    unknown_str str = [c makeUnknownStr];
-    [c useUnknownStr:(void*)&str];
-    IMP imp = [c getImp];
-    int sum = [c useImp:imp withA:5 andB:6];
-    printf("sum of numbers --> %d", sum);
-}

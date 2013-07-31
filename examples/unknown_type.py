@@ -1,13 +1,6 @@
 import os
 import ctypes
-from pyobjus import autoclass, selector
-
-
-# LOADING USER DEFINED CLASS (dylib) FROM /objc_usr_classes/ DIR #
-os.system('cd ../')
-usrlib_dir = os.getcwd() + '/objc_usr_classes/usrlib.dylib'
-ctypes.CDLL(usrlib_dir)
-# -------------------------------------------------------------- #
+from pyobjus import autoclass, selector, load_usr_lib
 
 # Let we say that we have defined following structures in our dylib
 # Note that we arent specify type of structs, so they types will be missing in method signatures
@@ -25,6 +18,7 @@ ctypes.CDLL(usrlib_dir)
 #   unknown_str_new u_str;
 # } unknown_str;
 
+load_usr_lib('usrlib.dylib', usr_path=False)
 Car = autoclass('Car')
 car = Car.alloc().init()
 

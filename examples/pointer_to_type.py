@@ -1,14 +1,8 @@
 import ctypes
 import os
+from pyobjus import autoclass, dereference, objc_py_types as opy, ObjcSelector, load_usr_lib
 
-# LOADING USER DEFINED CLASS (dylib) FROM /objc_usr_classes/ DIR #
-os.system('cd ../')
-usrlib_dir = os.getcwd() + '/objc_usr_classes/usrlib.dylib'
-ctypes.CDLL(usrlib_dir)
-# -------------------------------------------------------------- #
-
-from pyobjus import autoclass, dereference, objc_py_types as opy, ObjcSelector
-
+load_usr_lib('usrlib.dylib', usr_path=False)
 NSString = autoclass('NSString')
 NSValue = autoclass('NSValue')
 # this is class defined in user dynamic lib (objc_usr_classes/usrlib.m)

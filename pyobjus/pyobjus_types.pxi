@@ -101,11 +101,123 @@ cdef class ObjcClassHlp(object):
         return object.__getattribute__(self, attr)
 
 
+cdef class ObjcProperty:
+    ''' Class for representing Objective c properties '''
+
+    cdef objc_property_t *property
+    cdef Ivar *ivar
+    cdef public object prop_enc
+    cdef public object by_value
+    cdef public object prop_type
+    cdef object prop_name
+    cdef object attrs
+    cdef id o_instance
+    cdef public object prop_attrs_dict
+
+    cdef public object getter_func
+    cdef public object setter_func
+
+    def __cinit__(self, property, attrs, ivar, name, **kwargs):
+        self.o_instance = NULL
+        self.ivar = <Ivar*>malloc(sizeof(Ivar))
+        self.by_value = True
+        self.property = <objc_property_t*>malloc(sizeof(objc_property_t))
+        self.property[0] = (<objc_property_t*><unsigned long long*><unsigned long long>property)[0]
+        self.ivar[0] = (<Ivar*><unsigned long long*><unsigned long long>ivar)[0]
+        self.attrs = attrs
+        self.prop_name = name
+
+        self.prop_attrs_dict = {
+            'readonly': False, 
+            'copy': False,
+            'retain': False,
+            # NOTE: With "atomic", the synthesized setter/getter will ensure that a whole value is always 
+            # returned from the getter or set by the setter, regardless of setter activity on any other thread. 
+            # That is, if thread A is in the middle of the getter while thread B calls the setter, 
+            # an actual viable value -- an autoreleased object, 
+            # most likely -- will be returned to the caller in A.
+            # In nonatomic, no such guarantees are made. Thus, nonatomic is considerably faster than "atomic"
+            'nonatomic': False,
+            # NOTE: @synthesize will generate getter and setter methods for your property. 
+            # @dynamic just tells the compiler that the getter and setter methods 
+            # are implemented not by the class itself but somewhere else
+            'dynamic': False,
+            'weak': False,
+            'eligibleForGC': False,
+            'oldStyleEnc': False,
+            'customGetter': False,
+            'customSetter': False
+        }
+
+        self._parse_attributes(attrs)
+
+    def __dealloc__(self):
+        if self.property is not NULL:
+            free(self.property)
+        if self.ivar is not NULL:
+            free(self.ivar)
+
+    def _get_attributes(self):
+        ''' Method for getting list of property attributes
+        
+        Returns:
+            List of attributes, eg. ['nonatomic', 'copy'] -> @property (nonatomic, copy) ...
+        '''
+        return [x for x, y in self.prop_attrs_dict.iteritems() if y is True]
+
+    def _parse_attributes(self, attrs):
+        ''' Method for parsing property signature
+    
+        Args:
+            attrs: String containing info about property, eg. Ti,Vprop_int -> @property (assign) int prop_int
+        '''
+        dprint('Parsing property attributes --> {0}'.format(attrs), type='d')
+
+        for attr in attrs.split(','):
+            if attr[0] is 'T':
+                attr_splt_res = attr.split('T')[1]
+                if attr_splt_res[0] is '@':
+                    self.prop_type = attr_splt_res.split('@')[1]
+                    self.prop_enc = attr_splt_res[0]
+                elif attr_splt_res[0] is '^':
+                    self.by_value = False
+                    self.prop_enc = attr_splt_res
+                    self.prop_type = attr_splt_res.split('^')[1]
+                    if self.prop_type.find('=') is not -1:
+                        self.prop_type = self.prop_type[1:-1].split('=', 1)
+                else:
+                    self.prop_enc = attr_splt_res
+            elif attr[0] is 'V':
+                self.prop_name = attr.split('V')[1]
+            elif attr is 'R':
+                self.prop_attrs_dict['readonly'] = True
+            elif attr is 'N':
+                self.prop_attrs_dict['nonatomic'] = True
+            elif attr is '&':
+                self.prop_attrs_dict['retain'] = True
+            elif attr is 'C':
+                self.prop_attrs_dict['copy'] = True
+            elif attr is 'D':
+                self.prop_attrs_dict['dynamic'] = True
+            elif attr is 'W':
+                self.prop_attrs_dict['weak'] = True
+            elif attr is 'P':
+                self.prop_attrs_dict['eligibleForGC'] = True
+            elif attr[0] is 'G':
+                self.getter_func = attr.split('G', 1)[1]
+                self.prop_attrs_dict['customGetter'] = True
+            elif attr[0] is 'S':
+                self.setter_func = attr.split('S', 1)[1][0:-1]
+                self.setter_func += '_'
+                self.prop_attrs_dict['customSetter'] = True
+            # TODO: t<encoding>
+
 cdef class ObjcClassInstance(object):
 
     enc = '@'
     cdef Class o_cls
     cdef id o_instance
+    cdef int val
 
     def __cinit__(self, *args, **kwargs):
         self.o_cls = NULL
@@ -122,6 +234,39 @@ cdef class ObjcClassInstance(object):
             self.call_constructor(args)
             self.resolve_methods()
             self.resolve_fields()
+
+    def __getattribute__(self, name):
+
+        if isinstance(object.__getattribute__(self, name), ObjcProperty):
+            property = object.__getattribute__(self, name)
+            # if we have custom getter for property, call custom getter
+            if property.prop_attrs_dict['customGetter']:
+                return self.__getattribute__(property.getter_func)()
+            # otherwise call default getter
+            else:
+                return self.__getattribute__('__getter__' + name)()
+        return object.__getattribute__(self, name)
+
+    def upcase_first_letter(self, string):
+        return string[0].upper() + string[1:]
+
+    def __setattr__(self, name, value):
+
+        if isinstance(object.__getattribute__(self, name), ObjcProperty):
+            property = object.__getattribute__(self, name)
+            
+            # property is using custom setter
+            if property.prop_attrs_dict['customSetter']:
+                self.__getattribute__(property.setter_func)(value)
+            # property is using default setter
+            else:
+                setter = 'set' + self.upcase_first_letter(name) + '_'
+                self.__getattribute__(setter)(value)
+        else:
+            try:
+                object.__setattr__(self, name, value)
+            except:
+                dprint('Unknown error occured while setting attribute to {0} object'.format(self), type='e')
 
     def __dealloc__(self):
         if self.o_instance != NULL:

@@ -1,12 +1,6 @@
 import os
 import ctypes
-from pyobjus import autoclass, dereference
-
-# LOADING USER DEFINED CLASS (dylib) FROM /objc_usr_classes/ DIR #
-os.system('cd ../')
-usrlib_dir = os.getcwd() + '/objc_usr_classes/usrlib.dylib'
-ctypes.CDLL(usrlib_dir)
-# -------------------------------------------------------------- #
+from pyobjus import autoclass, dereference, load_usr_lib
 
 # Let we say, we have defined following union types in Car class
 # typedef union testUn {
@@ -23,6 +17,7 @@ ctypes.CDLL(usrlib_dir)
 #   int f;
 # } test_un_;
 
+load_usr_lib('usrlib.dylib', usr_path=False)
 Car = autoclass('Car')
 car = Car.alloc().init()
 

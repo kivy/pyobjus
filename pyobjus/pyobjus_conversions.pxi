@@ -1,4 +1,5 @@
 from objc_py_types import Factory
+from libc.stdio cimport printf
 
 factory = Factory()
 ctypes_struct_cache = []
@@ -18,7 +19,9 @@ def dereference(py_ptr, **kwargs):
     Note:
         All types aren't implemented!
     '''
-    
+    if py_ptr is None:
+        return None
+
     cdef unsigned long long *c_addr
     cdef void *struct_res_ptr = NULL
 
@@ -35,11 +38,9 @@ def dereference(py_ptr, **kwargs):
             return convert_to_cy_cls_instance(<id>c_addr)
         
         py_ptr.type = type.enc
-        
         # TODO: other types
         # elif issubclass(type, MissingTypes....):
         #    pass
-
     return convert_cy_ret_to_py(<id*>c_addr, py_ptr.type, py_ptr.size)
 
 cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=True):
@@ -54,7 +55,6 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=Tr
     Returns:
         void* to eqvivalent Cython data type
     '''    
-
     cdef void *val_ptr = malloc(size)
 
     if str(type) == '_NSRange':
@@ -98,20 +98,23 @@ cdef convert_to_cy_cls_instance(id ret_id):
     Returns:
         ObjcClassInstance type
     '''    
-
     cdef ObjcClassInstance cret 
     bret = <bytes><char *>object_getClassName(ret_id)
     dprint(' - object_getClassName(f_result) =', bret)
     if bret == 'nil':
         dprint('<-- returned pointer value:', pr(ret_id), type="w")
-        return None
-            
+        return <unsigned long long>ret_id
+    
     cret = autoclass(bret, new_instance=True)(noinstance=True)
     cret.instanciate_from(ret_id)
     dprint('<-- return object', cret)
     return cret
 
-cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None):
+cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False):
+
+    if f_result is NULL:
+        dprint('null pointer in convert_cy_ret_to_py function', type='w')
+        return None
 
     if sig[0][0] in ['(', '{']:
         return_type = sig[1:-1].split('=', 1)
@@ -150,8 +153,10 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None):
     elif sig == 'v':
         return None
     elif sig == '*':
-        return <bytes>(<char*>f_result[0])
-    
+        if f_result[0] is not NULL:
+            return <bytes>(<char*>f_result[0])
+        else:
+            return None
     # return type -> id
     if sig == '@':
         return convert_to_cy_cls_instance(<id>f_result[0])
@@ -185,12 +190,19 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None):
         raise ObjcException("Bit fields aren't supported in pyobjus!")
 
     # return type --> pointer to type
-    elif sig[0] == '^': 
-        return ObjcReferenceToType(<unsigned long long>f_result[0], sig.split('^')[1], size)
+    elif sig[0] == '^':
+        if objc_prop:
+            c_addr = <unsigned long long>f_result
+        else:
+            c_addr = <unsigned long long>f_result[0]
+        
+        return ObjcReferenceToType(c_addr, sig.split('^')[1], size)
 
     # return type --> unknown type
     elif sig == '?':
-        print "unknown type!"
+        # TODO: Check is this possible at all?
+        dprint('Returning unknown type by value...')
+        assert(0)
 
     else:
         assert(0)
@@ -450,8 +462,9 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     else:
         (<int*>val_ptr)[0] = 0
 
-    if arg_val_ptr != NULL and del_arg_val_ptr:
-        free(arg_val_ptr)
-        arg_val_ptr = NULL
+    # TODO: Find best time to dealloc memory used by this pointer
+    #if arg_val_ptr != NULL and del_arg_val_ptr:
+    #    free(arg_val_ptr)
+    #    arg_val_ptr = NULL
 
     return val_ptr
