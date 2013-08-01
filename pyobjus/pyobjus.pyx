@@ -6,7 +6,7 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
         'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
-        'dereference', 'signature_types_to_list')
+        'dereference', 'signature_types_to_list', 'load_usr_lib')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -20,6 +20,7 @@ from debug import dprint
 import ctypes
 import objc_py_types
 from objc_py_types import Factory
+from dylib_manager import load_usr_lib
 
 # do the initialization!
 pyobjc_internal_init()
@@ -44,13 +45,6 @@ class MetaObjcClass(type):
         else:
             oclass_register[classDict['__objcclass__']]['class'] = tp
         return tp
-
-    def __getattr__(self, name):
-        ocls = self.get_objcclass(self.__name__)
-        sel_name = name.replace("_",":")
-        cdef SEL cls_method_sel
-        cls_method_sel = <SEL>(<bytes>sel_name)
-        return None
 
     @staticmethod
     def get_objcclass(name):
@@ -116,8 +110,9 @@ cdef class ObjcMethod(object):
     cdef ffi_cif f_cif
     cdef ffi_type* f_result_type
     cdef ffi_type **f_arg_types
+    cdef object objc_name
 
-    def __cinit__(self, signature, **kwargs):
+    def __cinit__(self, signature, objc_name, **kwargs):
         self.is_ready = 0
         self.f_result_type = NULL
         self.f_arg_types = NULL
@@ -141,12 +136,13 @@ cdef class ObjcMethod(object):
             free(self.f_result_type)
             self.f_result_type = NULL
 
-    def __init__(self, signature, **kwargs):
+    def __init__(self, signature, objc_name, **kwargs):
         super(ObjcMethod, self).__init__()
         self.signature = <bytes>signature
         self.signature_return, self.signature_args = parse_signature(signature)
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
+        self.objc_name = objc_name
         self.factory = Factory()
 
         py_selectors = kwargs.get('selectors', [])
@@ -169,7 +165,7 @@ cdef class ObjcMethod(object):
             sig = self.signature_return[0]
             self.return_type = sig[1:-1].split('=', 1)
 
-        self.name = self.name or name.replace("_", ":")
+        self.name = self.objc_name
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
         self.o_instance = o_instance
@@ -374,6 +370,7 @@ cdef class ObjcMethod(object):
         return ret_py_val
 
 registers = []
+tmp_properties_keys = []
 
 cdef class_get_methods(Class cls, static=False):
     cdef unsigned int index, num_methods
@@ -386,8 +383,11 @@ cdef class_get_methods(Class cls, static=False):
         method_name = <char*>sel_getName(method_getName(class_methods[i]))
         method_args = <char*>method_getTypeEncoding(class_methods[i])
         py_name = (<bytes>method_name).replace(":", "_")
-        
-        methods[py_name] = ObjcMethod(<bytes>method_args, static=static)
+
+        if py_name not in tmp_properties_keys:
+            methods[py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
+        else:
+            methods['__getter__' + py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
     free(class_methods)
     return methods
 
@@ -418,7 +418,7 @@ cdef get_class_method(Class cls, char *name):
         ObjcMethod instance
     '''
     cdef Method m_cls = class_getClassMethod(cls, sel_registerName(name))
-    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), static=True)
+    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), name, static=True)
 
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
@@ -444,25 +444,77 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
 
     return super_cls_methods_dict
 
-def autoclass(cls_name, new_instance=False):
+cdef get_class_ivars(Class cls):
+    ''' Function for getting a list of properties of some objective c class
+    
+    Args:
+        cls: Class which properties we want to obtain
+    Returns:
+        List of ObjcProperty objects. Native objc property will be converted to ObjcProperty Python type
+    '''
+    cdef unsigned int num_props
+    cdef dict props_dict = {}
+    cdef objc_property_t *properties = class_copyPropertyList(cls, &num_props)
+    cdef const char* prop_attrs
+    cdef Ivar ivar
+    cdef void **out_val = NULL
+
+    for i in range(num_props):
+        prop_attrs = property_getAttributes(properties[i])
+        name = property_getName(properties[i])
+        ivar = class_getInstanceVariable(cls, <char*>name)
+        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name)
+    return props_dict
+
+def check_copy_properties(cls_name):
+    ''' Function for checking value of __copy_properties__ attribute
+    
+    Returns:
+        True if user want to copy properties, or false if he doesn't want to do that.
+        Value None is returned if object haven't __copy_properties__ attribute
+    '''
+    if oclass_register[cls_name].get('class') is not None:
+        return oclass_register[cls_name].get('class').__copy_properties__
+    return None
+
+def autoclass(cls_name, **kwargs):
+
+    new_instance = kwargs.get('new_instance', False)
     # if class or class instance is already in cache, return requested value
     if cls_name in oclass_register:
-        if new_instance == False and "class" in oclass_register[cls_name]:
+        if not new_instance and "class" in oclass_register[cls_name]:
             dprint("getting class from cache...", type='i')
             return oclass_register[cls_name]['class']
-        elif new_instance == True and "instance" in oclass_register[cls_name]:
+        elif new_instance and "instance" in oclass_register[cls_name]:
             dprint('getting instance from cache...', type='i')
             return oclass_register[cls_name]['instance']
+
+    # Resolving does user want to copy properties of class, or it doesn't
+    # TODO:  This need to be tested more!
+    if cls_name in oclass_register.keys():
+        copy_properties = check_copy_properties(cls_name)
+        if copy_properties is None:
+            copy_properties = check_copy_properties(class_get_super_class_name(<Class>objc_getClass(cls_name)))
+            if copy_properties is None:
+                copy_properties = True
+    else:
+        copy_properties = kwargs.get('copy_properties', True)
 
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
 
+    properties_dict = {}
+    if copy_properties:
+        properties_dict = get_class_ivars(cls)
+        global tmp_properties_keys
+        tmp_properties_keys = properties_dict.keys()
+
     cdef dict instance_methods = class_get_methods(cls)
     cdef dict class_methods = class_get_static_methods(cls)
-    cdef dict class_dict = {'__objcclass__':  cls_name}
+    cdef dict class_dict = {'__objcclass__':  cls_name, '__copy_properties__': copy_properties}
 
     # if this isn't new instance of some class, retrieve only static methods
-    if(new_instance == False):
+    if not new_instance:
         class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
         class_dict.update(class_methods)
     # otherwise retrieve instance methods
@@ -476,7 +528,9 @@ def autoclass(cls_name, new_instance=False):
         class_dict.update({'oclass': class_dict['class']})
         class_dict.pop("class", None)
 
-    if(new_instance == False):
+    class_dict.update(properties_dict)
+
+    if not new_instance:
         return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()
 
     return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance,), class_dict)
