@@ -1,6 +1,7 @@
 import os
 import ctypes
-from pyobjus import autoclass, dereference, load_usr_lib
+from pyobjus import autoclass, dereference
+from pyobjus.dylib_manager import load_dylib
 
 # Let we say, we have defined following union types in Car class
 # typedef union testUn {
@@ -17,7 +18,7 @@ from pyobjus import autoclass, dereference, load_usr_lib
 #   int f;
 # } test_un_;
 
-load_usr_lib('usrlib.dylib', usr_path=False)
+load_dylib('usrlib.dylib', usr_path=False)
 Car = autoclass('Car')
 car = Car.alloc().init()
 

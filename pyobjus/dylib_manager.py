@@ -1,7 +1,10 @@
 import os
 import ctypes
+import pyobjus
+from objc_py_types import enum
+from debug import dprint
 
-def load_usr_lib(path, usr_path=True):
+def load_dylib(path, usr_path=True):
     ''' Function for loading dynamic library with ctypes
 
     Args:
@@ -24,3 +27,35 @@ def load_usr_lib(path, usr_path=True):
         ctypes.CDLL(usrlib_dir)
     else:
         ctypes.CDLL(path)
+
+def make_dylib(path):
+    pass
+
+frameworks = dict(
+    Foundation = '/System/Library/Frameworks/Foundation.framework',
+    AppKit = '/System/Library/Frameworks/AppKit.framework',
+    UIKit = '/System/Library/Frameworks/UIKit.framework',
+    CoreGraphich = '/System/Library/Frameworks/CoreGraphics.framework',
+    CoreData = '/System/Library/Frameworks/CoreData.framework'
+    # TODO: Add others common frameworks!
+)
+
+INCLUDE = enum('pyobjus_include', **frameworks)
+
+def load_framework(framework):
+    ''' Function for loading frameworks
+
+    Args:
+        framework: Framework to load
+
+    Raises:
+        ObjcException if it can't load framework
+    '''
+    NSBundle = pyobjus.autoclass('NSBundle')
+    ns_framework = pyobjus.autoclass('NSString').stringWithUTF8String_(framework)
+    bundle = NSBundle.bundleWithPath_(ns_framework)
+    try:
+        if bundle.load():
+            dprint("Framework {0} succesufully loaded!".format(framework), type='d')
+    except:
+        raise pyobjus.ObjcException('Error while loading {0} framework'.format(framework))

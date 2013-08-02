@@ -1,6 +1,7 @@
 import os
 import ctypes
-from pyobjus import autoclass, selector, load_usr_lib
+from pyobjus import autoclass, selector
+from pyobjus.dylib_manager import load_dylib
 
 # Let we say that we have defined following structures in our dylib
 # Note that we arent specify type of structs, so they types will be missing in method signatures
@@ -18,7 +19,7 @@ from pyobjus import autoclass, selector, load_usr_lib
 #   unknown_str_new u_str;
 # } unknown_str;
 
-load_usr_lib('usrlib.dylib', usr_path=False)
+load_dylib('usrlib.dylib', usr_path=False)
 Car = autoclass('Car')
 car = Car.alloc().init()
 

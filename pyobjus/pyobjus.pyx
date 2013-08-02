@@ -6,7 +6,7 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
         'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
-        'dereference', 'signature_types_to_list', 'load_usr_lib')
+        'dereference', 'signature_types_to_list', 'dylib_manager')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -20,7 +20,7 @@ from debug import dprint
 import ctypes
 import objc_py_types
 from objc_py_types import Factory
-from dylib_manager import load_usr_lib
+import dylib_manager
 
 # do the initialization!
 pyobjc_internal_init()
