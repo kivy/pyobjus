@@ -1,6 +1,4 @@
 import unittest
-import os
-import ctypes
 from pyobjus import autoclass, dereference, objc_py_types as opy
 from pyobjus.dylib_manager import load_dylib
 

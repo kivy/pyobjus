@@ -1,4 +1,3 @@
-import ctypes
 from pyobjus import autoclass, selector
 
 NSObject = autoclass("NSObject")

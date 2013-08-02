@@ -1,5 +1,3 @@
-import os
-import ctypes
 from pyobjus import autoclass, selector
 from pyobjus.dylib_manager import load_dylib
 

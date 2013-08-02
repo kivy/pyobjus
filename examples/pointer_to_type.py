@@ -1,5 +1,3 @@
-import ctypes
-import os
 from pyobjus import autoclass, dereference, objc_py_types as opy, ObjcSelector
 from pyobjus.dylib_manager import load_dylib
 
