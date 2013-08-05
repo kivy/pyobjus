@@ -30,6 +30,7 @@ cdef pr(void *pointer):
     return '0x%x' % <unsigned long>pointer
 
 cdef dict oclass_register = {}
+cdef dict omethod_partial_register = {}
 
 class MetaObjcClass(type):
     def __new__(meta, classname, bases, classDict):
@@ -100,6 +101,7 @@ cdef class ObjcMethod(object):
     cdef object signature_default_args
     cdef object return_type
     cdef object members
+    cdef object main_cls_name
     cdef Class o_cls
     cdef id o_instance
     cdef SEL selector 
@@ -122,10 +124,12 @@ cdef class ObjcMethod(object):
         self.is_varargs = False
 
     def __dealloc__(self):
+        # NOTE: Commented lined here cause seg fault if we uncomment them!
+        # TODO: See that is the problem!!!
         self.is_ready = 0
-        if self.f_result_type != NULL:
-            free(self.f_result_type)
-            self.f_result_type = NULL
+        #if self.f_result_type != NULL:
+        #    free(self.f_result_type)
+        #    self.f_result_type = NULL
         if self.f_arg_types != NULL:
             free(self.f_arg_types)
             self.f_arg_types = NULL
@@ -133,8 +137,9 @@ cdef class ObjcMethod(object):
             if self.f_result_type.elements != NULL:
                 free(self.f_result_type.elements)
                 self.f_result_type.elements = NULL
-            free(self.f_result_type)
-            self.f_result_type = NULL
+            #free(self.f_result_type)
+            #self.f_result_type = NULL
+        # TODO: Memory management
 
     def __init__(self, signature, objc_name, **kwargs):
         super(ObjcMethod, self).__init__()
@@ -144,6 +149,7 @@ cdef class ObjcMethod(object):
         self.name = kwargs.get('name')
         self.objc_name = objc_name
         self.factory = Factory()
+        self.main_cls_name = kwargs.get('main_cls_name')
 
         py_selectors = kwargs.get('selectors', [])
         if len(py_selectors):
@@ -365,35 +371,57 @@ cdef class ObjcMethod(object):
             if ret_id == self.o_instance:
                 return self.p_class
         
-        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members) 
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name) 
         
         return ret_py_val
 
 registers = []
 tmp_properties_keys = []
 
-cdef class_get_methods(Class cls, static=False):
+cdef objc_method_to_py(Method method, main_cls_name, static=True):
+
+    cdef char* method_name = <char*>sel_getName(method_getName(method))
+    cdef char* method_args = <char*>method_getTypeEncoding(method)
+    cdef bytes py_name = (<bytes>method_name).replace(":", "_")
+
+    return py_name, ObjcMethod(<bytes>method_args, method_name, static=static, main_cls_name=main_cls_name)
+        
+cdef class_get_methods(Class cls, static=False, main_cls_name=None):
     cdef unsigned int index, num_methods
-    cdef char *method_name
-    cdef char *method_args
-    cdef bytes py_name
     cdef dict methods = {}
     cdef Method* class_methods = class_copyMethodList(cls, &num_methods)
+    main_cls_name = main_cls_name or class_getName(cls)
     for i in xrange(num_methods):
-        method_name = <char*>sel_getName(method_getName(class_methods[i]))
-        method_args = <char*>method_getTypeEncoding(class_methods[i])
-        py_name = (<bytes>method_name).replace(":", "_")
-
+        py_name, converted_method = objc_method_to_py(class_methods[i], main_cls_name, static)
         if py_name not in tmp_properties_keys:
-            methods[py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
+            methods[py_name] = converted_method
         else:
-            methods['__getter__' + py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
+            methods['__getter__' + py_name] = converted_method
     free(class_methods)
     return methods
 
-cdef class_get_static_methods(Class cls):
+cdef class_get_static_methods(Class cls, main_cls_name=None):
     cdef Class meta_cls = <Class>object_getClass(<id>cls)
-    return class_get_methods(meta_cls, True)
+    return class_get_methods(meta_cls, True, main_cls_name=main_cls_name)
+
+cdef class_get_partial_methods(Class cls, methods, class_methods=True):
+    cdef Method objc_method
+    cdef dict static_methods_dict = {}
+
+    for method in methods:
+        if class_methods:
+            objc_method = class_getClassMethod(cls, sel_registerName(method))
+            static = True
+        else:
+            objc_method = class_getInstanceMethod(cls, sel_registerName(method))
+            static = False
+        py_name, converted_method = objc_method_to_py(objc_method, class_getName(cls), static=static)
+        
+        if py_name not in tmp_properties_keys:
+            static_methods_dict[py_name] = converted_method
+        else:
+            static_methods_dict['__getter__' + py_name] = converted_method
+    return static_methods_dict
 
 cdef class_get_super_class_name(Class cls):
     """ Get super class name of some class
@@ -418,7 +446,8 @@ cdef get_class_method(Class cls, char *name):
         ObjcMethod instance
     '''
     cdef Method m_cls = class_getClassMethod(cls, sel_registerName(name))
-    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), name, static=True)
+    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), name, static=True, \
+        main_cls_name=class_getName(cls))
 
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
@@ -431,20 +460,21 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """
     cdef dict super_cls_methods_dict = {}
     cdef Class cls_super = class_getSuperclass(<Class>cls)
+    cdef object main_cls_name = class_getName(cls)
     super_cls_name = object_getClassName(<id>cls_super)
     
     while str(super_cls_name) != "nil":
-        if(instance_methods == True):
+        if(instance_methods):
             super_cls_methods_dict.update(class_get_methods(cls_super))
         else:
-            super_cls_methods_dict.update(class_get_static_methods(cls_super))
+            super_cls_methods_dict.update(class_get_static_methods(cls_super, main_cls_name=main_cls_name))
 
         super_cls_name = class_get_super_class_name(cls_super)
         cls_super = <Class>objc_getClass(super_cls_name)
 
     return super_cls_methods_dict
 
-cdef get_class_ivars(Class cls):
+cdef get_class_proerties(Class cls):
     ''' Function for getting a list of properties of some objective c class
     
     Args:
@@ -473,19 +503,25 @@ def check_copy_properties(cls_name):
         True if user want to copy properties, or false if he doesn't want to do that.
         Value None is returned if object haven't __copy_properties__ attribute
     '''
-    if oclass_register[cls_name].get('class') is not None:
-        return oclass_register[cls_name].get('class').__copy_properties__
+    if cls_name in oclass_register:
+        if oclass_register[cls_name].get('class') is not None:
+            return oclass_register[cls_name].get('class').__copy_properties__
     return None
 
 def autoclass(cls_name, **kwargs):
 
     new_instance = kwargs.get('new_instance', False)
+    load_class_methods_dict = kwargs.get('load_class_methods')
+    load_instance_methods_dict = kwargs.get('load_instance_methods')
+    if not new_instance and load_instance_methods_dict:
+        omethod_partial_register[cls_name] = load_instance_methods_dict
+
     # if class or class instance is already in cache, return requested value
     if cls_name in oclass_register:
         if not new_instance and "class" in oclass_register[cls_name]:
             dprint("getting class from cache...", type='i')
             return oclass_register[cls_name]['class']
-        elif new_instance and "instance" in oclass_register[cls_name]:
+        elif new_instance and "instance" in oclass_register[cls_name] and load_instance_methods_dict is not None:
             dprint('getting instance from cache...', type='i')
             return oclass_register[cls_name]['instance']
 
@@ -505,24 +541,33 @@ def autoclass(cls_name, **kwargs):
 
     properties_dict = {}
     if copy_properties:
-        properties_dict = get_class_ivars(cls)
+        properties_dict = get_class_proerties(cls)
         global tmp_properties_keys
         tmp_properties_keys = properties_dict.keys()
 
-    cdef dict instance_methods = class_get_methods(cls)
-    cdef dict class_methods = class_get_static_methods(cls)
+    cdef dict instance_methods
+    cdef dict class_methods
     cdef dict class_dict = {'__objcclass__':  cls_name, '__copy_properties__': copy_properties}
 
     # if this isn't new instance of some class, retrieve only static methods
     if not new_instance:
-        class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
+        if not load_class_methods_dict:
+            class_methods = class_get_static_methods(cls)
+            class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
+        else:
+            class_methods = class_get_partial_methods(cls, load_class_methods_dict)
         class_dict.update(class_methods)
     # otherwise retrieve instance methods
     else:
-        class_dict.update(resolve_super_class_methods(cls))
+        if not load_instance_methods_dict:
+            instance_methods = class_get_methods(cls)
+            class_dict.update(resolve_super_class_methods(cls))
+        else:
+            instance_methods = class_get_partial_methods(cls, load_instance_methods_dict, class_methods=False)
         class_dict.update(instance_methods)
         # for some reason, if we don't override this instance method with class method, it won't work correctly
-        class_dict.update({'isKindOfClass_': get_class_method(cls, 'isKindOfClass:')})
+        if not load_instance_methods_dict:
+            class_dict.update({'isKindOfClass_': get_class_method(cls, 'isKindOfClass:')})
 
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})

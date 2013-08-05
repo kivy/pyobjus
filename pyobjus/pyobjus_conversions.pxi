@@ -90,7 +90,7 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=Tr
 
     return val_ptr
 
-cdef convert_to_cy_cls_instance(id ret_id):
+cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
     ''' Function for converting C pointer into Cython ObjcClassInstance type
     Args:
         ret_id: C pointer
@@ -104,13 +104,17 @@ cdef convert_to_cy_cls_instance(id ret_id):
     if bret == 'nil':
         dprint('<-- returned pointer value:', pr(ret_id), type="w")
         return <unsigned long long>ret_id
-    
-    cret = autoclass(bret, new_instance=True)(noinstance=True)
+
+    load_instance_methods = None
+    if main_cls_name and main_cls_name in omethod_partial_register:
+        load_instance_methods = omethod_partial_register[main_cls_name]
+
+    cret = autoclass(bret, new_instance=True, load_instance_methods=load_instance_methods)(noinstance=True)
     cret.instanciate_from(ret_id)
     dprint('<-- return object', cret)
     return cret
 
-cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False):
+cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False, main_cls_name=None):
 
     if f_result is NULL:
         dprint('null pointer in convert_cy_ret_to_py function', type='w')
@@ -159,7 +163,7 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
             return None
     # return type -> id
     if sig == '@':
-        return convert_to_cy_cls_instance(<id>f_result[0])
+        return convert_to_cy_cls_instance(<id>f_result[0], main_cls_name)
     # return type -> class
     elif sig == '#':
         ocls = ObjcClass()

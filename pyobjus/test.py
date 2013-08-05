@@ -11,11 +11,14 @@ from pyobjus import *
 from objc_py_types import *
 
 NSArray = autoclass("NSArray")
-NSString = autoclass('NSString')
 NSMutableArray = autoclass("NSMutableArray")
+NSString = autoclass('NSString')
 
 text = NSString.stringWithUTF8String_("some text from Python")
 print text.UTF8String()
+
+test_array = NSArray.alloc().initWithObjects_(text, None)
+
 newText = NSString.stringWithUTF8String_("text")
 string_for_static_array = text
 
