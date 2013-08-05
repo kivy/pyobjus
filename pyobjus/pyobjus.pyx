@@ -124,7 +124,7 @@ cdef class ObjcMethod(object):
         self.is_varargs = False
 
     def __dealloc__(self):
-        # NOTE: Commented lined here cause seg fault if we uncomment them!
+        # NOTE: Commented lines here cause seg fault if we uncomment them!
         # TODO: See that is the problem!!!
         self.is_ready = 0
         #if self.f_result_type != NULL:
@@ -379,6 +379,16 @@ registers = []
 tmp_properties_keys = []
 
 cdef objc_method_to_py(Method method, main_cls_name, static=True):
+    ''' Function for making equvivalent Python object for some Method C type
+    
+    Args:
+        method: Method which we want to convert
+        main_cls_name: Name of class to which method belongs
+        static: Is method static
+
+    Returns:
+        ObjcMethod instance
+    '''
 
     cdef char* method_name = <char*>sel_getName(method_getName(method))
     cdef char* method_args = <char*>method_getTypeEncoding(method)
@@ -405,6 +415,17 @@ cdef class_get_static_methods(Class cls, main_cls_name=None):
     return class_get_methods(meta_cls, True, main_cls_name=main_cls_name)
 
 cdef class_get_partial_methods(Class cls, methods, class_methods=True):
+    ''' Function for copying only limited number of methods for some class
+    
+    Args:
+        cls: Class for which we want to copy methods
+        methods: Python array containing list of methods to copy
+        class_methods: Are methods what we want to copy class or instance type
+
+    Returns:
+        Dict with methods
+    '''
+
     cdef Method objc_method
     cdef dict static_methods_dict = {}
 
@@ -517,11 +538,12 @@ def autoclass(cls_name, **kwargs):
         omethod_partial_register[cls_name] = load_instance_methods_dict
 
     # if class or class instance is already in cache, return requested value
-    if cls_name in oclass_register:
-        if not new_instance and "class" in oclass_register[cls_name]:
+    if cls_name in oclass_register and load_class_methods_dict is None \
+        and load_instance_methods_dict is None and cls_name not in omethod_partial_register:
+        if (not new_instance and "class" in oclass_register[cls_name]):
             dprint("getting class from cache...", type='i')
             return oclass_register[cls_name]['class']
-        elif new_instance and "instance" in oclass_register[cls_name] and load_instance_methods_dict is not None:
+        elif (new_instance and "instance" in oclass_register[cls_name]):
             dprint('getting instance from cache...', type='i')
             return oclass_register[cls_name]['instance']
 

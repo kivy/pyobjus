@@ -106,8 +106,14 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
         return <unsigned long long>ret_id
 
     load_instance_methods = None
-    if main_cls_name and main_cls_name in omethod_partial_register:
-        load_instance_methods = omethod_partial_register[main_cls_name]
+    if bret in omethod_partial_register:
+        key = bret
+    else:
+        key = main_cls_name
+
+    if key in omethod_partial_register:
+        load_instance_methods = omethod_partial_register[key]
+        omethod_partial_register[bret] = load_instance_methods
 
     cret = autoclass(bret, new_instance=True, load_instance_methods=load_instance_methods)(noinstance=True)
     cret.instanciate_from(ret_id)
