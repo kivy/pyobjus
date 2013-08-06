@@ -270,9 +270,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             if arg in [True, False, 1, 0]:
                 (<char*>val_ptr)[0] = convert_py_bool_to_objc(arg)
             else:
-                print "1"
                 (<char*>val_ptr)[0] = <char>ord(arg)
-                print '2'
         else:
             if not objc_ref:
                 if arg in [True, False, 1, 0]:
