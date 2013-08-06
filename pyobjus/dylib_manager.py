@@ -29,7 +29,7 @@ def load_dylib(path, **kwargs):
         ctypes.CDLL(usrlib_dir)
     else:
         ctypes.CDLL(path)
-    dprint("Dynamic library {0} loaded".format(path), type='d')
+    dprint("Dynamic library {0} loaded".format(path))
 
 def make_dylib(path, **kwargs):
     ''' Function for making .dylib from some .m file
@@ -80,6 +80,6 @@ def load_framework(framework):
     bundle = NSBundle.bundleWithPath_(ns_framework)
     try:
         if bundle.load():
-            dprint("Framework {0} succesufully loaded!".format(framework), type='d')
+            dprint("Framework {0} succesufully loaded!".format(framework))
     except:
         raise pyobjus.ObjcException('Error while loading {0} framework'.format(framework))

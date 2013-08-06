@@ -88,7 +88,7 @@ def selector(name):
     """
     osel = ObjcSelector()
     osel.selector = sel_registerName(name)
-    dprint(pr(osel.selector), type="i")
+    dprint(pr(osel.selector), of_type="i")
     return osel
 
 cdef class ObjcMethod(object):
@@ -229,7 +229,7 @@ cdef class ObjcMethod(object):
             self.members = kwargs['members']
 
         if len(args) > (len(self.signature_args) - 2):
-            dprint("preparing potential varargs method...", type='i')
+            dprint("preparing potential varargs method...", of_type='i')
             self.is_varargs = True
             self.is_ready = False 
 
@@ -249,7 +249,7 @@ cdef class ObjcMethod(object):
     def _reset_method_attributes(self):
         '''Method for setting adapted attributes values to default ones
         '''
-        dprint("reseting method attributes...", type='i')
+        dprint("reseting method attributes...", of_type='i')
         self.signature_args = self.signature_default_args
         self.is_ready = False
         self.ensure_method()
@@ -352,9 +352,9 @@ cdef class ObjcMethod(object):
                 else:
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
-                dprint("x86_64 architecture {0} call".format(fun_name), type='i')
+                dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
             ELSE:
-                dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", type='e')
+                dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", of_type='e')
                 raise SystemExit()
 
         if self.is_varargs:
@@ -365,7 +365,7 @@ cdef class ObjcMethod(object):
         cdef bytes bret
 
         sig = self.signature_return[0]
-        dprint("return signature", self.signature_return[0], type="i")
+        dprint("return signature", self.signature_return[0], of_type="i")
         
         if sig == '@':
             ret_id = (<id>res_ptr[0])
@@ -550,10 +550,10 @@ def autoclass(cls_name, **kwargs):
     if cls_name in oclass_register and load_class_methods_dict is None \
         and load_instance_methods_dict is None and cls_name not in omethod_partial_register:
         if (not new_instance and "class" in oclass_register[cls_name]):
-            dprint("getting class from cache...", type='i')
+            dprint("getting class from cache...", of_type='i')
             return oclass_register[cls_name]['class']
         elif (new_instance and "instance" in oclass_register[cls_name]):
-            dprint('getting instance from cache...', type='i')
+            dprint('getting instance from cache...', of_type='i')
             return oclass_register[cls_name]['instance']
 
     # Resolving does user want to copy properties of class, or it doesn't

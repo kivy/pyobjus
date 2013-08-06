@@ -204,7 +204,7 @@ cdef class ObjcProperty:
         Args:
             attrs: String containing info about property, eg. Ti,Vprop_int -> @property (assign) int prop_int
         '''
-        dprint('Parsing property attributes --> {0}'.format(attrs), type='d')
+        dprint('Parsing property attributes --> {0}'.format(attrs))
 
         for attr in attrs.split(','):
             if attr[0] is 'T':
@@ -299,7 +299,7 @@ cdef class ObjcClassInstance(object):
             try:
                 object.__setattr__(self, name, value)
             except:
-                dprint('Unknown error occured while setting attribute to {0} object'.format(self), type='e')
+                dprint('Unknown error occured while setting attribute to {0} object'.format(self), of_type='e')
 
     def __dealloc__(self):
         if self.o_instance != NULL:

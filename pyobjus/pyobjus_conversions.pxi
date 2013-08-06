@@ -86,7 +86,7 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=Tr
             (<id*>val_ptr)[0] = (<id*>py_obj)[0]
         else:
             (<id**>val_ptr)[0] = (<id*>py_obj)
-        dprint("Possible problems with casting, in pyobjus_conversionx.pxi", type='w')
+        dprint("Possible problems with casting, in pyobjus_conversionx.pxi", of_type='w')
 
     return val_ptr
 
@@ -102,7 +102,7 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
     bret = <bytes><char *>object_getClassName(ret_id)
     dprint(' - object_getClassName(f_result) =', bret)
     if bret == 'nil':
-        dprint('<-- returned pointer value:', pr(ret_id), type="w")
+        dprint('<-- returned pointer value:', pr(ret_id), of_type="w")
         return <unsigned long long>ret_id
 
     load_instance_methods = None
@@ -123,7 +123,7 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
 cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False, main_cls_name=None):
 
     if f_result is NULL:
-        dprint('null pointer in convert_cy_ret_to_py function', type='w')
+        dprint('null pointer in convert_cy_ret_to_py function', of_type='w')
         return None
 
     if sig[0][0] in ['(', '{']:
@@ -190,7 +190,7 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
     elif sig[0] in ['(', '{']:
         #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
         if <long>f_result[0] in ctypes_struct_cache:
-            dprint("ctypes struct value found in cache", type='i')
+            dprint("ctypes struct value found in cache", of_type='i')
             val = ctypes.cast(<unsigned long long>f_result[0], ctypes.POINTER(factory.find_object(return_type, members=members))).contents
         else:
             val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type, members=members))).contents
@@ -262,7 +262,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             del_arg_val_ptr = True
         by = 'reference'
 
-    dprint("passing argument {0} by {1}".format(arg, by), type='i')
+    dprint("passing argument {0} by {1}".format(arg, by), of_type='i')
 
     # method is accepting char (or BOOL, which is also interpreted as char)
     if sig == 'c':

@@ -105,7 +105,7 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
         types_list = []
         obj_type = enc[1:-1].split('=', 1)
         types_list = signature_types_to_list(obj_type[1])
-        dprint("rest list -->", types_list, type='i')
+        dprint("rest list -->", types_list, of_type='i')
 
         types_count = len(types_list)
         ffi_complex_type = <ffi_type*>malloc(sizeof(ffi_type))

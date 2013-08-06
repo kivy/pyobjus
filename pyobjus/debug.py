@@ -11,11 +11,9 @@ def dprint(*args, **kwargs):
     if DEBUG == False:
         return
 
-    type = "d"
-    if "type" in kwargs:
-        type = kwargs["type"]
+    of_type = kwargs.get('of_type', 'd')
 
-    print "[{0}]".format(debug_types[type]),
+    print "[{0}]".format(debug_types[of_type]),
     for argument in args:
         print "{0}".format(argument),
     print ''
