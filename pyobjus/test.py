@@ -319,3 +319,23 @@ print dereference(c.prop_int_ptr)
 
 c.prop_double_ptr = 1010.3030
 print dereference(c.prop_double_ptr)
+
+a = autoclass('NSString')
+print dir(a)
+b = autoclass('NSString', load_class_methods=['alloc'])
+print dir(b)
+a = autoclass('NSString', reset_autoclass=True)
+print dir(a)
+
+print objc_c("C").charValue()
+print objc_i(123).intValue()
+print objc_ui(32243423).unsignedIntegerValue()
+print objc_l(42342342).longValue()
+print objc_ll(53453453).longLongValue()
+print objc_f(4343.4343).floatValue()
+print objc_d(555.3333).doubleValue()
+print objc_b(True).boolValue()
+print objc_b(False).boolValue()
+print objc_str('string literal test!').UTF8String()
+print objc_arr(text, objc_str('other string'), objc_i(232343)).objectAtIndex_(2)
+print objc_dict({'first': text, 'second': objc_f(3.14)}).objectForKey_(objc_str('second')).floatValue()

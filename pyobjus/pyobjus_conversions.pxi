@@ -133,7 +133,9 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
         # this should be a char. Most of the time, a BOOL is also
         # implemented as a char. So it's not a string, but just the numeric
         # value of the char.
-        return (<int><char>f_result[0])
+        if <int>f_result[0] in [1, 0]:
+            return ctypes.c_bool(<int>f_result[0]).value
+        return chr(<int><char>f_result[0])
     elif sig == 'i':
         return (<int>f_result[0])
     elif sig == 's':
@@ -268,7 +270,9 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             if arg in [True, False, 1, 0]:
                 (<char*>val_ptr)[0] = convert_py_bool_to_objc(arg)
             else:
-                (<char*>val_ptr)[0] = <char>bytes(arg)
+                print "1"
+                (<char*>val_ptr)[0] = <char>ord(arg)
+                print '2'
         else:
             if not objc_ref:
                 if arg in [True, False, 1, 0]:

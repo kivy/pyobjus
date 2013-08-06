@@ -1,3 +1,36 @@
+########## Pyobjus literals <-> Objective C literals ##########
+
+NSNumber = lambda: autoclass('NSNumber')
+NSString = lambda: autoclass('NSString')
+NSArray = lambda: autoclass('NSArray')
+NSDictionary = lambda: autoclass('NSDictionary')
+
+objc_c = lambda x: NSNumber().numberWithChar_(x)
+objc_i = lambda x: NSNumber().numberWithInt_(x)
+objc_ui = lambda x: NSNumber().numberWithUnsignedInt_(x)
+objc_l = lambda x: NSNumber().numberWithLong_(x)
+objc_ll = lambda x: NSNumber().numberWithLongLong_(x)
+objc_f = lambda x: NSNumber().numberWithFloat_(x)
+objc_d = lambda x: NSNumber().numberWithDouble_(x)
+objc_b = lambda x: NSNumber().numberWithBool_(x)
+
+objc_str = lambda x: NSString().stringWithUTF8String_(x)
+
+def objc_arr(*args):
+    if args[-1] is not None:
+        args = args + (None,)
+    return NSArray().arrayWithObjects_(*args) 
+
+def objc_dict(arg_dict):
+    keys_tuple = tuple([objc_str(x) for x in arg_dict.keys()]) + (None,)
+    values_tuple = tuple(arg_dict.values()) + (None,)
+
+    pyobjus_values = objc_arr(*values_tuple)
+    pyobjus_keys = objc_arr(*keys_tuple)
+    return NSDictionary().dictionaryWithObjects_forKeys_(pyobjus_values, pyobjus_keys)
+
+###############################################################
+
 class ObjcException(Exception):
     pass
 

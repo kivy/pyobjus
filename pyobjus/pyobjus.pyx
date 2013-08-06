@@ -6,7 +6,8 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
         'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
-        'dereference', 'signature_types_to_list', 'dylib_manager')
+        'dereference', 'signature_types_to_list', 'dylib_manager', 'objc_c', 'objc_i', 'objc_ui',
+        'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b', 'objc_str', 'objc_arr', 'objc_dict')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -534,9 +535,17 @@ def autoclass(cls_name, **kwargs):
     new_instance = kwargs.get('new_instance', False)
     load_class_methods_dict = kwargs.get('load_class_methods')
     load_instance_methods_dict = kwargs.get('load_instance_methods')
+    reset_autoclass = kwargs.get('reset_autoclass')
     if not new_instance and load_instance_methods_dict:
         omethod_partial_register[cls_name] = load_instance_methods_dict
 
+    if reset_autoclass:
+        # TODO: Find better solution here!
+        # Problem is because in some cases class and instance are having different names,
+        # so, if there way to return instance name for some class 
+        # In that case we will del only class and instance from oclass_register and omethod_partial_register
+        oclass_register.clear()
+        omethod_partial_register.clear()
     # if class or class instance is already in cache, return requested value
     if cls_name in oclass_register and load_class_methods_dict is None \
         and load_instance_methods_dict is None and cls_name not in omethod_partial_register:

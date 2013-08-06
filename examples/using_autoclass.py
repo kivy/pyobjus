@@ -32,3 +32,11 @@ except:
 
 # But we loaded initWithString: method, so we can use that one
 print instance.initWithString_(text).UTF8String()
+
+# And if you want to reset autoclass caching system, so we can use all methods in next steps, 
+# you simply need to run this line of code
+NSString = autoclass('NSString', reset_autoclass=True)
+print dir(NSString)
+text = NSString.stringWithUTF8String_('some string')
+print text.UTF8String()
+print dir(NSString.alloc())
