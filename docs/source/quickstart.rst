@@ -38,31 +38,20 @@ your application (ios only).  To preload the framework, you can use pyobjus dyli
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
 
-However, if framework which you want to load into your program isn't available via pyobjus method for easy load of frameworks,
-you can use ``load_dylib`` function of ``dylib_manager``. So let we say that previous framework isn't available
-via load_framework function, instead of using that function, you can do following::
+    # OR on this way
+    # from pyobjus.dylib_manager import load_framework
+    # load_framework('/System/Library/Frameworks/AppKit.framework')
 
-    load_dylib('/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib')
+    # OR on this way
+    # from pyobjus.dylib_manager import load_dylib
+    # load_dylib('/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib')
 
-So, as you can see we need to find dylib of framework on out computer, then we provide path to .dylib, 
-and pyobjus will load it for us.
-
-But if you don't want to search for appropriate .dylib, and framework which you want load isn't available 
-via ``INCLUDE`` enum, you can sill use ``load_framework`` function by providing framework path on this way::
-
-    load_framework('/System/Library/Frameworks/AppKit.framework')
-
-Argument of this function you can find on official Apple documentation.
-
-For eg. if you want to load AppKit framework, go to this link:
-
-https://developer.apple.com/library/mac/#documentation/cocoa/reference/ApplicationKit/ObjC_classic/_index.html, 
-and at the top of page you will find previous path.     
+    # NOTE: there is section which explains how to use dylib_manager functions
 
 Then we can use the NSAlert object::
 
     from pyobjus import autoclass
- 
+
     # get both nsalert and nsstring class
     NSAlert = autoclass('NSAlert')
     NSString = autoclass('NSString')

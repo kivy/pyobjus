@@ -10,20 +10,17 @@ Quick overview
 
 ```python
 
-from pyobjus import autoclass, dylib_manager, INCLUDE
+from pyobjus import autoclass, objc_str
+from pyobjus.dylib_manager import load_framework, INCLUDE
 
 # load AppKit framework into pyojbus
-dylib_manager(INCLUDE.AppKit)
+load_framework(INCLUDE.AppKit)
 
 # get both nsalert and nsstring class
 NSAlert = autoclass('NSAlert')
-NSString = autoclass('NSString')
-
-# shortcut to mimic the @"hello" in objective C
-ns = lambda x: NSString.alloc().initWithUTF8String_(x)
 
 # create an NSAlert object, and show it.
 alert = NSAlert.alloc().init()
-alert.setMessageText_(ns('Hello world!'))
+alert.setMessageText_(objc_str('Hello world!'))
 alert.runModal()
 ```

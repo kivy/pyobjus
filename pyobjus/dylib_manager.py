@@ -41,14 +41,14 @@ def make_dylib(path, **kwargs):
         Work in progress
     '''
     frameworks = kwargs.get('frameworks', None)
-    out_dir = kwargs.get('out_dir', None)
+    out = kwargs.get('out', None)
     additional_opts = kwargs.get('options', None)
 
-    if not out_dir:
-        out_dir = '.'.join([os.path.splitext(path)[0], 'dylib'])
-    arg_list = ["clang", path, "-o", out_dir, "-dynamiclib"]
-    if not additional_opts:
-        arg_list.append(additional_opts)
+    if not out:
+        out = '.'.join([os.path.splitext(path)[0], 'dylib'])
+    arg_list = ["clang", path, "-o", out, "-dynamiclib"]
+    if additional_opts is not None:
+        arg_list = arg_list + additional_opts
     if frameworks:
         for framework in frameworks:
             arg_list.append('-framework')

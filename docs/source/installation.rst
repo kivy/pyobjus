@@ -22,3 +22,7 @@ You can run the tests suite to make sure everything is running right::
 
     make tests
 
+Or you can build documentation for yourself::
+
+    make html
+    open docs/build/html/index.html 

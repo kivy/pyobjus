@@ -15,10 +15,11 @@ There are also nice examples of using classes from Foundation framework. These y
    :maxdepth: 2
 
    installation
-   pyobjus_internal
    quickstart
-   api
+   pyobjus_internal
+   core_tutorials
    foundation_eg
+   api
 
 Indices and tables
 ==================
