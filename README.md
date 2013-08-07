@@ -9,10 +9,11 @@ Quick overview
 --------------
 
 ```python
-import ctypes
-ctypes.CDLL(‘/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib’)
 
-from pyobjus import autoclass
+from pyobjus import autoclass, dylib_manager, INCLUDE
+
+# load AppKit framework into pyojbus
+dylib_manager(INCLUDE.AppKit)
 
 # get both nsalert and nsstring class
 NSAlert = autoclass('NSAlert')

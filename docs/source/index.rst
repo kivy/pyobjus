@@ -9,13 +9,15 @@ This documentation is divided into differents parts. We recommend you to start
 with :ref:`installation`, and then head over to the :ref:`quickstart`. If
 you'd rather dive into the internals of Pyobjus, check out the :ref:`api`
 documentation.
+There are also nice examples of using classes from Foundation framework, this you can find on the :ref:`foundation_eg` page.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    installation
    quickstart
    api
+   foundation_eg
 
 Indices and tables
 ==================
