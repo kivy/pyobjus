@@ -1,4 +1,4 @@
-DEBUG = True
+DEBUG = False
 
 debug_types = {
     "d": "DEBUG",
