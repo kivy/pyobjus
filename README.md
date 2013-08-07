@@ -16,7 +16,7 @@ from pyobjus.dylib_manager import load_framework, INCLUDE
 # load AppKit framework into pyojbus
 load_framework(INCLUDE.AppKit)
 
-# get both nsalert and nsstring class
+# get nsalert class
 NSAlert = autoclass('NSAlert')
 
 # create an NSAlert object, and show it.
