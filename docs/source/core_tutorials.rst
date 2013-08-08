@@ -96,3 +96,204 @@ If Framework path which you want to load isn't present in INCLUDE enum, you can 
 Let we say that path to AppKit isn't available via INCLUDE enum. You can load Framework on following way::
 
     load_framework('/System/Library/Frameworks/AppKit.framework')
+
+
+Using struct types
+------------------
+
+Pyobjus currently support ``NSRange``, ``NSPoint``, ``NSSize`` and ``NSRect`` structures. They are defined via ``ctypes.Structure`` type.
+
+We will try to find best way to add your types into pyobjus, so that you can make and use functions which returns custom. Currently this is work in progress.
+
+Consider following. You have Objective C class with name ObjcClass, and useRange: method of that class which is defined on this way::
+
+    - (void) useRange:(NSRange)r {
+        printf("location: %ld, length: %ld\n", r.location, r.length);
+    }
+
+So, if you want to call this method from Python, you can do sommething like this::
+
+    from pyobjus.objc_py_types import NSRange
+    from pyobjus import autoclass
+
+    ObjcClass = autoclass('ObjcClass')
+    o_cls = ObjcClass.alloc().init()
+    range = NSRange(10, 20)
+    o_cls.useRange_(range)
+
+This will output with::
+
+    >>> location: 10, length: 20
+
+The simmilar situation is with returning and using Objective C structure types. Let we say that ObjcClass has another method, with name makeRange::
+
+    - (NSRange) makeRange {
+        NSRange range;
+        range.length = 123;
+        range.location = 456;
+        return range;
+    }
+
+Using this method from Python is really simple. Let we say that we have includes from previous Python code example::
+
+    range = o_cls.makeRange()
+    print range.length
+    print range.location
+
+And this will output with::
+
+    >>> 123
+    >>> 456
+
+As you can see dealing with Objective C structs from pyobjus is simple.
+
+For the end of this section let see how to create NSRect type from example::
+
+    point = NSPoint(30, 50)
+    size = NSSize(60, 70)
+    rect = NSRect(point, size)
+
+Dealing with pointers
+---------------------
+
+As you now C has very powerful feature, with name pointers. Objective C is superset of C language, so it also has this great feature.
+
+But wait, we are in Python, how we can deal with pointers from Python???
+
+Passing pointers
+~~~~~~~~~~~~~~~~
+
+Relax, pyobjus is doing job for you here. I think that is the best to view some example of that. So, let we expand our ObjcClass class with another method::
+
+    - (void) useRangePtr:(NSRange*)r_p {
+        NSRange r = r_p[0];
+        printf("location: %ld, length: %ld\n", r.location, r.length);
+    }
+
+In previous examples you saw example of making ``NSRange`` from Python, and you pass value of ``NSRange``. But now we have situation when method expect pointer to some type.
+
+With pyobjus, you can call method on following way::
+
+    range = NSRange(40, 80)
+    o_cls.useRangePtr_(range)
+
+And this will output::
+
+    >>> location:40, length: 80
+
+So what hapened here? We passes argument on the same way as with ``useRange:`` method.
+
+Pyobjus will know if method accepts pointer to type, or accepts value. If accepts pointer to type it will make pointer, and put passed value to location on which pointer points,
+so with this, you don't need to worry about, is using accepting pointer or actual value, pyobjus will do this conversion for you.
+
+You can also return pointers to types from Objective C methods. Let we add another method to ObjcClass::
+
+    - (NSRange*) makeRangePtr {
+        NSRange *r_p = malloc(sizeof(NSRange));
+        NSRange r;
+        r.length = 123;
+        r.location = 567;
+        *r_p = r;
+        return r_p;
+    }
+
+As you can see, this method is making ``NSRange`` pointer, assigning value to is, and at the end, it returns pointer to user.
+From Python you can consume this method on this way::
+
+    range_ptr = o_cls.makeRangePtr()
+    # let we see actual type of returned object
+    print range_ptr
+
+This will output following::
+
+    >>> <pyobjus.ObjcReferenceToType object at 0x10f34bcb0>
+
+So here we can see another type -> ObjcReferenceToType. When we have method which returns pointer to some type, pyobjus will wrap that pointer with ObjcReferenceToType object,
+so after return, that object now contains actual address of pointer. We can pass that type to function which accepts pointer to type.
+
+Example::
+
+    # note that range_ptr is of ObjcReferenceToType type
+    o_cls.useRangePtr_(range_ptr)
+
+But you may wonder now how to dereference pointer to get actual value?
+
+Answer is....use dereference function
+
+Dereferencing pointers
+~~~~~~~~~~~~~~~~~~~~~~
+
+To dereference pointer use dereference function::
+
+    from pyobjus import dereference
+
+If function returns pointer to some known type, with other words, type isn't void* you can use dereference function in this way::
+
+    range_ptr = o_cls.makeRangePtr()
+    range = dereference(range_ptr)
+
+Pyobjus will parse return signature from method signature, so it will know in which type to convert pointer value.
+If you return void pointer, you will need to specify type in which you want to pyobjus convert actual value on which pointer points.
+
+Let we add method to out ObjcClass::
+
+    - (void*) makeIntVoidPtr {
+        int *a = malloc(sizeof(int));
+        *a = 12345;
+        return (void*)a;
+    }
+
+Now we can retrieve value, and dereference it::
+
+    int_ptr = car.makeIntVoidPtr()
+    int_val = dereference(int_ptr, of_type=ObjcInt)
+    print int_val
+
+This will output with::
+
+    >>> 12345
+
+Note that you can specify ``of_type`` optional argument although methods returns ``NSRange`` pointer. 
+With this you will be sure that pyobjus will convert value to that type.
+
+Here is the list of possible types::
+
+    'ObjcChar', 
+    'ObjcInt', 
+    'ObjcShort', 
+    'ObjcLong', 
+    'ObjcLongLong', 
+    'ObjcUChar', 
+    'ObjcUInt', 
+    'ObjcUShort', 
+    'ObjcULong', 
+    'ObjcULongLong', 
+    'ObjcFloat', 
+    'ObjcDouble', 
+    'ObjcBool', 
+    'ObjcBOOL', 
+    'ObjcVoid', 
+    'ObjcString', 
+    'ObjcClassInstance', 
+    'ObjcClass', 
+    'ObjcSelector', 
+    'ObjcMethod'
+
+Above types resides inside pyobjus module, so you can import in on following way::
+
+    from pyobjus import ObjcChar, ObjcInt # etc...
+
+Inside ``pyobjus.objc_py_types`` module resides struct and unions types. Currently this is list of them::
+
+    'NSRange',
+    'NSPoint',
+    'NSRect',
+    'NSSize'
+
+You can import them with::
+
+    from pyobjus.objc_py_types import NSRange # etc...
+
+Objective C <-> pyobjus literals
+--------------------------------
+

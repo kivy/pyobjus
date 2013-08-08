@@ -60,5 +60,5 @@ print sel
 #   return (void*)s;
 # }
 sel_void_ptr = car.makeSelectorVoidPtr()
-sel = dereference(sel_void_ptr, type=ObjcSelector)
+sel = dereference(sel_void_ptr, of_type=ObjcSelector)
 print sel

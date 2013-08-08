@@ -4,10 +4,10 @@ Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa
 
 __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar', 'ObjcUInt', 
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
-        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
-        'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
-        'dereference', 'signature_types_to_list', 'dylib_manager', 'objc_c', 'objc_i', 'objc_ui',
-        'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b', 'objc_str', 'objc_arr', 'objc_dict')
+        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass', 
+        'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list', 
+        'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b', 
+        'objc_str', 'objc_arr', 'objc_dict')
 
 include "common.pxi"
 include "runtime.pxi"

@@ -30,20 +30,20 @@ def dereference(py_ptr, **kwargs):
     else:
         c_addr = <unsigned long long*><unsigned long long>py_ptr
     
-    if 'type' in kwargs:
-        type = kwargs['type']
-        if issubclass(type, ctypes.Structure) or issubclass(type, ctypes.Union):
-            return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(type)).contents
-        elif issubclass(type, ObjcClassInstance):
+    if 'of_type' in kwargs:
+        of_type = kwargs['of_type']
+        if issubclass(of_type, ctypes.Structure) or issubclass(of_type, ctypes.Union):
+            return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(of_type)).contents
+        elif issubclass(of_type, ObjcClassInstance):
             return convert_to_cy_cls_instance(<id>c_addr)
         
-        py_ptr.type = type.enc
+        py_ptr.of_type = of_type.enc
         # TODO: other types
         # elif issubclass(type, MissingTypes....):
         #    pass
-    return convert_cy_ret_to_py(<id*>c_addr, py_ptr.type, py_ptr.size)
+    return convert_cy_ret_to_py(<id*>c_addr, py_ptr.of_type, py_ptr.size)
 
-cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=True):
+cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value=True):
     ''' Function for casting Python data type (struct, union) to some Cython type
     
     Args:
@@ -57,25 +57,25 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* type, by_value=Tr
     '''    
     cdef void *val_ptr = malloc(size)
 
-    if str(type) == '_NSRange':
+    if str(of_type) == '_NSRange':
         if by_value:
             (<CFRange*>val_ptr)[0] = (<CFRange*>py_obj)[0]
         else:
             (<CFRange**>val_ptr)[0] = <CFRange*>py_obj
 
-    elif str(type) == 'CGPoint':
+    elif str(of_type) == 'CGPoint':
         if by_value:
             (<CGPoint*>val_ptr)[0] = (<CGPoint*>py_obj)[0]
         else:
             (<CGPoint**>val_ptr)[0] = <CGPoint*>py_obj
 
-    elif str(type) == 'CGSize':
+    elif str(of_type) == 'CGSize':
         if by_value:
             (<CGSize*>val_ptr)[0] = (<CGSize*>py_obj)[0]
         else:
             (<CGSize**>val_ptr)[0] = <CGSize*>py_obj
 
-    elif str(type) == 'CGRect':
+    elif str(of_type) == 'CGRect':
         if by_value:
             (<CGRect*>val_ptr)[0] = (<CGRect*>py_obj)[0]
         else:
@@ -208,7 +208,7 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
         else:
             c_addr = <unsigned long long>f_result[0]
         
-        return ObjcReferenceToType(c_addr, sig.split('^')[1], size)
+        return ObjcReferenceToType(c_addr, sig.split('^', 1)[1], size)
 
     # return type --> unknown type
     elif sig == '?':

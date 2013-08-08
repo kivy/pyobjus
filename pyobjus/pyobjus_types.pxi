@@ -358,10 +358,10 @@ cdef class ObjcReferenceToType(object):
     '''
 
     cdef public unsigned long long arg_ref
-    cdef public char *type
+    cdef public char *of_type
     cdef public size_t size
 
     def __cinit__(self, unsigned long long arg, char *_type, size_t _size):
         self.arg_ref = arg
-        self.type = _type
+        self.of_type = _type
         self.size = _size
