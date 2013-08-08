@@ -297,3 +297,173 @@ You can import them with::
 Objective C <-> pyobjus literals
 --------------------------------
 
+If you are fammiliar with Objective C literals you know that is great feature, because reduces amount of code to write.
+You may wonder is there some equvivalent with pyobjus. Ansert is, YES.
+
+I thing that next example will illustrate how to use pyobjus literals, and what are the Objective C equvivalents::
+
+    from pyobjus import *
+
+    # In following examples will be demonstrated pyobjus literals feature
+    # First line will denote native objective c literals, and second pyobjus literls
+    # SOURCE: http://clang.llvm.org/docs/ObjectiveCLiterals.html
+
+    # NSNumber *theLetterZ = @'Z';          // equivalent to [NSNumber numberWithChar:'Z']
+    objc_c('Z')
+
+    # NSNumber *fortyTwo = @42;             // equivalent to [NSNumber numberWithInt:42]
+    objc_i(42)
+
+    # NSNumber *fortyTwoUnsigned = @42U;    // equivalent to [NSNumber numberWithUnsignedInt:42U]
+    objc_ui(42)
+
+    # NSNumber *fortyTwoLong = @42L;        // equivalent to [NSNumber numberWithLong:42L]
+    objc_l(42)
+
+    # NSNumber *fortyTwoLongLong = @42LL;   // equivalent to [NSNumber numberWithLongLong:42LL]
+    objc_ll(42)
+
+    # NSNumber *piFloat = @3.141592654F;    // equivalent to [NSNumber numberWithFloat:3.141592654F]
+    objc_f(3.141592654)
+
+    # NSNumber *piDouble = @3.1415926535;   // equivalent to [NSNumber numberWithDouble:3.1415926535]
+    objc_d(3.1415926535)
+
+    # NSNumber *yesNumber = @YES;           // equivalent to [NSNumber numberWithBool:YES]
+    objc_b(True)
+
+    # NSNumber *noNumber = @NO;             // equivalent to [NSNumber numberWithBool:NO]
+    objc_b(False)
+
+    # NSArray *array = @[ @"Hello", NSApp, [NSNumber numberWithInt:42] ];
+    objc_arr(objc_str('Hello'), objc_str('some str'), objc_i(42))
+
+    # NSDictionary *dictionary = @{
+    #    @"name" : NSUserName(),
+    #    @"date" : [NSDate date],
+    #    @"processInfo" : [NSProcessInfo processInfo]
+    # };
+    objc_dict({
+        'name': objc_str('User name'),
+        'date': autoclass('NSDate').date(),
+        'processInfo': autoclass('NSProcessInfo').processInfo()
+    })
+
+    # NSString *string = @"some string";
+    objc_str('some string')
+
+I think that you unserstand on which rules are build names for these literals. So we add prefix ``objc_``,
+followed with letter/letters which denotes Objective C type, for examples i for ``int``, f for ``float``, arr for ``NSArray``, dict for ``NSDictionary``, etc...
+
+
+Unknown types
+-------------
+
+Let we say that we have defined following structures in our ObjcClass.
+
+Note that we arent specify type of structs, so they types will be missing in method signatures::
+
+    typedef struct {
+        float a;
+        int b;
+        NSRect rect;
+    } unknown_str_new;
+
+    typedef struct {
+        int a;
+        int b;
+        NSRect rect;
+        unknown_str_new u_str;
+    } unknown_str;
+
+Let play know. Suppose that we have defined following objective c method::
+
+    - (unknown_str) makeUnknownStr {
+        unknown_str str;
+        str.a = 10;
+        str.rect = NSMakeRect(20, 30, 40, 50);
+        str.u_str.a = 2.0;
+        str.u_str.b = 4;
+        return str;
+    }
+
+Purpose of this method is to make unknown type struct, and assing some values to it's members
+If you see debug logs of pyobjus, you will see that method returns following type::
+
+    {?=ii{CGRect={CGPoint=dd}{CGSize=dd}}{?=fi{CGRect={CGPoint=dd}{CGSize=dd}}}}
+
+From this we can see that method returns some type, which contains of two integers, and two structs. One of them
+is ``CGRect``, and another is some unknown type, which contains of float, integer and ``CGRect`` struct
+So, if user doesn't have defined this struct, pyobjus can generate this type for him. Let's call this function::
+
+    ret_type = car.makeUnknownStr()
+
+But wait, how will pyobjus know about field names in struct, because from method signature we know 
+only types, not actual names. Well, pyobjus will generate some 'random' names in alphabetical order.
+
+In our case, first member will have name 'a', second will have name 'b', and third will have name ``CGRect``,
+which is used because can help user as indicator of type is actual type is missing. Last one is another 
+unknown type, so pyobjus will generate name for him and it will have name 'c'. 
+
+Note that in case of CGRect, that memeber will have origin and size members, because he is already defined, 
+and we know info about his members, but for last member, pyobjus will continue recursive generating names 
+for it's members
+
+Maybe you are asking yourself know, how you will know actual generated name, so pyobjus will help you about this.
+There is getMembers function, which returns name and type of some field in struct::
+
+    print ret_type.getMembers()
+
+Python will output with::
+
+    >>> [('a', <class 'ctypes.c_int'>), ('b', <class 'ctypes.c_int'>), ('CGRect', <class 'pyobjus.objc_py_types.NSRect'>), ('c', <class 'pyobjus.objc_py_types.UnknownType'>)]
+
+If you want to provide your names for fields, you can do on this way::
+
+    ret_type = car.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_field'])
+
+And if we now run ``getMembers`` command, it will result with::
+
+    [('first', <class 'ctypes.c_int'>), ('second', <class 'ctypes.c_int'>), ('struct_field', <class 'pyobjus.objc_py_types.NSRect'>), ('tmp_field', <class 'pyobjus.objc_py_types.UnknownType'>)]
+
+If you don't need types, only names, you can call method in following way::
+
+    print ret_type.getMembers(only_fields=True)
+
+Python will output with::
+
+    >>> ['a', 'b', 'CGRect', 'c']
+
+Also, if you want to know only names, you can get it on following way::
+
+    print ret_type.getMembers(only_types=True)
+
+Python will output with::
+
+    >>> [<class 'ctypes.c_int'>, <class 'ctypes.c_int'>, <class 'pyobjus.objc_py_types.NSRect'>, <class 'pyobjus.objc_py_types.UnknownType'>]
+
+If you want to use returned type to pass it as argument to some function there will be some problems. 
+Pyobjus is use ctypes structures, so we can get actual pointer to C structure from Python object,
+but if we want to get working correct values of passed arg, we need to cast pointer to appropriate type.
+
+If type is defined in ``pyobjus/objc_cy_types.pxi`` pyobjus will convert it for us, but if it isn't, we will need to convert
+it by ourselfs, for example internaly in Objective C method where we are passing struct value. Lets see example of this::
+
+    - (void) useUnknownStr:(void*)str_vp {
+        unknown_str *str_p = (unknown_str*)str_vp;
+        unknown_str str = str_p[0];
+        printf("%f\n", str.rect.origin.x);
+    }
+
+And from Python::
+
+    car.useUnknownStr_(ret_type)
+
+And Python will output with::
+
+    >>> 20.00
+
+Other
+-----
+
+Work in progress...

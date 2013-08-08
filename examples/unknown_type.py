@@ -40,6 +40,8 @@ car = Car.alloc().init()
 # So, if user doesn't have defined this struct, pyobjus can generate this type for him. Let's call this function:
 ret_type = car.makeUnknownStr()
 
+ret_type = car.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_field'])
+
 # But wait, how will pyobjus know about field names in struct, because from method signature we know 
 # only types, not actual names. Well, pyobjus will generate some 'random' names in alphabetical order
 # In our case, first member will have name 'a', second will have name 'b', and third will have name CGRect,
