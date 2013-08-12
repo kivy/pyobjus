@@ -245,7 +245,7 @@ Let we add method to out ObjcClass::
 
 Now we can retrieve value, and dereference it::
 
-    int_ptr = car.makeIntVoidPtr()
+    int_ptr = o_cls.makeIntVoidPtr()
     int_val = dereference(int_ptr, of_type=ObjcInt)
     print int_val
 
@@ -396,7 +396,7 @@ From this we can see that method returns some type, which contains of two intege
 is ``CGRect``, and another is some unknown type, which contains of float, integer and ``CGRect`` struct
 So, if user doesn't have defined this struct, pyobjus can generate this type for him. Let's call this function::
 
-    ret_type = car.makeUnknownStr()
+    ret_type = o_cls.makeUnknownStr()
 
 But wait, how will pyobjus know about field names in struct, because from method signature we know 
 only types, not actual names. Well, pyobjus will generate some 'random' names in alphabetical order.
@@ -420,7 +420,7 @@ Python will output with::
 
 If you want to provide your names for fields, you can do on this way::
 
-    ret_type = car.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_field'])
+    ret_type = o_cls.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_field'])
 
 And if we now run ``getMembers`` command, it will result with::
 
@@ -457,11 +457,61 @@ it by ourselfs, for example internaly in Objective C method where we are passing
 
 And from Python::
 
-    car.useUnknownStr_(ret_type)
+    o_cls.useUnknownStr_(ret_type)
 
 And Python will output with::
 
     >>> 20.00
+
+Using class
+-----------
+
+As you know, ``class`` is Python keyword, so that might be a problem.
+
+Let's we say that we want to get Class type for NSString instance...
+
+We can use following::
+
+    NSString = autoclass('NSString')
+    text = NSString.alloc().init()
+    text.oclass()
+
+This will return::
+
+    <pyobjus.ObjcClass object at 0x1057361b0>
+
+So, now we can use isKindOfClass: method::
+
+    text.isKindOfClass_(NSString)
+
+This will output ``True``. Let we see another example::
+
+    NSArray = autoclass('NSArray')
+    text.isKindOfClass_(NSArray)
+
+And this will output ``False``.
+
+So, as you can see, if you want to use ``class`` with pyobjus, you will need to use ``some_object.oclass()`` method.
+
+Using @selector
+---------------
+
+There may be situations when you need to use ``@selector``, which is Objective C feature. With pyobjus you can also get SEL type for some method. Let's we say that we want to get SEL for init method::
+
+    from pyobjus import selector
+    selector('init')
+
+This will output with::
+
+    <pyobjus.ObjcSelector object at 0x1057361c8>
+
+So as you can see instead of using this ``@selector(init)`` with Objective C, you want use ``selector('init')`` with pyobjus and Python to get SEL type for some method.
+
+If you want get SEL for initWithUTF8String: you can use::
+
+    selector('initWithUTF8String:')
+
+Other cases are the same for all methods.
 
 Other
 -----
