@@ -8,3 +8,4 @@ build/*
 output
 test.py
 docs/build/*
+.DS_Store

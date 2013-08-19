@@ -26,6 +26,6 @@ ref_obj = _instance.getIntValuesWithCount_(CArrayCount)
 returned_PyList_withCount = dereference(ref_obj, of_type=CArray)
 print returned_PyList_withCount
 
-for item in ref_obj.reference_return_values:
-    if type(item) == CArrayCount:
-        print item.value
+#for item in ref_obj.reference_return_values:
+#    if type(item) == CArrayCount:
+#        print item.value
