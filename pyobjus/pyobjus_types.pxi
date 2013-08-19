@@ -1,3 +1,75 @@
+######################################### CArray #############################################
+cdef class CArrayCount:
+    
+    cdef public unsigned int value
+    
+    def __cinit__(self, unsigned int set_value):
+        self.value = set_value
+
+
+cdef class CArray:
+    """Class for representing c-array. Due to lack of void ptr arithmetic support there is no void casting magic, therefore per type casting is needed."""
+
+    cdef public list PyList
+    cdef public unsigned int PyListSize
+        
+    def __init__(self, arr=None):
+        dprint("Initialize CArray in __init__")
+        if arr is not None:
+            self.PyList = self.fix_args(arr)
+            self.PyListSize = <unsigned int> len(self.PyList)
+            dprint("CArray values initialized: {0}".format(self.PyList, self.PyListSize))
+        else:
+            dprint("CArray(arr=None)")
+
+
+    def fix_args(self, arr):
+        if type(arr) == list:
+            return arr
+        else:
+            return list(arr)
+
+
+    def get_from_ptr(self, unsigned long long ptr, char *of_type, unsigned long long arr_size):
+        dprint("CArray().get_from_ptr({0}, {1}, {2})".format(ptr, of_type, arr_size))
+        ret = list()
+        if str(of_type) == "i":
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_int))
+            for i in xrange(arr_size):
+                ret.append(arr_cast[i])
+                
+        # TODO: remaining types
+        return ret
+        
+        
+    cdef int* as_int(self):
+        dprint(" [+] ...converting to int array")
+        cdef int *int_t = <int*> malloc(sizeof(int) * self.PyListSize)
+        if int_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            int_t[i] = self.PyList[i]
+        return int_t
+
+
+    cdef char* as_char(self):
+        cdef char *char_t = <char*> malloc(sizeof(char) * self.PyListSize)
+        if char_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            char_t[i] = self.PyList[i]
+        return char_t
+
+
+    cdef short* as_short(self):
+        cdef short *short_t = <short*> malloc(sizeof(short) * self.PyListSize)
+        if short_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            short_t[i] = self.PyList[i]
+        return short_t
+
+
 ########## Pyobjus literals <-> Objective C literals ##########
 
 NSNumber = lambda: autoclass('NSNumber')

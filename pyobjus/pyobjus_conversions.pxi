@@ -36,7 +36,13 @@ def dereference(py_ptr, **kwargs):
             return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(of_type)).contents
         elif issubclass(of_type, ObjcClassInstance):
             return convert_to_cy_cls_instance(<id>c_addr)
-        
+        elif issubclass(of_type, CArray) and 'return_count' in kwargs:
+            dprint("Returning CArray from c_addr, size={0}".format(kwargs['return_count']))
+            #arr_ptr = py_ptr.arg_ref
+            #arr_type = py_ptr.type
+            #arr_buffer = ctypes.cast(ret_array.arg_ref, ctypes.POINTER(ctypes.c_int))
+            return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, kwargs['return_count'])
+
         py_ptr.of_type = of_type.enc
         # TODO: other types
         # elif issubclass(type, MissingTypes....):
@@ -409,8 +415,24 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             (<SEL**>val_ptr)[0] = <SEL*>arg_val_ptr
     # TODO: array
     elif sig[0] == '[':
-        pass
-    
+        dprint("==> Array signature for: {0}".format(list(arg)))
+        array_size = int(re.split('(\d+)', sig)[1])
+        if array_size != len(arg):
+            dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
+                array_size, len(arg)))
+            raise TypeError()
+
+        if sig[len(sig) - 2] == "i":
+            dprint("  [+] ...array is integer!")
+            (<int **>val_ptr)[0] = CArray(arg).as_int()
+        if sig[len(sig) - 2] == "c":
+            dprint("  [+] ...array is char!")
+            (<char **>val_ptr)[0] = CArray(arg).as_char()
+        if sig[len(sig) - 2] == "s":
+            dprint("  [+] ...array is short")
+            (<short **>val_ptr)[0] = CArray(arg).as_short()
+        # TODO: other types
+             
     # method is accepting structure OR union
     # NOTE: Support for passing union as arguments by value wasn't supported with libffi,
     # in time of writing this version of pyobjus.
