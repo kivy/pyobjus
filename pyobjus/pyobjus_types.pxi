@@ -42,7 +42,7 @@ cdef class CArray:
         return ret
         
         
-    cdef int* as_int(self):
+    cdef int *as_int(self):
         dprint(" [+] ...converting to int array")
         cdef int *int_t = <int*> malloc(sizeof(int) * self.PyListSize)
         if int_t is NULL:
@@ -52,7 +52,7 @@ cdef class CArray:
         return int_t
 
 
-    cdef char* as_char(self):
+    cdef char *as_char(self):
         cdef char *char_t = <char*> malloc(sizeof(char) * self.PyListSize)
         if char_t is NULL:
             raise MemoryError()
@@ -61,14 +61,38 @@ cdef class CArray:
         return char_t
 
 
-    cdef short* as_short(self):
+    cdef short *as_short(self):
         cdef short *short_t = <short*> malloc(sizeof(short) * self.PyListSize)
         if short_t is NULL:
             raise MemoryError()
         for i in xrange(self.PyListSize):
             short_t[i] = self.PyList[i]
         return short_t
+        
+    cdef long *as_long(self):
+        cdef long* long_t = <long*> malloc(sizeof(long) * self.PyListSize)
+        if long_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            long_t[i] = self.PyList[i]
+        return long_t
 
+    cdef long long *as_longlong(self):
+        cdef long long *longlong_t = <long long*> malloc(sizeof(long long) * self.PyListSize)
+        if longlong_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            longlong_t[i] = self.PyList[i]
+        return longlong_t
+
+
+    cdef float *as_float(self):
+        cdef float *float_t = <float*> malloc(sizeof(float) * self.PyListSize)
+        if float_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            float_t[i] = self.PyList[i]
+        return float_t
 
 ########## Pyobjus literals <-> Objective C literals ##########
 

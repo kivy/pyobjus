@@ -308,15 +308,16 @@ cdef class ObjcMethod(object):
         cdef ObjcClassInstance ocl
         f_index = 1
 
+        carray = False
         # populate the rest of f_args based on method signature
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index - 2]
             
-            carray = False
             if arg == CArrayCount: 
                 arg, carray = 0, True
-
+            dprint("ARG == CArrayCount: {0}, {1}".format(arg, carray))
+            
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
                     index, self.f_arg_types[index][0].size, arg))
@@ -395,12 +396,13 @@ cdef class ObjcMethod(object):
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name) 
 
 
-        if type(ret_py_val) == ObjcReferenceToType and carray:
+        if type(ret_py_val) == ObjcReferenceToType and carray == True:
+            dprint("RET_PY_VAL is ObjcReferenceToType, carray={0}".format(carray))
             mm = ctypes.cast((<unsigned long*>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
             arr_count = mm.contents
             ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
-            dprint("RET_PY_VAL is ObjcReferenceToType")
-        
+
+
         return ret_py_val
 
 registers = []
