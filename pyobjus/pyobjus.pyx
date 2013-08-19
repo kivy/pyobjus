@@ -390,14 +390,16 @@ cdef class ObjcMethod(object):
             ret_id = (<id>res_ptr[0])
             if ret_id == self.o_instance:
                 return self.p_class
-        
-        if carray:
+
+
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name) 
+
+
+        if type(ret_py_val) == ObjcReferenceToType and carray:
             mm = ctypes.cast((<unsigned long*>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
             arr_count = mm.contents
-        
-        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name) 
-        
-        
+            ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
+            dprint("RET_PY_VAL is ObjcReferenceToType")
         
         return ret_py_val
 

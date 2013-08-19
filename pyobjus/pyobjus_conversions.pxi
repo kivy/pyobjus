@@ -42,7 +42,12 @@ def dereference(py_ptr, **kwargs):
             #arr_type = py_ptr.type
             #arr_buffer = ctypes.cast(ret_array.arg_ref, ctypes.POINTER(ctypes.c_int))
             return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, kwargs['return_count'])
-
+        elif issubclass(of_type, CArray):
+            # search for return count in reference objc
+            dprint("Returning CArray, calculating returned value by 'reference'")
+            for item in py_ptr.reference_return_values:
+                if type(item) == CArrayCount:
+                    return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, item.value)
         py_ptr.of_type = of_type.enc
         # TODO: other types
         # elif issubclass(type, MissingTypes....):

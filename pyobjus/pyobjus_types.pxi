@@ -3,8 +3,8 @@ cdef class CArrayCount:
     
     cdef public unsigned int value
     
-    def __cinit__(self, unsigned int set_value):
-        self.value = set_value
+    def __init__(self, set_value):  # unsigned int set_value
+        self.value = set_value.value
 
 
 cdef class CArray:
@@ -432,8 +432,17 @@ cdef class ObjcReferenceToType(object):
     cdef public unsigned long long arg_ref
     cdef public char *of_type
     cdef public size_t size
-
+    cdef public list reference_return_values
+    
     def __cinit__(self, unsigned long long arg, char *_type, size_t _size):
         self.arg_ref = arg
         self.of_type = _type
         self.size = _size
+        self.reference_return_values = list()
+
+    def add_reference_return_value(self, value, of_type):
+        if issubclass(of_type, CArrayCount):
+            value = CArrayCount(value)
+            
+        dprint("Adding reference return value: {0}".format(value))
+        self.reference_return_values.append(value)
