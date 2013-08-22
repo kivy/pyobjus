@@ -5,9 +5,9 @@ import sys
 from distutils.command.build_ext import build_ext
 
 files = ['pyobjus.c']
-libraries = []
+libraries = ['ffi']
 library_dirs = []
-extra_compile_args = ['lffi']
+extra_compile_args = []
 extra_link_args = []
 include_dirs = []
 
