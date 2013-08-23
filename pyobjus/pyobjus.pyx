@@ -187,14 +187,16 @@ cdef class ObjcMethod(object):
         ## signature tuple compression for carray
         tmp_sig = []
         arr_sig = ""
+        
         for item in self.signature_args:
             if item[0].startswith("["):
-                arr_sig = item[0] + item[1]
+                arr_sig += item[0] + item[1]
             elif item[0].endswith("]"):
                 arr_sig += item[0]
                 tmp_sig.append((arr_sig, item[1], item[2]))
             else:
                 tmp_sig.append(item)
+        dprint("pre-zip signature: {0}".format(self.signature_args))
         dprint("array signature zip: {0}".format(tmp_sig))
         self.signature_args = tmp_sig
         
@@ -316,7 +318,7 @@ cdef class ObjcMethod(object):
             
             if arg == CArrayCount: 
                 arg, carray = 0, True
-            dprint("ARG, CArrayCount, type(arg): {0}, {1}, {2}".format(arg, carray, type(arg)))
+            #dprint("ARG, CArrayCount, type(arg): {0}, {1}, {2}".format(arg, carray, type(arg)))
             
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
@@ -397,9 +399,7 @@ cdef class ObjcMethod(object):
 
 
         if type(ret_py_val) == ObjcReferenceToType and carray == True:
-            dprint("RET_PY_VAL is ObjcReferenceToType, carray={0}".format(carray))
             mm = ctypes.cast((<unsigned long*>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
-            arr_count = mm.contents
             ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
 
 

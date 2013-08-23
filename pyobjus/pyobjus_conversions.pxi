@@ -244,6 +244,96 @@ cdef char convert_py_bool_to_objc(arg):
     return NO
 
 
+cdef void *parse_array(sig, arg, size):
+    cdef void *val_ptr = malloc(size)
+    dprint(" ..[+] parse_array({}, {}, {})".format(sig, arg, size))
+    sig = sig[1:len(sig) - 1]
+    sig_split = re.split('(\d+)', sig)
+    array_size = int(sig_split[1])
+    array_type = sig_split[2]
+   
+    if array_size != len(arg):
+        dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
+            array_size, len(arg)))
+        raise TypeError()
+        
+    if array_type[0] == "i":
+        dprint("  [+] ...array is integer!")
+        (<int **>val_ptr)[0] = CArray(arg).as_int()
+    if array_type[0] == "c":
+        dprint("  [+] ...array is char!")
+        (<char **>val_ptr)[0] = CArray(arg).as_char()
+    if array_type[0] == "s":
+        dprint("  [+] ...array is short")
+        (<short **>val_ptr)[0] = CArray(arg).as_short()
+    if array_type[0] == "l":
+        dprint("  [+] ...array is long")
+        (<long **>val_ptr)[0] = CArray(arg).as_long()
+    if array_type[0] == "q":
+        dprint("  [+] ...array is long long")
+        (<long long**>val_ptr)[0] = CArray(arg).as_longlong()
+    if array_type[0] == "f":
+        dprint("  [+] ...array is float")
+        (<float**>val_ptr)[0] = CArray(arg).as_float()
+    if array_type[0] == "d":
+        dprint("  [+] ...array is double")
+        (<double**>val_ptr)[0] = CArray(arg).as_double()
+    if array_type[0] == "I":
+        dprint("  [+] ...array is unsigned int")
+        (<unsigned int**>val_ptr)[0] = CArray(arg).as_uint()
+    if array_type[0] == "S":
+        dprint("  [+] ...array is unsigned short")
+        (<unsigned short**>val_ptr)[0] = CArray(arg).as_ushort()
+    if array_type[0] == "L":
+        dprint("  [+] ...array is unsigned long")
+        (<unsigned long**>val_ptr)[0] = CArray(arg).as_ulong()
+    if array_type[0] == "Q":
+        dprint("  [+] ...array is unsigned long long")
+        (<unsigned long long**>val_ptr)[0] = CArray(arg).as_ulonglong()
+    if array_type[0] == "C":
+        dprint("  [+] ...array is unsigned char")
+        (<unsigned char**>val_ptr)[0] = CArray(arg).as_uchar()
+    if array_type[0] == "B":
+        dprint("  [+] ...array is bool")
+        (<bool**>val_ptr)[0] = CArray(arg).as_bool()
+    if array_type[0] == "*":
+        dprint("  [+] ...array is char*")
+        (<char***>val_ptr)[0] = CArray(arg).as_char_ptr()
+    if array_type[0] == "@":
+        dprint("  [+] ...array is object(@)")
+        (<id**>val_ptr)[0] = CArray(arg).as_object_array()
+    if array_type[0] == "#":
+        dprint("  [+] ...array is class(#)")
+        (<Class**>val_ptr)[0] = CArray(arg).as_class_array()
+    if array_type[0] == ":":
+        dprint("  [+] ...array is sel(:)")
+        (<SEL**>val_ptr)[0] = CArray(arg).as_sel_array()
+        
+    if array_type[0] == "[":
+        # here is the problemos
+        dprint("  [+] ...array is array({})".format(sig))
+        #parse_position = sig.find("[")
+        #depth = int(sig[0:parse_position])
+        #sig = sig[parse_position:]
+        cdef void* arr
+        for i in xrange(len(arg)):
+            pass
+        dprint("Entering recursion for signature {}".format(sig))
+        (<void**>val_ptr)[0] = parse_array(arg, sig, size)
+        dprint("Returned from recursion call.")
+    if array_type[0] == "{":
+        pass
+    if array_type[0] == "(":
+        pass
+    if array_type[0] == "b":
+        pass
+    if array_type[0] == "^":
+        pass
+    if array_type[0] == "?":
+        pass
+    # TODO: other types
+    return val_ptr
+
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
@@ -420,81 +510,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     # TODO: array
     elif sig[0] == '[':
         dprint("==> Array signature for: {0}".format(list(arg)))
-        ## Fix this as recursion
-        sig = sig[1:len(sig) - 1]
-        sig_split = re.split('(\d+)', sig)
-        array_size = int(sig_split[1])
-        array_type = sig_split[2]
-        if array_size != len(arg):
-            dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
-                array_size, len(arg)))
-            raise TypeError()
-            
-        if array_type[0] == "i":
-            dprint("  [+] ...array is integer!")
-            (<int **>val_ptr)[0] = CArray(arg).as_int()
-        if array_type[0] == "c":
-            dprint("  [+] ...array is char!")
-            (<char **>val_ptr)[0] = CArray(arg).as_char()
-        if array_type[0] == "s":
-            dprint("  [+] ...array is short")
-            (<short **>val_ptr)[0] = CArray(arg).as_short()
-        if array_type[0] == "l":
-            dprint("  [+] ...array is long")
-            (<long **>val_ptr)[0] = CArray(arg).as_long()
-        if array_type[0] == "q":
-            dprint("  [+] ...array is long long")
-            (<long long**>val_ptr)[0] = CArray(arg).as_longlong()
-        if array_type[0] == "f":
-            dprint("  [+] ...array is float")
-            (<float**>val_ptr)[0] = CArray(arg).as_float()
-        if array_type[0] == "d":
-            dprint("  [+] ...array is double")
-            (<double**>val_ptr)[0] = CArray(arg).as_double()
-        if array_type[0] == "I":
-            dprint("  [+] ...array is unsigned int")
-            (<unsigned int**>val_ptr)[0] = CArray(arg).as_uint()
-        if array_type[0] == "S":
-            dprint("  [+] ...array is unsigned short")
-            (<unsigned short**>val_ptr)[0] = CArray(arg).as_ushort()
-        if array_type[0] == "L":
-            dprint("  [+] ...array is unsigned long")
-            (<unsigned long**>val_ptr)[0] = CArray(arg).as_ulong()
-        if array_type[0] == "Q":
-            dprint("  [+] ...array is unsigned long long")
-            (<unsigned long long**>val_ptr)[0] = CArray(arg).as_ulonglong()
-        if array_type[0] == "C":
-            dprint("  [+] ...array is unsigned char")
-            (<unsigned char**>val_ptr)[0] = CArray(arg).as_uchar()
-        if array_type[0] == "B":
-            dprint("  [+] ...array is bool")
-            (<bool**>val_ptr)[0] = CArray(arg).as_bool()
-        if array_type[0] == "*":
-            dprint("  [+] ...array is char*")
-            (<char***>val_ptr)[0] = CArray(arg).as_char_ptr()
-        if array_type[0] == "@":
-            dprint("  [+] ...array is @")
-            (<id**>val_ptr)[0] = CArray(arg).as_object_array()
-        if array_type[0] == "#":
-            dprint("  [+] ...array is #")
-            (<Class**>val_ptr)[0] = CArray(arg).as_class_array()
-        if array_type[0] == ":":
-            dprint("  [] ...array is :")
-            (<SEL**>val_ptr)[0] = CArray(arg).as_sel_array()
-        if array_type[0] == "[":
-            pass
-        if array_type[0] == "{":
-            pass
-        if array_type[0] == "(":
-            pass
-        if array_type[0] == "b":
-            pass
-        if array_type[0] == "^":
-            pass
-        if array_type[0] == "?":
-            pass
-        # TODO: other types
-             
+        val_ptr = parse_array(sig, arg, size)
+
     # method is accepting structure OR union
     # NOTE: Support for passing union as arguments by value wasn't supported with libffi,
     # in time of writing this version of pyobjus.

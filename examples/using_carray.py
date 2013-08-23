@@ -23,8 +23,9 @@ _instance.setIntValues_(array)  #Do not forget for _ to signify no. of arguments
 #_instance.printIntValues()
 returned_PyList = dereference(_instance.getIntValues(), of_type=CArray, return_count=10)
 print returned_PyList 
-# If method returns values/ArrayCount over reference and you don't provide CArrayCount on the right position in the method signature,
-# you will get "IndexError: tuple index out of range" or segmentation fault, so don't forget to provide CArrayCount on the right position
+# If method returns values/ArrayCount over reference and you don't provide CArrayCount 
+# on the right position in the method signature, you will get "IndexError: tuple index out of range" 
+# or segmentation fault, so don't forget to provide CArrayCount on the right position
 returned_PyList_withCount = dereference(_instance.getIntValuesWithCount_(CArrayCount), of_type=CArray)
 print returned_PyList_withCount
 
@@ -304,12 +305,24 @@ print returned_selectors_WithCount
 
 
 ############################# SIGNATURE: [], Multidimensional array #############################
-
-## signature: []
 # Objective-C method signatures:
 # - (void) set2DIntValues: (int[10][10]) val_arr;
 # - (int*) get2DIntValues;
 # - (int*) get2DIntValuesWithCount: (unsigned int*) n :(unsigned int*) m;
+
+twoD_array = [
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+    [31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+    [41, 42, 43, 44, 45, 46, 47, 48, 49, 50],
+    [51, 52, 53, 54, 55, 56, 57, 58, 59, 60],
+    [61, 62, 63, 64, 65, 66, 67, 68, 69, 70],
+    [71, 72, 73, 74, 75, 76, 77, 78, 79, 80],
+    [81, 82, 83, 84, 85, 86, 87, 88, 89, 90],
+    [91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+]
+_instance.set2DIntValues_(twoD_array)
 
 #################################################################################################
 
