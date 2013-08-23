@@ -1,6 +1,7 @@
 import ctypes
-from pyobjus import autoclass, dereference, CArray, CArrayCount
+from pyobjus import autoclass, selector, dereference, CArray, CArrayCount
 from pyobjus.dylib_manager import load_dylib
+
 
 load_dylib('CArrayTestlib.dylib', usr_path=False)
 
@@ -167,7 +168,18 @@ for i in xrange(len(returned_classes)):
 returned_classes_WithCount = dereference(_instance.getClassValuesWithCount_(CArrayCount), of_type=CArray)
 for i in xrange(len(returned_classes_WithCount)):
     print NSNumber.isKindOfClass_(returned_classes_WithCount[i])
+
+
 ## signature: :
+sel = selector("UTF8String")
+sel_array = [sel for i in xrange(0, 10)]
+print sel_array
+_instance.setSELValues_(sel_array)
+returned_selectors = dereference(_instance.getSELValues(), of_type=CArray, return_count=10)
+print returned_selectors
+returned_selectors_WithCount = dereference(_instance.getSELValuesWithCount_(CArrayCount), of_type=CArray)
+print returned_selectors_WithCount
+# TODO: make test with NSSelectorFromString(@"printSelector");
 
 ## signature: []
 

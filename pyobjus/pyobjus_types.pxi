@@ -66,10 +66,10 @@ cdef class CArray:
         if str(of_type) == "@":  # an object
             return self.get_object_list(ptr, arr_size)
         if str(of_type) == "#":  # class
-            dprint("ARRAY OF CLASS DEFINITIONS")
             return self.get_class_list(ptr, arr_size)
         if str(of_type) == ":":
-            pass
+            return self.get_sel_list(ptr, arr_size)
+            
         #if str(of_type)[0] == "": 
         #    pass
         # TODO: remaining types
@@ -90,13 +90,23 @@ cdef class CArray:
         return ret_list
 
 
-    cdef list get_class_list(self, unsigned long long ptr, unsigned long long array_size): # not tested
+    cdef list get_class_list(self, unsigned long long ptr, unsigned long long array_size):
         cdef Class *array = <Class*>ptr
         ret_list = list()
         for i in xrange(array_size):
             obj_class = ObjcClass()
             obj_class.o_cls = <Class>object_getClass(<id>array[i])
             ret_list.append(obj_class)
+        return ret_list
+
+
+    cdef list get_sel_list(self, unsigned long long ptr, unsigned long long array_size):
+        cdef SEL *array = <SEL*>ptr
+        ret_list = list()
+        for i in xrange(array_size):
+            obj_selector = ObjcSelector()
+            obj_selector.selector = <SEL>array[i]
+            ret_list.append(obj_selector)
         return ret_list
 
 
@@ -231,12 +241,21 @@ cdef class CArray:
         cdef ObjcClass obj_class
         if class_array is NULL:
             raise MemoryError()
-        dprint("CARRAY().as_class_array() conversion")
         for i in xrange(self.PyListSize):
             obj_class = <ObjcClass>self.PyList[i]
             class_array[i] = <Class>obj_class.o_cls
         return class_array
 
+    cdef SEL *as_sel_array(self):
+        cdef SEL *sel_array = <SEL*> malloc(sizeof(SEL) * self.PyListSize)
+        cdef ObjcSelector obj_selector
+        if sel_array is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            obj_selector = <ObjcSelector>self.PyList[i]
+            sel_array[i] = <SEL>obj_selector.selector
+        return sel_array
+            
 ########## Pyobjus literals <-> Objective C literals ##########
 
 NSNumber = lambda: autoclass('NSNumber')
