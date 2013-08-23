@@ -38,16 +38,15 @@ def dereference(py_ptr, **kwargs):
             return convert_to_cy_cls_instance(<id>c_addr)
         elif issubclass(of_type, CArray) and 'return_count' in kwargs:
             dprint("Returning CArray from c_addr, size={0}".format(kwargs['return_count']))
-            #arr_ptr = py_ptr.arg_ref
-            #arr_type = py_ptr.type
-            #arr_buffer = ctypes.cast(ret_array.arg_ref, ctypes.POINTER(ctypes.c_int))
             return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, kwargs['return_count'])
         elif issubclass(of_type, CArray):
-            # search for return count in reference objc
+            # search for return count in ObjcReferenceToType object
             dprint("Returning CArray, calculating returned value by 'reference'")
             for item in py_ptr.reference_return_values:
                 if type(item) == CArrayCount:
+                    dprint("CArray().get_from_ptr({0}, {1}, {2})".format(py_ptr.arg_ref, py_ptr.of_type, item.value))
                     return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, item.value)
+        
         py_ptr.of_type = of_type.enc
         # TODO: other types
         # elif issubclass(type, MissingTypes....):
@@ -108,7 +107,8 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
 
     Returns:
         ObjcClassInstance type
-    '''    
+    '''
+    dprint("convert_to_cy_cls_instance: {0}".format(pr(ret_id)))
     cdef ObjcClassInstance cret 
     bret = <bytes><char *>object_getClassName(ret_id)
     dprint(' - object_getClassName(f_result) =', bret)
@@ -218,7 +218,6 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
             c_addr = <unsigned long long>f_result
         else:
             c_addr = <unsigned long long>f_result[0]
-        
         return ObjcReferenceToType(c_addr, sig.split('^', 1)[1], size)
 
     # return type --> unknown type
@@ -421,21 +420,77 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     # TODO: array
     elif sig[0] == '[':
         dprint("==> Array signature for: {0}".format(list(arg)))
-        array_size = int(re.split('(\d+)', sig)[1])
+        ## Fix this as recursion
+        sig = sig[1:len(sig) - 1]
+        sig_split = re.split('(\d+)', sig)
+        array_size = int(sig_split[1])
+        array_type = sig_split[2]
         if array_size != len(arg):
             dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
                 array_size, len(arg)))
             raise TypeError()
-
-        if sig[len(sig) - 2] == "i":
+            
+        if array_type[0] == "i":
             dprint("  [+] ...array is integer!")
             (<int **>val_ptr)[0] = CArray(arg).as_int()
-        if sig[len(sig) - 2] == "c":
+        if array_type[0] == "c":
             dprint("  [+] ...array is char!")
             (<char **>val_ptr)[0] = CArray(arg).as_char()
-        if sig[len(sig) - 2] == "s":
+        if array_type[0] == "s":
             dprint("  [+] ...array is short")
             (<short **>val_ptr)[0] = CArray(arg).as_short()
+        if array_type[0] == "l":
+            dprint("  [+] ...array is long")
+            (<long **>val_ptr)[0] = CArray(arg).as_long()
+        if array_type[0] == "q":
+            dprint("  [+] ...array is long long")
+            (<long long**>val_ptr)[0] = CArray(arg).as_longlong()
+        if array_type[0] == "f":
+            dprint("  [+] ...array is float")
+            (<float**>val_ptr)[0] = CArray(arg).as_float()
+        if array_type[0] == "d":
+            dprint("  [+] ...array is double")
+            (<double**>val_ptr)[0] = CArray(arg).as_double()
+        if array_type[0] == "I":
+            dprint("  [+] ...array is unsigned int")
+            (<unsigned int**>val_ptr)[0] = CArray(arg).as_uint()
+        if array_type[0] == "S":
+            dprint("  [+] ...array is unsigned short")
+            (<unsigned short**>val_ptr)[0] = CArray(arg).as_ushort()
+        if array_type[0] == "L":
+            dprint("  [+] ...array is unsigned long")
+            (<unsigned long**>val_ptr)[0] = CArray(arg).as_ulong()
+        if array_type[0] == "Q":
+            dprint("  [+] ...array is unsigned long long")
+            (<unsigned long long**>val_ptr)[0] = CArray(arg).as_ulonglong()
+        if array_type[0] == "C":
+            dprint("  [+] ...array is unsigned char")
+            (<unsigned char**>val_ptr)[0] = CArray(arg).as_uchar()
+        if array_type[0] == "B":
+            dprint("  [+] ...array is bool")
+            (<bool**>val_ptr)[0] = CArray(arg).as_bool()
+        if array_type[0] == "*":
+            dprint("  [+] ...array is char*")
+            (<char***>val_ptr)[0] = CArray(arg).as_char_ptr()
+        if array_type[0] == "@":
+            dprint("  [+] ...array is @")
+            (<id**>val_ptr)[0] = CArray(arg).as_object_array()
+        if array_type[0] == "#":
+            pass
+        if array_type[0] == ":":
+            pass
+        if array_type[0] == "[":
+            pass
+        if array_type[0] == "{":
+            pass
+        if array_type[0] == "(":
+            pass
+        if array_type[0] == "b":
+            pass
+        if array_type[0] == "^":
+            pass
+        if array_type[0] == "?":
+            pass
         # TODO: other types
              
     # method is accepting structure OR union

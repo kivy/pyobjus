@@ -316,7 +316,7 @@ cdef class ObjcMethod(object):
             
             if arg == CArrayCount: 
                 arg, carray = 0, True
-            dprint("ARG == CArrayCount: {0}, {1}".format(arg, carray))
+            dprint("ARG, CArrayCount, type(arg): {0}, {1}, {2}".format(arg, carray, type(arg)))
             
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg: {!r}".format(

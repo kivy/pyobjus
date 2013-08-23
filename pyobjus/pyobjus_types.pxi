@@ -33,14 +33,60 @@ cdef class CArray:
     def get_from_ptr(self, unsigned long long ptr, char *of_type, unsigned long long arr_size):
         dprint("CArray().get_from_ptr({0}, {1}, {2})".format(ptr, of_type, arr_size))
         ret = list()
-        if str(of_type) == "i":
+        if str(of_type) == "i":  # int
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_int))
-            for i in xrange(arr_size):
-                ret.append(arr_cast[i])
-                
+        elif str(of_type) == "c":  # char
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char))  # or c_wchar
+        elif str(of_type) == "s":  # short
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_short))
+        if str(of_type) == "l":  # long
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_long))
+        if str(of_type) == "q":  # long long 
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_longlong))
+        if str(of_type) == "f":  # float
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_float))
+        if str(of_type) == "d":  # double
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_double))
+        if str(of_type) == "I":  # uint
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_uint))
+        if str(of_type) == "S":  # ushort
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ushort))
+        if str(of_type) == "L":  # ulong
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulong))
+        if str(of_type) == "Q":  # ulonglong
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulonglong))
+        if str(of_type) == "C":  # uchar
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_uchar))
+        if str(of_type) == "B":  # bool
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_bool))
+        if str(of_type) == "v":  # void
+            pass
+        if str(of_type) == "*":  # (char*)
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char_p))
+        if str(of_type) == "@":  # an object
+            return self.get_object_list(ptr, arr_size)
+        if str(of_type) == "#":  # class object
+            pass
+        if str(of_type) == ":":
+            pass
+        #if str(of_type)[0] == "": 
+        #    pass
         # TODO: remaining types
+        
+        for i in xrange(arr_size):
+            ret.append(arr_cast[i])
+            
         return ret
         
+
+    cdef list get_object_list(self, unsigned long long ptr, unsigned long long array_size):
+        cdef id *array = <id*>ptr
+        cdef ObjcClassInstance ocl
+        ret_list = list()
+        for i in xrange(array_size):
+            ocl = convert_to_cy_cls_instance(array[i])
+            ret_list.append(ocl)
+        return ret_list
         
     cdef int *as_int(self):
         dprint(" [+] ...converting to int array")
@@ -57,7 +103,7 @@ cdef class CArray:
         if char_t is NULL:
             raise MemoryError()
         for i in xrange(self.PyListSize):
-            char_t[i] = self.PyList[i]
+            char_t[i] = ord(self.PyList[i])
         return char_t
 
 
@@ -93,6 +139,81 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             float_t[i] = self.PyList[i]
         return float_t
+        
+    cdef double *as_double(self):
+        cdef double *double_t = <double*> malloc(sizeof(double) * self.PyListSize)
+        if double_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            double_t[i] = self.PyList[i]
+        return double_t
+        
+    cdef unsigned int *as_uint(self):
+        cdef unsigned int *uint_t = <unsigned int*> malloc(sizeof(unsigned int) * self.PyListSize)
+        if uint_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            uint_t[i] = self.PyList[i]
+        return uint_t
+        
+    cdef unsigned short *as_ushort(self):
+        cdef unsigned short *ushort_t = <unsigned short*> malloc(sizeof(unsigned short) * self.PyListSize)
+        if ushort_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            ushort_t[i] = self.PyList[i]
+        return ushort_t
+
+    cdef unsigned long *as_ulong(self):
+        cdef unsigned long *ulong_t = <unsigned long*> malloc(sizeof(unsigned long) * self.PyListSize)
+        if ulong_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            ulong_t[i] = self.PyList[i]
+        return ulong_t
+        
+    cdef unsigned long long *as_ulonglong(self):
+        cdef unsigned long long *ulonglong = <unsigned long long*> malloc(sizeof(unsigned long long) * self.PyListSize)
+        if ulonglong is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            ulonglong[i] = self.PyList[i]
+        return ulonglong
+        
+    cdef unsigned char *as_uchar(self):
+        cdef unsigned char *uchar_t = <unsigned char*> malloc(sizeof(unsigned char) * self.PyListSize)
+        if uchar_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            uchar_t[i] = ord(self.PyList[i])
+        return uchar_t
+    
+    cdef bool *as_bool(self):
+        cdef bool *bool_t = <bool*> malloc(sizeof(bool) * self.PyListSize)
+        if bool_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            bool_t[i] = self.PyList[i]
+        return bool_t
+        
+    cdef char **as_char_ptr(self): ## not tested
+        cdef char **char_ptr_t = <char**> malloc(sizeof(char*) * self.PyListSize)
+        if char_ptr_t is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            char_ptr_t[i] = <char*><bytes>self.PyList[i]
+        return char_ptr_t
+        
+    cdef id *as_object_array(self):
+        of_type = type(self.PyList[0])
+        cdef id *object_array = <id*> malloc(sizeof(id) * self.PyListSize)
+        cdef ObjcClassInstance ocl
+        if object_array is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            ocl = <ObjcClassInstance>self.PyList[i]
+            object_array[i] = <id>ocl.o_instance  
+        return object_array
 
 ########## Pyobjus literals <-> Objective C literals ##########
 
@@ -341,7 +462,7 @@ cdef class ObjcProperty:
                 self.prop_attrs_dict['customSetter'] = True
             # TODO: t<encoding>
 
-cdef class ObjcClassInstance(object):
+cdef class ObjcClassInstance:
 
     enc = '@'
     cdef Class o_cls
