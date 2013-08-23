@@ -476,7 +476,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             dprint("  [+] ...array is @")
             (<id**>val_ptr)[0] = CArray(arg).as_object_array()
         if array_type[0] == "#":
-            pass
+            dprint("  [+] ...array is #")
+            (<Class**>val_ptr)[0] = CArray(arg).as_class_array()
         if array_type[0] == ":":
             pass
         if array_type[0] == "[":

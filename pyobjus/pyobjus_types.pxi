@@ -65,8 +65,9 @@ cdef class CArray:
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char_p))
         if str(of_type) == "@":  # an object
             return self.get_object_list(ptr, arr_size)
-        if str(of_type) == "#":  # class object
-            pass
+        if str(of_type) == "#":  # class
+            dprint("ARRAY OF CLASS DEFINITIONS")
+            return self.get_class_list(ptr, arr_size)
         if str(of_type) == ":":
             pass
         #if str(of_type)[0] == "": 
@@ -87,7 +88,18 @@ cdef class CArray:
             ocl = convert_to_cy_cls_instance(array[i])
             ret_list.append(ocl)
         return ret_list
-        
+
+
+    cdef list get_class_list(self, unsigned long long ptr, unsigned long long array_size): # not tested
+        cdef Class *array = <Class*>ptr
+        ret_list = list()
+        for i in xrange(array_size):
+            obj_class = ObjcClass()
+            obj_class.o_cls = <Class>object_getClass(<id>array[i])
+            ret_list.append(obj_class)
+        return ret_list
+
+
     cdef int *as_int(self):
         dprint(" [+] ...converting to int array")
         cdef int *int_t = <int*> malloc(sizeof(int) * self.PyListSize)
@@ -205,7 +217,6 @@ cdef class CArray:
         return char_ptr_t
         
     cdef id *as_object_array(self):
-        of_type = type(self.PyList[0])
         cdef id *object_array = <id*> malloc(sizeof(id) * self.PyListSize)
         cdef ObjcClassInstance ocl
         if object_array is NULL:
@@ -214,6 +225,17 @@ cdef class CArray:
             ocl = <ObjcClassInstance>self.PyList[i]
             object_array[i] = <id>ocl.o_instance  
         return object_array
+
+    cdef Class *as_class_array(self):
+        cdef Class *class_array = <Class*> malloc(sizeof(Class) * self.PyListSize)
+        cdef ObjcClass obj_class
+        if class_array is NULL:
+            raise MemoryError()
+        dprint("CARRAY().as_class_array() conversion")
+        for i in xrange(self.PyListSize):
+            obj_class = <ObjcClass>self.PyList[i]
+            class_array[i] = <Class>obj_class.o_cls
+        return class_array
 
 ########## Pyobjus literals <-> Objective C literals ##########
 

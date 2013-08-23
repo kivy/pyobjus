@@ -142,19 +142,31 @@ print returned_chars_WithCount
 
 
 ## signature: @
-nsnumber = autoclass("NSNumber")
+NSNumber = autoclass("NSNumber")
 ns_number_array = list()
 for i in xrange(0, 10):
-    ns_number_array.append(nsnumber.alloc().initWithInt_(i))
+    ns_number_array.append(NSNumber.alloc().initWithInt_(i))
 _instance.setNSNumberValues_(ns_number_array)
-nsnumber_ptr_array = _instance.getNSNumberValues() # 
-nsnumber_array = dereference(nsnumber_ptr_array, of_type=CArray, return_count=10)  # pyobjus.ObjcReferenceToType
-for i in xrange(len(nsnumber_array)):
-    print nsnumber_array[i].intValue()
+nsnumber_ptr_array = _instance.getNSNumberValues()
+returned_nsnumbers = dereference(nsnumber_ptr_array, of_type=CArray, return_count=10)
+for i in xrange(len(returned_nsnumbers)):
+    print returned_nsnumbers[i].intValue()
 
+returned_nsnumbers_WithCount = dereference(_instance.getNSNumberValuesWithCount_(CArrayCount), of_type=CArray)
+for i in xrange(len(returned_nsnumbers_WithCount)):
+    print returned_nsnumbers_WithCount[i].intValue()
 
 ## signature: #
-
+nsnumber_class = NSNumber.oclass()
+nsnumber_class_array = [nsnumber_class for i in xrange(0, 10)]
+_instance.setClassValues_(nsnumber_class_array)
+returned_classes = dereference(_instance.getClassValues(), of_type=CArray, return_count=10)
+print returned_classes
+for i in xrange(len(returned_classes)):
+    print NSNumber.isKindOfClass_(returned_classes[i])
+returned_classes_WithCount = dereference(_instance.getClassValuesWithCount_(CArrayCount), of_type=CArray)
+for i in xrange(len(returned_classes_WithCount)):
+    print NSNumber.isKindOfClass_(returned_classes_WithCount[i])
 ## signature: :
 
 ## signature: []
