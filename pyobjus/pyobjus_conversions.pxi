@@ -246,11 +246,12 @@ cdef char convert_py_bool_to_objc(arg):
 
 cdef void *parse_array(sig, arg, size):
     cdef void *val_ptr = malloc(size)
-    dprint(" ..[+] parse_array({}, {}, {})".format(sig, arg, size))
+    
     sig = sig[1:len(sig) - 1]
     sig_split = re.split('(\d+)', sig)
     array_size = int(sig_split[1])
     array_type = sig_split[2]
+    dprint(" ..[+] parse_array({}, {}, {})".format(sig, arg, size))
    
     if array_size != len(arg):
         dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
@@ -308,19 +309,29 @@ cdef void *parse_array(sig, arg, size):
     if array_type[0] == ":":
         dprint("  [+] ...array is sel(:)")
         (<SEL**>val_ptr)[0] = CArray(arg).as_sel_array()
-        
+    
+    cdef Class *cls_array
+    cdef void *temp
+    cdef unsigned int **array, *tmp_arr
     if array_type[0] == "[":
+        cls_array = <Class*> malloc(sizeof(Class) * len(arg))
         # here is the problemos
         dprint("  [+] ...array is array({})".format(sig))
-        #parse_position = sig.find("[")
-        #depth = int(sig[0:parse_position])
-        #sig = sig[parse_position:]
-        cdef void* arr
-        for i in xrange(len(arg)):
-            pass
+        parse_position = sig.find("[")
+        depth = int(sig[0:parse_position])
+        sig = sig[parse_position:]
         dprint("Entering recursion for signature {}".format(sig))
-        (<void**>val_ptr)[0] = parse_array(arg, sig, size)
-        dprint("Returned from recursion call.")
+        
+        for i in xrange(depth):
+            #array[i] = <unsigned int*>parse_array(sig, arg[i], size)
+            cls_array[i] = <Class> parse_array(sig, arg[i], size)
+            dprint("Returned from recursion call.")
+            tmp_arr = <unsigned int*>cls_array[i]
+            for j in xrange(0, 10):
+                print "    [-] {}".format(tmp_arr[j])
+            #dprint("    [-] {}".format(temp_list))
+        (<Class**>val_ptr)[0] = cls_array
+        
     if array_type[0] == "{":
         pass
     if array_type[0] == "(":
