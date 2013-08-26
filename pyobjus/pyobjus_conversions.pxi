@@ -7,6 +7,17 @@ ctypes_struct_cache = []
 cdef extern from "string.h":
   char *strcpy(char *dest, char *src)
 
+
+def partition_array(array, dim):
+    chunks = lambda l, n: [l[i:i + n] for i in range(0, len(l), n)]
+    sol = chunks(array, dim[len(dim) - 1])
+    dim.pop()
+    while dim:
+        sol = chunks(sol, dim[len(dim) - 1])
+        dim.pop()
+    return sol[0]
+
+
 def dereference(py_ptr, **kwargs):
     ''' Function for casting python object of one type, to another (supported type)
     Args: 
@@ -36,9 +47,20 @@ def dereference(py_ptr, **kwargs):
             return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(of_type)).contents
         elif issubclass(of_type, ObjcClassInstance):
             return convert_to_cy_cls_instance(<id>c_addr)
-        elif issubclass(of_type, CArray) and 'return_count' in kwargs:
+        elif issubclass(of_type, CArray) and "return_count" in kwargs:
             dprint("Returning CArray from c_addr, size={0}".format(kwargs['return_count']))
             return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, kwargs['return_count'])
+        
+        elif issubclass(of_type, CArray) and "partition" in kwargs:
+            partitions = kwargs["partition"]
+            total_count = partitions[0]
+            for i in xrange(1, len(partitions)):
+                total_count *= int(partitions[i])
+            chunks = lambda l, n: [l[i:i + n] for i in range(0, len(l), n)]
+            dprint("Total count for {} is {}".format(partitions, total_count))
+            array = CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, total_count)
+            return partition_array(array, partitions)
+            
         elif issubclass(of_type, CArray):
             # search for return count in ObjcReferenceToType object
             dprint("Returning CArray, calculating returned value by 'reference'")
@@ -244,7 +266,19 @@ cdef char convert_py_bool_to_objc(arg):
     return NO
 
 
-cdef void *parse_array(sig, arg, size):
+def remove_dimensions(array):
+    """ Function for flattening multidimensional list to one dimensional """
+    result = list()
+    if isinstance(array , list):
+        for item in array:
+            result.extend(remove_dimensions(item))
+    else:
+        result.append(array)
+    return result
+
+
+cdef void *parse_array(sig, arg, size, multidimension=False):
+
     cdef void *val_ptr = malloc(size)
     
     sig = sig[1:len(sig) - 1]
@@ -253,7 +287,7 @@ cdef void *parse_array(sig, arg, size):
     array_type = sig_split[2]
     dprint(" ..[+] parse_array({}, {}, {})".format(sig, arg, size))
    
-    if array_size != len(arg):
+    if array_size != len(arg) and not multidimension:
         dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
             array_size, len(arg)))
         raise TypeError()
@@ -261,76 +295,78 @@ cdef void *parse_array(sig, arg, size):
     if array_type[0] == "i":
         dprint("  [+] ...array is integer!")
         (<int **>val_ptr)[0] = CArray(arg).as_int()
+
     if array_type[0] == "c":
         dprint("  [+] ...array is char!")
         (<char **>val_ptr)[0] = CArray(arg).as_char()
+
     if array_type[0] == "s":
         dprint("  [+] ...array is short")
         (<short **>val_ptr)[0] = CArray(arg).as_short()
+
     if array_type[0] == "l":
         dprint("  [+] ...array is long")
         (<long **>val_ptr)[0] = CArray(arg).as_long()
+
     if array_type[0] == "q":
         dprint("  [+] ...array is long long")
         (<long long**>val_ptr)[0] = CArray(arg).as_longlong()
+
     if array_type[0] == "f":
         dprint("  [+] ...array is float")
         (<float**>val_ptr)[0] = CArray(arg).as_float()
+
     if array_type[0] == "d":
         dprint("  [+] ...array is double")
         (<double**>val_ptr)[0] = CArray(arg).as_double()
+
     if array_type[0] == "I":
         dprint("  [+] ...array is unsigned int")
         (<unsigned int**>val_ptr)[0] = CArray(arg).as_uint()
+
     if array_type[0] == "S":
         dprint("  [+] ...array is unsigned short")
         (<unsigned short**>val_ptr)[0] = CArray(arg).as_ushort()
+
     if array_type[0] == "L":
         dprint("  [+] ...array is unsigned long")
         (<unsigned long**>val_ptr)[0] = CArray(arg).as_ulong()
+
     if array_type[0] == "Q":
         dprint("  [+] ...array is unsigned long long")
         (<unsigned long long**>val_ptr)[0] = CArray(arg).as_ulonglong()
+
     if array_type[0] == "C":
         dprint("  [+] ...array is unsigned char")
         (<unsigned char**>val_ptr)[0] = CArray(arg).as_uchar()
+
     if array_type[0] == "B":
         dprint("  [+] ...array is bool")
         (<bool**>val_ptr)[0] = CArray(arg).as_bool()
+
     if array_type[0] == "*":
         dprint("  [+] ...array is char*")
         (<char***>val_ptr)[0] = CArray(arg).as_char_ptr()
+
     if array_type[0] == "@":
         dprint("  [+] ...array is object(@)")
         (<id**>val_ptr)[0] = CArray(arg).as_object_array()
+
     if array_type[0] == "#":
         dprint("  [+] ...array is class(#)")
         (<Class**>val_ptr)[0] = CArray(arg).as_class_array()
+        
     if array_type[0] == ":":
         dprint("  [+] ...array is sel(:)")
         (<SEL**>val_ptr)[0] = CArray(arg).as_sel_array()
     
-    cdef Class *cls_array
-    cdef void *temp
-    cdef unsigned int **array, *tmp_arr
     if array_type[0] == "[":
-        cls_array = <Class*> malloc(sizeof(Class) * len(arg))
-        # here is the problemos
         dprint("  [+] ...array is array({})".format(sig))
         parse_position = sig.find("[")
         depth = int(sig[0:parse_position])
         sig = sig[parse_position:]
         dprint("Entering recursion for signature {}".format(sig))
-        
-        for i in xrange(depth):
-            #array[i] = <unsigned int*>parse_array(sig, arg[i], size)
-            cls_array[i] = <Class> parse_array(sig, arg[i], size)
-            dprint("Returned from recursion call.")
-            tmp_arr = <unsigned int*>cls_array[i]
-            for j in xrange(0, 10):
-                print "    [-] {}".format(tmp_arr[j])
-            #dprint("    [-] {}".format(temp_list))
-        (<Class**>val_ptr)[0] = cls_array
+        return parse_array(sig, remove_dimensions(arg), size, multidimension=True)
         
     if array_type[0] == "{":
         pass
@@ -342,7 +378,7 @@ cdef void *parse_array(sig, arg, size):
         pass
     if array_type[0] == "?":
         pass
-    # TODO: other types
+
     return val_ptr
 
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
