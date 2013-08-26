@@ -8,18 +8,17 @@ kivy_ios_root = environ.get('KIVYIOSROOT', None)
 if kivy_ios_root is not None:
     platform = 'ios'
 
+# OSX
 if platform == 'darwin':
     try:
         from Cython.Distutils import build_ext
     except ImportError:
         raise
     files = ['pyobjus.pyx']
+# iOS
 elif platform == 'ios':
     from distutils.command.build_ext import build_ext
     files = ['pyobjus.c']
-
-print "pl"*100
-print platform
 
 libraries = ['ffi']
 library_dirs = []
