@@ -292,16 +292,16 @@ for i in xrange(len(returned_classes_WithCount)):
 # - (SEL*) getSELValuesWithCount: (unsigned int*) n;
 
 #sel = selector("UTF8String")
-sel = selector("printSelector")
-sel_array = [sel for i in xrange(0, 10)]
-print sel_array
-_instance.setSELValues_(sel_array)
-returned_selectors = dereference(_instance.getSELValues(), of_type=CArray, return_count=10)
-print returned_selectors
-returned_selectors_WithCount = dereference(_instance.getSELValuesWithCount_(CArrayCount), of_type=CArray)
-print returned_selectors_WithCount
-for i in xrange(len(returned_selectors_WithCount)):
-    _instance.performSelector_(returned_selectors_WithCount[i])
+#sel = selector("printSelector")
+#sel_array = [sel for i in xrange(0, 10)]
+#print sel_array
+#_instance.setSELValues_(sel_array)
+#returned_selectors = dereference(_instance.getSELValues(), of_type=CArray, return_count=10)
+#print returned_selectors
+#returned_selectors_WithCount = dereference(_instance.getSELValuesWithCount_(CArrayCount), of_type=CArray)
+#print returned_selectors_WithCount
+#for i in xrange(len(returned_selectors_WithCount)):
+#    _instance.performSelector_(returned_selectors_WithCount[i])
 
 #################################################################################################
 
@@ -324,8 +324,11 @@ twoD_array = [
     [81, 82, 83, 84, 85, 86, 87, 88, 89, 90],
     [91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
 ]
-#_instance.set2DIntValues_(twoD_array)
+_instance.set2DIntValues_(twoD_array)
+returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,5,2])
+print returned_2d_list
 
+#returned_2d_list_WithCounts
 #################################################################################################
 
 
