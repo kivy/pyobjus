@@ -3,21 +3,28 @@ from os import environ
 from os.path import dirname, join
 import sys
 
-from Cython.Distutils import extension
+platform = sys.platform
+kivy_ios_root = environ.get('KIVYIOSROOT', None)
+if kivy_ios_root is not None:
+    platform = 'ios'
 
+# OSX
+if platform == 'darwin':
+    try:
+        from Cython.Distutils import build_ext
+    except ImportError:
+        raise
+    files = ['pyobjus.pyx']
+# iOS
+elif platform == 'ios':
+    from distutils.command.build_ext import build_ext
+    files = ['pyobjus.c']
 
-files = ['pyobjus.pyx']
-libraries = ["ffi"]
+libraries = ['ffi']
 library_dirs = []
 extra_compile_args = []
 extra_link_args = []
 include_dirs = []
-
-# detect cython
-try:
-    from Cython.Distutils import build_ext
-except ImportError:
-    raise
 
 # create the extension
 setup(name='pyobjus',
@@ -28,12 +35,9 @@ setup(name='pyobjus',
         ext_modules=[
         Extension(
             'pyobjus', [join('pyobjus', x) for x in files],
-            pyrex_gdb=True,
             libraries=libraries,
             library_dirs=library_dirs,
             include_dirs=include_dirs,
             extra_link_args=extra_link_args)
         ]
      )
-
-
