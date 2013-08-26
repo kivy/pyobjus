@@ -56,7 +56,7 @@ def dereference(py_ptr, **kwargs):
             total_count = partitions[0]
             for i in xrange(1, len(partitions)):
                 total_count *= int(partitions[i])
-            chunks = lambda l, n: [l[i:i + n] for i in range(0, len(l), n)]
+            
             dprint("Total count for {} is {}".format(partitions, total_count))
             array = CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, total_count)
             return partition_array(array, partitions)
