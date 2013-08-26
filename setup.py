@@ -2,9 +2,25 @@ from distutils.core import setup, Extension
 from os import environ
 from os.path import dirname, join
 import sys
-from distutils.command.build_ext import build_ext
 
-files = ['pyobjus.c']
+platform = sys.platform
+kivy_ios_root = environ.get('KIVYIOSROOT', None)
+if kivy_ios_root is not None:
+    platform = 'ios'
+
+if platform == 'darwin':
+    try:
+        from Cython.Distutils import build_ext
+    except ImportError:
+        raise
+    files = ['pyobjus.pyx']
+elif platform == 'ios':
+    from distutils.command.build_ext import build_ext
+    files = ['pyobjus.c']
+
+print "pl"*100
+print platform
+
 libraries = ['ffi']
 library_dirs = []
 extra_compile_args = []
