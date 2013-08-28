@@ -338,3 +338,9 @@ print objc_b(False).boolValue()
 print objc_str('string literal test!').UTF8String()
 print objc_arr(text, objc_str('other string'), objc_i(232343)).objectAtIndex_(2)
 print objc_dict({'first': text, 'second': objc_f(3.14)}).objectForKey_(objc_str('second')).floatValue()
+
+text = NSString.stringWithUTF8String_('it works!')
+rng = NSRange(0, 3)
+r = text.lineRangeForRange_(rng)
+print r.location
+print r.length

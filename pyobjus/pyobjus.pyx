@@ -1,3 +1,4 @@
+platform = "darwin"
 '''
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
@@ -7,7 +8,7 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass', 
         'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list', 
         'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b', 
-        'objc_str', 'objc_arr', 'objc_dict')
+        'objc_str', 'objc_arr', 'objc_dict', 'platform')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -320,10 +321,10 @@ cdef class ObjcMethod(object):
         if self.signature_return[0][0] not in ['(', '{']:
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
         else:
-            # TODO FIXME NOTE: Currently this only work on x86_64 architecture
-            # We need add cases for powerPC 32bit and 64bit, and IA-32 architecture
+            # TODO FIXME NOTE: Currently this only work on x86_64 architecture and armv7 ios
 
-            IF UNAME_MACHINE == "x86_64":
+            if platform == 'darwin':
+            # OSX -> X86_64
             # From docs: If the type has class MEMORY, then the caller provides space for the return
             # value and passes the address of this storage in %rdi as if it were the ﬁrst
             # argument to the function. In effect, this address becomes a “hidden” ﬁrst
@@ -353,7 +354,11 @@ cdef class ObjcMethod(object):
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
-            ELSE:
+            elif platform == 'ios':
+                ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
+                dprint('ios platform objc_msgSend_stret call')
+
+            else:
                 dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", of_type='e')
                 raise SystemExit()
 

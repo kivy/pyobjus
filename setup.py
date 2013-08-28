@@ -2,6 +2,16 @@ from distutils.core import setup, Extension
 from os import environ
 from os.path import dirname, join
 import sys
+import subprocess
+
+def line_prepender(filename, line):
+    with open(filename,'r+') as f:
+        platform_defined = f.readline().split('=', 1)[0].strip() == 'platform'
+        f.seek(0, 0)
+        if not platform_defined:
+            content = f.read()
+            f.seek(0,0)
+            f.write(line.rstrip('\r\n') + '\n' + content)
 
 platform = sys.platform
 kivy_ios_root = environ.get('KIVYIOSROOT', None)
@@ -19,6 +29,9 @@ if platform == 'darwin':
 elif platform == 'ios':
     from distutils.command.build_ext import build_ext
     files = ['pyobjus.c']
+
+line_prepender('pyobjus/pyobjus.pyx', 'platform = "{0}"'.format(platform))
+subprocess.call(['find', '.', '-name', '*.pyx', '-exec', 'cython', '{}', ';'])
 
 libraries = ['ffi']
 library_dirs = []
