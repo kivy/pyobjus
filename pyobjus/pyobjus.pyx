@@ -7,7 +7,7 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass', 
         'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list', 
         'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b', 
-        'objc_str', 'objc_arr', 'objc_dict', 'platform')
+        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -322,7 +322,7 @@ cdef class ObjcMethod(object):
         else:
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture and armv7 ios
 
-            if platform == 'darwin':
+            if dev_platform == 'darwin':
             # OSX -> X86_64
             # From docs: If the type has class MEMORY, then the caller provides space for the return
             # value and passes the address of this storage in %rdi as if it were the ﬁrst
@@ -353,7 +353,7 @@ cdef class ObjcMethod(object):
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
-            elif platform == 'ios':
+            elif dev_platform == 'ios':
                 ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
                 dprint('ios platform objc_msgSend_stret call')
 
