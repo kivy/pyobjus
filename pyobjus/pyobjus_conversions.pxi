@@ -45,10 +45,13 @@ def dereference(py_ptr, **kwargs):
         of_type = kwargs['of_type']
         if issubclass(of_type, ctypes.Structure) or issubclass(of_type, ctypes.Union):
             return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(of_type)).contents
+        
         elif issubclass(of_type, ObjcClassInstance):
             return convert_to_cy_cls_instance(<id>c_addr)
+        
         elif issubclass(of_type, CArray) and "return_count" in kwargs:
-            dprint("Returning CArray from c_addr, size={0}".format(kwargs['return_count']))
+            dprint("Returning CArray from c_addr, size={0}, type={1}".format(kwargs['return_count'], py_ptr.of_type))
+            dprint("{}".format(str(py_ptr.of_type)))
             return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, kwargs['return_count'])
         
         elif issubclass(of_type, CArray) and "partition" in kwargs:
@@ -368,10 +371,10 @@ cdef void *parse_array(sig, arg, size, multidimension=False):
         dprint("Entering recursion for signature {}".format(sig))
         return parse_array(sig, remove_dimensions(arg), size, multidimension=True)
         
-    if array_type[0] == "{":
-        pass
-    if array_type[0] == "(":
-        pass
+    if array_type[0] in ["{", "("]:
+        arg_type = array_type[1:-1].split('=', 1)
+        dprint("  [+] ...array is struct: {}".format(arg_type))
+        val_ptr = CArray(arg).as_struct_array(size, arg_type)
     if array_type[0] == "b":
         pass
     if array_type[0] == "^":
@@ -568,7 +571,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     # TODO: ADD SUPPORT FOR PASSING UNIONS AS ARGUMENTS BY VALUE
     elif sig[0] in ['(', '{']:
         dprint("==> Structure arg", arg)
-        arg_type = sig[1:-1].split('=', 1)[0] 
+        arg_type = sig[1:-1].split('=', 1)[0]
         if by_value:
             str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
             ctypes_struct_cache.append(<unsigned long long>str_long_ptr)

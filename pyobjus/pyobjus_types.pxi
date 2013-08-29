@@ -8,13 +8,12 @@ cdef class CArrayCount:
 
 
 cdef class CArray:
-    """Class for representing c-array. Due to lack of void ptr arithmetic support there is no void casting magic, therefore per type casting is needed."""
+    """Class for representing C array. Due to lack of void ptr arithmetic support there is no void casting magic, therefore per type casting is needed."""
 
     cdef public list PyList
     cdef public unsigned int PyListSize
         
     def __init__(self, arr=None):
-        dprint("Initialize CArray in __init__")
         if arr is not None:
             self.PyList = self.fix_args(arr)
             self.PyListSize = <unsigned int> len(self.PyList)
@@ -31,7 +30,7 @@ cdef class CArray:
 
 
     def get_from_ptr(self, unsigned long long ptr, char *of_type, unsigned long long arr_size):
-        dprint("CArray().get_from_ptr({0}, {1}, {2})".format(ptr, of_type, arr_size))
+        dprint("CArray().get_from_ptr({0}, {1}, {2})".format(ptr, str(of_type), arr_size))
         ret = list()
         if str(of_type) == "i":  # int
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_int))
@@ -69,16 +68,26 @@ cdef class CArray:
             return self.get_class_list(ptr, arr_size)
         if str(of_type) == ":":
             return self.get_sel_list(ptr, arr_size)
-            
-        #if str(of_type)[0] == "": 
-        #    pass
-        # TODO: remaining types
+        if str(of_type)[0] in ["(", "{"]:
+            arg_type = str(of_type)[1:-1].split('=', 1)
+            dprint("ARGTYPE: {}".format(arg_type))
+            return self.get_struct_list(ptr, arr_size, arg_type)
         
         for i in xrange(arr_size):
             ret.append(arr_cast[i])
             
         return ret
-        
+
+
+    cdef list get_struct_list(self, unsigned long long ptr, unsigned long long array_size, arg_type):
+        cdef void **array = <void**> ptr
+        of_type = Factory().find_object(arg_type)
+        ret_list = list()
+        for i in xrange(array_size):
+            val = ctypes.cast(<unsigned long long>array[i], ctypes.POINTER(of_type))
+            ret_list.append(val)
+        return ret_list
+
 
     cdef list get_object_list(self, unsigned long long ptr, unsigned long long array_size):
         cdef id *array = <id*>ptr
@@ -255,7 +264,23 @@ cdef class CArray:
             obj_selector = <ObjcSelector>self.PyList[i]
             sel_array[i] = <SEL>obj_selector.selector
         return sel_array
-            
+
+    cdef void *as_struct_array(self, size, arg_type):
+        #dprint("*as_struct_array({},{}) = {}".format(size, arg_type, self.PyList))
+        of_type = Factory().find_object(arg_type)
+        cdef void **struct_array = <void**> malloc(sizeof(of_type) * self.PyListSize)
+        
+        if struct_array is NULL:
+            raise MemoryError()
+        for i in xrange(self.PyListSize):
+            dprint("object={}, addressof={}, origin.x={}, origin.y={}".format(
+                self.PyList[i], ctypes.addressof(self.PyList[i]),  
+                self.PyList[i].origin.x, self.PyList[i].origin.y))  
+            struct_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i])
+            struct_array[i] = cast_to_cy_data_type(<id*>struct_ptr, size, arg_type[0], by_value=False)
+        dprint("Returning struct array")
+        return (struct_array)[0]
+
 ########## Pyobjus literals <-> Objective C literals ##########
 
 NSNumber = lambda: autoclass('NSNumber')

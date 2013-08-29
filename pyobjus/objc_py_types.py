@@ -161,6 +161,7 @@ class Factory(object):
             Requested type
         '''
         if obj_type[0] in globals():
+            print "RETURNING OBJ_TYPE: {0}".format(globals()[obj_type[0]])
             return globals()[obj_type[0]]
         elif obj_type in types.keys():
             return types[obj_type]
