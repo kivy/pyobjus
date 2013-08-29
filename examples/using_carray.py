@@ -339,22 +339,24 @@ print returned_2d_list
 # - (bar*) getFooBarValues;
 # - (bar*) getFooBarValuesWithCount: (unsigned int*) n;
 
-#foobar = autoclass("foo")
+from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
+
+struct_array = [NSRect(NSPoint(300 + i, 500 + i), NSSize(320, 480)) for i in xrange(1, 11)]
+print struct_array
+_instance.setNSRectValues_(struct_array)
+
+
+for item in struct_array:
+    print item.origin.x, item.origin.y
+
+
+#returned_nsrect_arr = _instance.getNSRectValues()
+#print returned_nsrect_arr.of_type
+#nsrect_arr = dereference(returned_nsrect_arr, of_type=CArray, return_count=10)
+#print nsrect_arr
+#for item in nsrect_arr:
+#    print dir(item)
+#    print item.contents.origin, item.contents.size
 
 #################################################################################################
 
-
-############################### SIGNATURE: (), Union Array ######################################
-#################################################################################################
-
-
-################################ SIGNATURE: bnum, ###############################################
-#################################################################################################
-
-
-#################################### SIGNATURE: ^ ###############################################
-#################################################################################################
-
-
-##################################### SIGNATURE: ? ##############################################
-#################################################################################################
