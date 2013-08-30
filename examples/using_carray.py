@@ -344,10 +344,15 @@ from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
 struct_array = [NSRect(NSPoint(300 + i, 500 + i), NSSize(320, 480)) for i in xrange(1, 11)]
 print struct_array
 _instance.setNSRectValues_(struct_array)
+returned_struct_array = dereference(_instance.getNSRectValues(), of_type=CArray, return_count=10)
 
-
-for item in struct_array:
-    print item.origin.x, item.origin.y
+print returned_struct_array
+for item in returned_struct_array:
+#    print dir(item)
+#    item = item.contents
+#    print dir(item.origin.x)
+    val = item.origin.x
+    print val
 
 
 #returned_nsrect_arr = _instance.getNSRectValues()

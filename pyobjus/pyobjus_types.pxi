@@ -84,7 +84,7 @@ cdef class CArray:
         of_type = Factory().find_object(arg_type)
         ret_list = list()
         for i in xrange(array_size):
-            val = ctypes.cast(<unsigned long long>array[i], ctypes.POINTER(of_type))
+            val = ctypes.cast(<unsigned long long>array[i], ctypes.POINTER(of_type)).contents
             ret_list.append(val)
         return ret_list
 
@@ -271,7 +271,7 @@ cdef class CArray:
         cdef CGRect *cgrect_array
         cdef CGSize *cgsize_array
         cdef CGPoint *cgpoint_array
-        cdef CFRange *cgrange_array
+        cdef CFRange *cfrange_array
         cdef id *id_array
         
         #
@@ -295,24 +295,37 @@ cdef class CArray:
                 cgrect_array[i] = (<CGRect*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]  
             return <id*>cgrect_array
 
-        if arg_type[0] == "CGSize":
+        elif arg_type[0] == "CGSize":
             cgsize_array = <CGSize*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
             if cgsize_array is NULL:
                 raise MemoryError()
             for i in xrange(self.PyListSize):
                 cgsize_array[i] = (<CGSize*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]  
             return <id*>cgsize_array
-        
-        if arg_type[0] == "CGPoint":
+
+        elif arg_type[0] == "CGPoint":
             cgpoint_array = <CGPoint*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
             if cgpoint_array is NULL:
                 raise MemoryError()
             for i in xrange(self.PyListSize):
                 cgpoint_array[i] = (<CGPoint*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return <id*>cgpoint_array
-            
-        if arg_type[0] == "":
-            pass
+
+        elif arg_type[0] == "_NSRange":
+            cfrange_array = <CFRange*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
+            if cfrange_array is NULL:
+                raise MemoryError()
+            for i in xrange(self.PyListSize):
+                cfrange_array[i] = (<CFRange*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
+            return <id*>cfrange_array
+
+        else:
+            id_array = <id*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
+            if id_array is NULL:
+                raise MemoryError()
+            for i in xrange(self.PyListSize):
+                id_array[i] = (<id*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
+            return id_array
 
 ########## Pyobjus literals <-> Objective C literals ##########
 
