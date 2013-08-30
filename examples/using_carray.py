@@ -348,11 +348,7 @@ returned_struct_array = dereference(_instance.getNSRectValues(), of_type=CArray,
 
 print returned_struct_array
 for item in returned_struct_array:
-#    print dir(item)
-#    item = item.contents
-#    print dir(item.origin.x)
-    val = item.origin.x
-    print val
+    print item.origin.x, item.origin.y
 
 
 #returned_nsrect_arr = _instance.getNSRectValues()

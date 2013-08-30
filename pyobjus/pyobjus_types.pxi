@@ -70,7 +70,6 @@ cdef class CArray:
             return self.get_sel_list(ptr, arr_size)
         if str(of_type)[0] in ["(", "{"]:
             arg_type = str(of_type)[1:-1].split('=', 1)
-            dprint("ARGTYPE: {}".format(arg_type))
             return self.get_struct_list(ptr, arr_size, arg_type)
         
         for i in xrange(arr_size):
@@ -80,12 +79,11 @@ cdef class CArray:
 
 
     cdef list get_struct_list(self, unsigned long long ptr, unsigned long long array_size, arg_type):
-        cdef void **array = <void**> ptr
         of_type = Factory().find_object(arg_type)
         ret_list = list()
+        arr_cast = ctypes.cast(ptr, ctypes.POINTER(of_type))
         for i in xrange(array_size):
-            val = ctypes.cast(<unsigned long long>array[i], ctypes.POINTER(of_type)).contents
-            ret_list.append(val)
+            ret_list.append(arr_cast[i])
         return ret_list
 
 
