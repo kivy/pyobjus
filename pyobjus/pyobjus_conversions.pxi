@@ -374,7 +374,7 @@ cdef void *parse_array(sig, arg, size, multidimension=False):
     if array_type[0] in ["{", "("]:
         arg_type = array_type[1:-1].split('=', 1)
         dprint("  [+] ...array is struct: {}".format(arg_type))
-        val_ptr = CArray(arg).as_struct_array(size, arg_type)
+        (<id**>val_ptr)[0] = CArray(arg).as_struct_array(size, arg_type)
     if array_type[0] == "b":
         pass
     if array_type[0] == "^":

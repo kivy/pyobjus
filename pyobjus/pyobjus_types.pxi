@@ -265,21 +265,54 @@ cdef class CArray:
             sel_array[i] = <SEL>obj_selector.selector
         return sel_array
 
-    cdef void *as_struct_array(self, size, arg_type):
-        #dprint("*as_struct_array({},{}) = {}".format(size, arg_type, self.PyList))
+
+    cdef id *as_struct_array(self, size, arg_type):
         of_type = Factory().find_object(arg_type)
-        cdef void **struct_array = <void**> malloc(sizeof(of_type) * self.PyListSize)
+        cdef CGRect *cgrect_array
+        cdef CGSize *cgsize_array
+        cdef CGPoint *cgpoint_array
+        cdef CFRange *cgrange_array
+        cdef id *id_array
         
-        if struct_array is NULL:
-            raise MemoryError()
-        for i in xrange(self.PyListSize):
-            dprint("object={}, addressof={}, origin.x={}, origin.y={}".format(
-                self.PyList[i], ctypes.addressof(self.PyList[i]),  
-                self.PyList[i].origin.x, self.PyList[i].origin.y))  
-            struct_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i])
-            struct_array[i] = cast_to_cy_data_type(<id*>struct_ptr, size, arg_type[0], by_value=False)
-        dprint("Returning struct array")
-        return (struct_array)[0]
+        #
+        ##### object checksum error ##########
+        #  python(20253,0x7fff7bf59180) malloc: *** error for object 0x10240c3e8: incorrect checksum for freed object 
+        #    - object was probably modified after being freed.
+        #  *** set a breakpoint in malloc_error_break to debug
+        #  Abort trap: 6
+        #
+        #cdef CGRect *vptr_array = <CGRect*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
+        #for i in xrange(self.PyListSize):
+        #    ptr = <unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i])
+        #    vptr_array[i] = (<CGRect*>cast_to_cy_data_type(<id*>ptr, size, arg_type[0]))[0]
+        #return <id*> vptr_array
+
+        if arg_type[0] == "CGRect":
+            cgrect_array = <CGRect*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
+            if cgrect_array is NULL:
+                raise MemoryError()
+            for i in xrange(self.PyListSize):
+                cgrect_array[i] = (<CGRect*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]  
+            return <id*>cgrect_array
+
+        if arg_type[0] == "CGSize":
+            cgsize_array = <CGSize*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
+            if cgsize_array is NULL:
+                raise MemoryError()
+            for i in xrange(self.PyListSize):
+                cgsize_array[i] = (<CGSize*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]  
+            return <id*>cgsize_array
+        
+        if arg_type[0] == "CGPoint":
+            cgpoint_array = <CGPoint*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
+            if cgpoint_array is NULL:
+                raise MemoryError()
+            for i in xrange(self.PyListSize):
+                cgpoint_array[i] = (<CGPoint*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
+            return <id*>cgpoint_array
+            
+        if arg_type[0] == "":
+            pass
 
 ########## Pyobjus literals <-> Objective C literals ##########
 
