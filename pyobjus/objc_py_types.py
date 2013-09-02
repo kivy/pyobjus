@@ -1,12 +1,18 @@
 import ctypes
 import itertools
 from ctypes import Structure
-from pyobjus import signature_types_to_list
+from pyobjus import signature_types_to_list, dev_platform
 
 ########## NS STRUCT TYPES ##########
 
+if dev_platform == 'darwin':
+    ulng = ctypes.c_ulonglong
+# for some reason ctypes doesn't work ok with c_ulonglong on ARM
+elif dev_platform == 'ios':
+    ulng = ctypes.c_ulong
+
 class NSRange(Structure):
-    _fields_ = [('location', ctypes.c_ulonglong), ('length', ctypes.c_ulonglong)]
+    _fields_ = [('location', ulng), ('length', ulng)]
 CFRange = _NSRange = NSRange
 
 class NSPoint(Structure):
