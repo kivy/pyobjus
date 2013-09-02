@@ -1,6 +1,5 @@
 import unittest
-import ctypes
-from pyobjus import autoclass, selector, dereference, CArray, CArrayCount
+from pyobjus import autoclass, dereference, CArray, CArrayCount
 from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
 from pyobjus.dylib_manager import load_dylib
 
@@ -27,54 +26,47 @@ twoD_array = [
 _instance = None
 
 class CArrayTest(unittest.TestCase):
-    
-    
+
     def setUp(self):
         global _instance
         load_dylib('CArrayTestlib.dylib', usr_path=False)
         CArrayTestlib = autoclass("CArrayTestlib")
         _instance = CArrayTestlib.alloc()
-        
-    
+
     def test_carray_int(self):
         _instance.setIntValues_(num_list)
         returned_PyList = dereference(_instance.getIntValues(), of_type=CArray, return_count=10)
         returned_PyList_withCount = dereference(_instance.getIntValuesWithCount_(CArrayCount), of_type=CArray)
         self.assertEquals(returned_PyList, num_list)
         self.assertEquals(returned_PyList_withCount, num_list)
-        
-    
+
     def test_carray_char(self):
         _instance.setCharValues_(char_list)
         chars = _instance.getCharValues()
         chars_WithCount = _instance.getCharValuesWithCount_(CArrayCount)
         self.assertEquals(chars_WithCount, chars)
-        
-    
+
     def test_carray_short(self):
         _instance.setShortValues_(short_array)
         returned_shorts = dereference(_instance.getShortValues(), of_type=CArray, return_count=10)
         returned_shorts_WithCount = dereference(_instance.getShortValuesWithCount_(CArrayCount), of_type=CArray)
         self.assertEquals(returned_shorts, short_array)
         self.assertEquals(returned_shorts_WithCount, short_array)
-        
-    
+
     def test_carray_long(self):
         _instance.setLongValues_(long_array)
         returned_longs = dereference(_instance.getLongValues(), of_type=CArray, return_count=10)
         returned_longs_WithCount = dereference(_instance.getLongValuesWithCount_(CArrayCount), of_type=CArray)
         self.assertEquals(returned_longs, long_array)
         self.assertEquals(returned_longs_WithCount, long_array)
-        
-    
+
     def test_carray_longlong(self):
         _instance.setLongLongValues_(long_array)
         returned_longlongs = dereference(_instance.getLongLongValues(), of_type=CArray, return_count=10)
         returned_longlongs_WithCount = dereference(_instance.getLongLongValuesWithCount_(CArrayCount), of_type=CArray)
         self.assertEquals(returned_longlongs, long_array)
         self.assertEquals(returned_longlongs_WithCount, long_array)
-        
-    
+
     def test_carray_float(self): # fix bug in number of floating points, it returns floats with to many decimal places
         pass
         #_instance.setFloatValues_(float_array)
@@ -91,7 +83,6 @@ class CArrayTest(unittest.TestCase):
         self.assertEquals(returned_doubles, float_array)
         self.assertEquals(returned_doubles_WithCount, float_array)
 
-
     def test_carray_uint(self):
         uint_array = num_list
         _instance.setUIntValues_(uint_array)
@@ -99,8 +90,7 @@ class CArrayTest(unittest.TestCase):
         returned_uints_WithCount = dereference(_instance.getUIntValuesWithCount_(CArrayCount), of_type=CArray)
         self.assertEquals(returned_uints, uint_array)
         self.assertEquals(returned_uints_WithCount, uint_array)
-        
-    
+
     def test_carray_ushort(self):
         ushort_array = short_array
         _instance.setUShortValues_(ushort_array)
@@ -109,15 +99,13 @@ class CArrayTest(unittest.TestCase):
         self.assertEquals(returned_ushorts, ushort_array)
         self.assertEquals(returned_ushorts_WithCount, ushort_array)
 
-        
     def test_carray_ulong(self):
         _instance.setULongValues_(ulong_array)
         returned_ulongs = dereference(_instance.getULongValues(), of_type=CArray, return_count=10)
         returned_ulongs_WithCount = dereference(_instance.getULongValuesWithCount_(CArrayCount), of_type=CArray, return_count=10)
         self.assertEquals(returned_ulongs, ulong_array)
         self.assertEquals(returned_ulongs_WithCount, ulong_array)
-    
-    
+
     def test_carray_ulonglong(self):
         ulonglong_array = ulong_array
         _instance.setULongLongValues_(ulonglong_array)
@@ -125,7 +113,6 @@ class CArrayTest(unittest.TestCase):
         returned_ulonglongs_WithCount = dereference(_instance.getULongLongValuesWithCount_(CArrayCount), of_type=CArray)
         self.assertEquals(returned_ulonglongs, ulonglong_array)
         self.assertEquals(returned_ulonglongs_WithCount, ulonglong_array)
-
 
     def test_carray_uchar(self):
         uchar_array = char_list
@@ -135,14 +122,12 @@ class CArrayTest(unittest.TestCase):
         self.assertEquals(returned_uchars, str("".join(uchar_array)))
         self.assertEquals(returned_uchars_WithCount, str("".join(uchar_array)))
 
-
     def test_carray_bool(self):
         _instance.setBoolValues_(bool_array)
         returned_bools = dereference(_instance.getBoolValues(), of_type=CArray, return_count=10)
         returned_bools_WithCount = dereference(_instance.getBoolValuesWithCount_(CArrayCount), of_type=CArray)
         self.assertEquals(returned_bools, bool_array)
         self.assertEquals(returned_bools_WithCount, bool_array)
-
 
     def test_carray_object(self):
         NSNumber = autoclass("NSNumber")
@@ -155,44 +140,34 @@ class CArrayTest(unittest.TestCase):
         returned_nsnumbers = dereference(nsnumber_ptr_array, of_type=CArray, return_count=10)
         returned_ints = list()
         for i in xrange(len(returned_nsnumbers)):
-            #print returned_nsnumbers[i].intValue()
             returned_ints.append(returned_nsnumbers[i].intValue())
-            
         returned_nsnumbers_WithCount = dereference(_instance.getNSNumberValuesWithCount_(CArrayCount), of_type=CArray)
         returned_ints_WithCount = list()
         for i in xrange(len(returned_nsnumbers_WithCount)):
-            #print returned_nsnumbers_WithCount[i].intValue()
             returned_ints_WithCount.append(returned_nsnumbers_WithCount[i].intValue())
         self.assertEquals(returned_ints, py_ints)
         self.assertEquals(returned_ints_WithCount, py_ints)
-            
-            
+
     def test_carray_class(self):
         NSNumber = autoclass("NSNumber")
         nsnumber_class = NSNumber.oclass()
         nsnumber_class_array = [nsnumber_class for i in xrange(0, 10)]
         _instance.setClassValues_(nsnumber_class_array)
         returned_classes = dereference(_instance.getClassValues(), of_type=CArray, return_count=10)
-        print returned_classes
-        for i in xrange(len(returned_classes)):
-            print NSNumber.isKindOfClass_(returned_classes[i])
         returned_classes_WithCount = dereference(_instance.getClassValuesWithCount_(CArrayCount), of_type=CArray)
         flag = True
         for i in xrange(len(returned_classes_WithCount)):
             if NSNumber.isKindOfClass_(returned_classes_WithCount[i]) == False:
                 flag = False
         self.assertEquals(flag, True)
-            
-    
+
     def test_carray_multidimensional(self):
         _instance.set2DIntValues_(twoD_array)
         returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,10])
         self.assertEquals(returned_2d_list, twoD_array)
-        
-    
+
     def test_carray_struct(self):
         struct_array = [NSRect(NSPoint(300 + i, 500 + i), NSSize(320, 480)) for i in xrange(1, 11)]
-        print struct_array
         _instance.setNSRectValues_(struct_array)
         returned_struct_array = dereference(_instance.getNSRectValues(), of_type=CArray, return_count=10)
         vals = [(300 + i , 500 + i) for i in xrange(1, 11)]
@@ -200,5 +175,3 @@ class CArrayTest(unittest.TestCase):
         for item in returned_struct_array:
             ret_vals.append((item.origin.x, item.origin.y))
         self.assertEquals(ret_vals, vals)
-
-        
