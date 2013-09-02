@@ -7,6 +7,17 @@ ctypes_struct_cache = []
 cdef extern from "string.h":
   char *strcpy(char *dest, char *src)
 
+
+def partition_array(array, dim):
+    chunks = lambda l, n: [l[i:i + n] for i in range(0, len(l), n)]
+    sol = chunks(array, dim[len(dim) - 1])
+    dim.pop()
+    while dim:
+        sol = chunks(sol, dim[len(dim) - 1])
+        dim.pop()
+    return sol[0]
+
+
 def dereference(py_ptr, **kwargs):
     ''' Function for casting python object of one type, to another (supported type)
     Args: 
@@ -34,8 +45,32 @@ def dereference(py_ptr, **kwargs):
         of_type = kwargs['of_type']
         if issubclass(of_type, ctypes.Structure) or issubclass(of_type, ctypes.Union):
             return ctypes.cast(<unsigned long long>c_addr, ctypes.POINTER(of_type)).contents
+        
         elif issubclass(of_type, ObjcClassInstance):
             return convert_to_cy_cls_instance(<id>c_addr)
+        
+        elif issubclass(of_type, CArray) and "return_count" in kwargs:
+            dprint("Returning CArray from c_addr, size={0}, type={1}".format(kwargs['return_count'], py_ptr.of_type))
+            dprint("{}".format(str(py_ptr.of_type)))
+            return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, kwargs['return_count'])
+        
+        elif issubclass(of_type, CArray) and "partition" in kwargs:
+            partitions = kwargs["partition"]
+            total_count = partitions[0]
+            for i in xrange(1, len(partitions)):
+                total_count *= int(partitions[i])
+            
+            dprint("Total count for {} is {}".format(partitions, total_count))
+            array = CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, total_count)
+            return partition_array(array, partitions)
+            
+        elif issubclass(of_type, CArray):
+            # search for return count in ObjcReferenceToType object
+            dprint("Returning CArray, calculating returned value by 'reference'")
+            for item in py_ptr.reference_return_values:
+                if type(item) == CArrayCount:
+                    dprint("CArray().get_from_ptr({0}, {1}, {2})".format(py_ptr.arg_ref, py_ptr.of_type, item.value))
+                    return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, item.value)
         
         py_ptr.of_type = of_type.enc
         # TODO: other types
@@ -97,7 +132,8 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
 
     Returns:
         ObjcClassInstance type
-    '''    
+    '''
+    dprint("convert_to_cy_cls_instance: {0}".format(pr(ret_id)))
     cdef ObjcClassInstance cret 
     bret = <bytes><char *>object_getClassName(ret_id)
     dprint(' - object_getClassName(f_result) =', bret)
@@ -207,7 +243,6 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
             c_addr = <unsigned long long>f_result
         else:
             c_addr = <unsigned long long>f_result[0]
-        
         return ObjcReferenceToType(c_addr, sig.split('^', 1)[1], size)
 
     # return type --> unknown type
@@ -233,6 +268,121 @@ cdef char convert_py_bool_to_objc(arg):
         return YES
     return NO
 
+
+def remove_dimensions(array):
+    """ Function for flattening multidimensional list to one dimensional """
+    result = list()
+    if isinstance(array , list):
+        for item in array:
+            result.extend(remove_dimensions(item))
+    else:
+        result.append(array)
+    return result
+
+
+cdef void *parse_array(sig, arg, size, multidimension=False):
+
+    cdef void *val_ptr = malloc(size)
+    
+    sig = sig[1:len(sig) - 1]
+    sig_split = re.split('(\d+)', sig)
+    array_size = int(sig_split[1])
+    array_type = sig_split[2]
+    dprint(" ..[+] parse_array({}, {}, {})".format(sig, arg, size))
+   
+    if array_size != len(arg) and not multidimension:
+        dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
+            array_size, len(arg)))
+        raise TypeError()
+        
+    if array_type[0] == "i":
+        dprint("  [+] ...array is integer!")
+        (<int **>val_ptr)[0] = CArray(arg).as_int()
+
+    if array_type[0] == "c":
+        dprint("  [+] ...array is char!")
+        (<char **>val_ptr)[0] = CArray(arg).as_char()
+
+    if array_type[0] == "s":
+        dprint("  [+] ...array is short")
+        (<short **>val_ptr)[0] = CArray(arg).as_short()
+
+    if array_type[0] == "l":
+        dprint("  [+] ...array is long")
+        (<long **>val_ptr)[0] = CArray(arg).as_long()
+
+    if array_type[0] == "q":
+        dprint("  [+] ...array is long long")
+        (<long long**>val_ptr)[0] = CArray(arg).as_longlong()
+
+    if array_type[0] == "f":
+        dprint("  [+] ...array is float")
+        (<float**>val_ptr)[0] = CArray(arg).as_float()
+
+    if array_type[0] == "d":
+        dprint("  [+] ...array is double")
+        (<double**>val_ptr)[0] = CArray(arg).as_double()
+
+    if array_type[0] == "I":
+        dprint("  [+] ...array is unsigned int")
+        (<unsigned int**>val_ptr)[0] = CArray(arg).as_uint()
+
+    if array_type[0] == "S":
+        dprint("  [+] ...array is unsigned short")
+        (<unsigned short**>val_ptr)[0] = CArray(arg).as_ushort()
+
+    if array_type[0] == "L":
+        dprint("  [+] ...array is unsigned long")
+        (<unsigned long**>val_ptr)[0] = CArray(arg).as_ulong()
+
+    if array_type[0] == "Q":
+        dprint("  [+] ...array is unsigned long long")
+        (<unsigned long long**>val_ptr)[0] = CArray(arg).as_ulonglong()
+
+    if array_type[0] == "C":
+        dprint("  [+] ...array is unsigned char")
+        (<unsigned char**>val_ptr)[0] = CArray(arg).as_uchar()
+
+    if array_type[0] == "B":
+        dprint("  [+] ...array is bool")
+        (<bool**>val_ptr)[0] = CArray(arg).as_bool()
+
+    if array_type[0] == "*":
+        dprint("  [+] ...array is char*")
+        (<char***>val_ptr)[0] = CArray(arg).as_char_ptr()
+
+    if array_type[0] == "@":
+        dprint("  [+] ...array is object(@)")
+        (<id**>val_ptr)[0] = CArray(arg).as_object_array()
+
+    if array_type[0] == "#":
+        dprint("  [+] ...array is class(#)")
+        (<Class**>val_ptr)[0] = CArray(arg).as_class_array()
+        
+    if array_type[0] == ":":
+        dprint("  [+] ...array is sel(:)")
+        (<SEL**>val_ptr)[0] = CArray(arg).as_sel_array()
+    
+    if array_type[0] == "[":
+        dprint("  [+] ...array is array({})".format(sig))
+        parse_position = sig.find("[")
+        depth = int(sig[0:parse_position])
+        sig = sig[parse_position:]
+        dprint("Entering recursion for signature {}".format(sig))
+        return parse_array(sig, remove_dimensions(arg), size, multidimension=True)
+        
+    if array_type[0] in ["{", "("]:
+        arg_type = array_type[1:-1].split('=', 1)
+        dprint("  [+] ...array is struct: {}".format(arg_type))
+        (<id**>val_ptr)[0] = CArray(arg).as_struct_array(size, arg_type)
+    if array_type[0] == "b":
+        pass
+    if array_type[0] == "^":
+        pass
+    if array_type[0] == "?":
+        pass
+
+    return val_ptr
 
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     ''' Function for converting Python argument to Cython, by given method signature
@@ -409,8 +559,9 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             (<SEL**>val_ptr)[0] = <SEL*>arg_val_ptr
     # TODO: array
     elif sig[0] == '[':
-        pass
-    
+        dprint("==> Array signature for: {0}".format(list(arg)))
+        val_ptr = parse_array(sig, arg, size)
+
     # method is accepting structure OR union
     # NOTE: Support for passing union as arguments by value wasn't supported with libffi,
     # in time of writing this version of pyobjus.
@@ -420,7 +571,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     # TODO: ADD SUPPORT FOR PASSING UNIONS AS ARGUMENTS BY VALUE
     elif sig[0] in ['(', '{']:
         dprint("==> Structure arg", arg)
-        arg_type = sig[1:-1].split('=', 1)[0] 
+        arg_type = sig[1:-1].split('=', 1)[0]
         if by_value:
             str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
             ctypes_struct_cache.append(<unsigned long long>str_long_ptr)

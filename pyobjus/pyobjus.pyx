@@ -6,8 +6,8 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass', 
         'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list', 
-        'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b', 
-        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform')
+        'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
+        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray', 'CArrayCount')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -184,6 +184,22 @@ cdef class ObjcMethod(object):
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
         
+        ## signature tuple compression for carray
+        tmp_sig = []
+        arr_sig = ""
+        
+        for item in self.signature_args:
+            if item[0].startswith("["):
+                arr_sig += item[0] + item[1]
+            elif item[0].endswith("]"):
+                arr_sig += item[0]
+                tmp_sig.append((arr_sig, item[1], item[2]))
+            else:
+                tmp_sig.append(item)
+        dprint("pre-zip signature: {0}".format(self.signature_args))
+        dprint("array signature zip: {0}".format(tmp_sig))
+        self.signature_args = tmp_sig
+        
         # resolve f_result_type 
         if self.signature_return[0][0] == '(':
             self.f_result_type = type_encoding_to_ffitype(self.signature_return[0], str_in_union=True)
@@ -294,10 +310,16 @@ cdef class ObjcMethod(object):
         cdef ObjcClassInstance ocl
         f_index = 1
 
+        carray = False
         # populate the rest of f_args based on method signature
         for index in range(2, len(self.signature_args)):
             # argument passed to call
-            arg = args[index-2]
+            arg = args[index - 2]
+            
+            if arg == CArrayCount: 
+                arg, carray = 0, True
+            #dprint("ARG, CArrayCount, type(arg): {0}, {1}, {2}".format(arg, carray, type(arg)))
+            
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
                     index, self.f_arg_types[index][0].size, arg))
@@ -375,9 +397,16 @@ cdef class ObjcMethod(object):
             ret_id = (<id>res_ptr[0])
             if ret_id == self.o_instance:
                 return self.p_class
-        
+
+
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name) 
-        
+
+
+        if type(ret_py_val) == ObjcReferenceToType and carray == True:
+            mm = ctypes.cast((<unsigned long*>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
+            ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
+
+
         return ret_py_val
 
 registers = []

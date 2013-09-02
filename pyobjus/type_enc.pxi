@@ -9,12 +9,14 @@ def seperate_encoding(sig):
         sig = (sig[0], sig[1], None)
     return sig
 
+
 def parse_signature(bytes signature):
     parts = re.split('(\d+)', signature)[:-1]
     signature_return = seperate_encoding(parts[0:2])
     parts = parts[2:]
     signature_args = [seperate_encoding(x) for x in zip(parts[0::2], parts[1::2])]
     return signature_return, signature_args
+
 
 def signature_types_to_list(type_encoding):
 
@@ -55,6 +57,8 @@ def signature_types_to_list(type_encoding):
     return type_enc_list
 
 cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
+    dprint("input for type_encoding_to_ffitype(type_encoding={0}, str_in_union={1})".format(type_encoding, str_in_union))
+	
     cdef ffi_type** ffi_complex_type_elements
     cdef ffi_type* ffi_complex_type
 
@@ -101,11 +105,10 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
     elif enc[0] in ['(', '{']:
         # NOTE: Tested with this nested input, and it works!
         #signature_types_to_list('{CGPoint=dd{CGPoint={CGPoint=d{CGPoint=dd}}}{CGSize=dd}dd{CSize=aa}dd}')
-    
         types_list = []
         obj_type = enc[1:-1].split('=', 1)
         types_list = signature_types_to_list(obj_type[1])
-        dprint("rest list -->", types_list, of_type='i')
+        dprint("rest list -->", types_list, type='i')
 
         types_count = len(types_list)
         ffi_complex_type = <ffi_type*>malloc(sizeof(ffi_type))
@@ -135,6 +138,11 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
     # TODO: Check is this solution in all cases?
     elif enc == '?':
         return &ffi_type_pointer;
+
+    elif enc[0] == '[': #[array type]    An array
+        return &ffi_type_pointer
+
+    
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
-    #[array type]    An array
+    
