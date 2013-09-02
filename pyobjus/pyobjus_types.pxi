@@ -1,4 +1,5 @@
 ######################################### CArray #############################################
+import math
 cdef class CArrayCount:
     
     cdef public unsigned int value
@@ -44,6 +45,10 @@ cdef class CArray:
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_longlong))
         if str(of_type) == "f":  # float
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_float))
+            for i in xrange(arr_size):
+                #arr_cast[i] = math.ceil(float(arr_cast[i]) * 100) / 100.0
+                dprint("{}".format(float(arr_cast[i])))
+                dprint("{}".format(math.ceil(float(arr_cast[i]) * 100) / 100.0))
         if str(of_type) == "d":  # double
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_double))
         if str(of_type) == "I":  # uint

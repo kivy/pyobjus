@@ -15,7 +15,6 @@ def parse_signature(bytes signature):
     signature_return = seperate_encoding(parts[0:2])
     parts = parts[2:]
     signature_args = [seperate_encoding(x) for x in zip(parts[0::2], parts[1::2])]
-    dprint("SIGNATURE_ARGS: {0}".format(signature_args))
     return signature_return, signature_args
 
 

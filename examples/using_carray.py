@@ -97,13 +97,13 @@ print returned_longlongs_WithCount
 #################################################################################################
 
 
-###################################### FLOAT ARRAY ##############################################
+# ###################################### FLOAT ARRAY ##############################################
 # Objective-C method signatures:
 # - (void) setFloatValues: (float[10]) val_arr;
 # - (float*) getFloatValues;
 # - (float*) getFloatValuesWithCount: (unsigned int*) n;
 
-float_array = [1.0, 2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8, 10.9]
+float_array = [1.000000, 2.100000, 3.200000, 4.300000, 5.400000, 6.500000, 7.600000, 8.700000, 9.800000, 10.900000]
 _instance.setFloatValues_(float_array)
 returned_floats = dereference(_instance.getFloatValues(), of_type=CArray, return_count=10)
 print returned_floats  # posible bug in CArray lib, lost precision?
@@ -120,9 +120,9 @@ print returned_floats_WithCount
 # - (double*) getDoubleValuesWithCount: (unsigned int*) n;
 
 _instance.setDoubleValues_(float_array)
-returned_doubles = dereference(_instance.getFloatValues(), of_type=CArray, return_count=10)
+returned_doubles = dereference(_instance.getDoubleValues(), of_type=CArray, return_count=10)
 print returned_doubles
-returned_doubles_WithCount = dereference(_instance.getFloatValuesWithCount_(CArrayCount), of_type=CArray)
+returned_doubles_WithCount = dereference(_instance.getDoubleValuesWithCount_(CArrayCount), of_type=CArray)
 print returned_doubles_WithCount
 
 #################################################################################################
@@ -326,7 +326,7 @@ twoD_array = [
 ]
 
 _instance.set2DIntValues_(twoD_array)
-returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,5,2])
+returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,10])
 print returned_2d_list
 
 # TODO: returned_2d_list_WithCounts
@@ -353,3 +353,11 @@ for item in returned_struct_array:
     print item.origin.x, item.origin.y
 
 #################################################################################################
+
+
+## Aditional test for floats decimal places
+_instance.setFloatValues_(float_array)
+returned_floats = dereference(_instance.getFloatValues(), of_type=CArray, return_count=10)
+print returned_floats  
+returned_floats_WithCount = dereference(_instance.getFloatValuesWithCount_(CArrayCount), of_type=CArray)
+print returned_floats_WithCount
