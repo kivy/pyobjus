@@ -1,4 +1,3 @@
-dev_platform = "darwin"
 '''
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
