@@ -25,8 +25,8 @@ def load_dylib(path, **kwargs):
             while os.getcwd().split('/')[-1] != 'pyobjus':
                 os.chdir('..')
         root_pyobjus = os.getcwd()
-        objc_test_dir = root_pyobjus + '/objc_test/' + path
-        ctypes.CDLL(objc_test_dir)
+        objc_test_dir = os.path.join(root_pyobjus, 'objc_classes', 'test')
+        ctypes.CDLL(os.path.join(objc_test_dir, path))
     else:
         ctypes.CDLL(path)
     dprint("Dynamic library {0} loaded".format(path))
