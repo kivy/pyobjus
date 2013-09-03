@@ -9,7 +9,7 @@ class DereferenceTest(unittest.TestCase):
 
     def setUp(self):
         global Car, car
-        load_dylib('usrlib.dylib', usr_path=False)
+        load_dylib('testlib.dylib', usr_path=False)
         Car = autoclass('Car')
         car = Car.alloc().init()
 

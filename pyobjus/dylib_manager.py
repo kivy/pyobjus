@@ -25,8 +25,8 @@ def load_dylib(path, **kwargs):
             while os.getcwd().split('/')[-1] != 'pyobjus':
                 os.chdir('..')
         root_pyobjus = os.getcwd()
-        usrlib_dir = root_pyobjus + '/objc_usr_classes/' + path
-        ctypes.CDLL(usrlib_dir)
+        objc_test_dir = root_pyobjus + '/objc_test/' + path
+        ctypes.CDLL(objc_test_dir)
     else:
         ctypes.CDLL(path)
     dprint("Dynamic library {0} loaded".format(path))
@@ -60,7 +60,8 @@ frameworks = dict(
     AppKit = '/System/Library/Frameworks/AppKit.framework',
     UIKit = '/System/Library/Frameworks/UIKit.framework',
     CoreGraphich = '/System/Library/Frameworks/CoreGraphics.framework',
-    CoreData = '/System/Library/Frameworks/CoreData.framework'
+    CoreData = '/System/Library/Frameworks/CoreData.framework',
+    CoreMotion = '/System/Library/Frameworks/CoreMotion.framework'
     # TODO: Add others common frameworks!
 )
 

@@ -16,7 +16,7 @@ from pyobjus.dylib_manager import load_dylib
 #   int f;
 # } test_un_;
 
-load_dylib('usrlib.dylib', usr_path=False)
+load_dylib('testlib.dylib', usr_path=False)
 Car = autoclass('Car')
 car = Car.alloc().init()
 

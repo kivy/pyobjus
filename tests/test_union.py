@@ -7,7 +7,7 @@ Car = None
 class Union(unittest.TestCase):
 
     def setUp(self):
-        load_dylib('usrlib.dylib', usr_path=False)
+        load_dylib('testlib.dylib', usr_path=False)
         global Car
         Car = autoclass('Car')
 

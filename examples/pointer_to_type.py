@@ -1,10 +1,10 @@
 from pyobjus import autoclass, dereference, objc_py_types as opy, ObjcSelector
 from pyobjus.dylib_manager import load_dylib
 
-load_dylib('usrlib.dylib', usr_path=False)
+load_dylib('testlib.dylib', usr_path=False)
 NSString = autoclass('NSString')
 NSValue = autoclass('NSValue')
-# this is class defined in user dynamic lib (objc_usr_classes/usrlib.m)
+# this is class defined in user dynamic lib (objc_test/testlib.m)
 Car = autoclass('Car')
 car = Car.alloc().init()
 
