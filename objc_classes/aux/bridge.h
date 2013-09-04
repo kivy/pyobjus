@@ -1,7 +1,9 @@
 #import <Foundation/Foundation.h>
 #import <CoreMotion/CoreMotion.h>
 
-@interface bridge : NSObject
+@interface bridge : NSObject {
+    NSOperationQueue *queue;
+}
 
 @property (strong, nonatomic) CMMotionManager *motionManager;
 @property (nonatomic) double ac_x;
