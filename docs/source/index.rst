@@ -19,6 +19,7 @@ There are also nice examples of using classes from Foundation framework. These y
    pyobjus_internal
    core_tutorials
    foundation_eg
+   pyobjus_ios
    api
 
 Indices and tables
