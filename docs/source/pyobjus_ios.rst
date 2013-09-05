@@ -5,7 +5,7 @@ Pyobjus on iOS
 
 You may wonder how to run pyobjus on iOS device. The solution for this problem is to use `kivy-ios <https://github.com/kivy/kivy-ios>`_.
 
-As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things nedded for they running, and also provide sciprts for making xcode project from which you can run your python kivy pyobjus applications. Sounds great, and it is.
+As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things nedded for them running, and also provide sciprts for making xcode project from which you can run your python kivy pyobjus applications. Sounds great, and it is.
 
 Basic example
 -------------
@@ -110,3 +110,65 @@ This is screenshoot from my iPad
 
 Accessing accelerometer
 -----------------------
+
+As you knows, to access accelerometer on iOS device you use CoreMotion framework. CoreMotion framework is added to default project template which ships with kivy-ios.
+
+Let we say that we have class interface with following properties and variable::
+
+    @interface bridge : NSObject {
+        NSOperationQueue *queue;
+    }
+
+    @property (strong, nonatomic) CMMotionManager *motionManager;
+    @property (nonatomic) double ac_x;
+    @property (nonatomic) double ac_y;
+    @property (nonatomic) double ac_z;
+    @end
+
+Also let we say that we have init method which inits motionManager and queue, and we have method for running accelerometer, and method is declared as follows::
+
+    - (void)startAccelerometer {
+        if ([self.motionManager isAccelerometerAvailable] == YES) {
+            [self.motionManager startAccelerometerUpdatesToQueue:queue withHandler:^(CMAccelerometerData *accelerometerData, NSError *error) {
+                self.ac_x = accelerometerData.acceleration.x;
+                self.ac_y = accelerometerData.acceleration.y;
+                self.ac_z = accelerometerData.acceleration.z;
+            }];
+        }
+    }
+
+You see here that we are specifying handler which will be called when we get some updates from accelerometer. Currently you can't implement this handler from pyobjus, so that may be a problem.
+
+But, we have also solution for this. We added bridge class, with this purpose, to implement handlers inside pure Objective C, and then we call methods of bridge class so we can get actual data.
+In this example we are storing x, y and z from accelerometer to ac_x, ac_y and ac_z class properties, and as you know, we can easily access to class properties.
+
+So let we see basic example how to read accelerometer data from pyobjus::
+
+    from pyobjus import autoclass
+
+    def run():
+        Bridge = autoclass('bridge')
+        br = Bridge.alloc().init()
+        br.motionManager.setAccelerometerUpdateInterval_(0.1)
+        br.startAccelerometer()
+
+        for i in range(10000):
+            print 'x: {0} y: {1} z: {2}'.format(br.ac_x, br.ac_y, br.ac_z)
+
+        br.stopAccelerometer()
+
+    if __name__ == "__main__":
+        run()
+
+So if you run this script on ipad, in the way we showed above, you'll outpout simmilar to this in xcode console::
+
+    x: 0.0219268798828 y: 0.111801147461 z: -0.976440429688
+    x: 0.0219268798828 y: 0.111801147461 z: -0.976440429688
+    x: 0.0219268798828 y: 0.111801147461 z: -0.976440429688
+    x: 0.0219268798828 y: 0.111801147461 z: -0.964920043945
+    x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
+    x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
+    x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
+    x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
+
+As you can see, we have data from accelerometer, so we can use it for some practical purposes if we want.
