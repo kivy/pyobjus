@@ -7,8 +7,8 @@ You may wonder how to run pyobjus on iOS device. The solution for this problem i
 
 As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things nedded for them running, and also provide sciprts for making xcode project from which you can run your python kivy pyobjus applications. Sounds great, and it is.
 
-Basic example
--------------
+Example with Kivy UI
+--------------------
 
 Let's first build kivy-ios. Execute following command::
 
@@ -172,3 +172,65 @@ So if you run this script on ipad, in the way we showed above, you'll outpout si
     x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
 
 As you can see, we have data from accelerometer, so we can use it for some practical purposes if we want.
+
+Accessing gyroscope
+-------------------
+
+In simmilar way as the accessing accelerometer you can access gyroscope. So let's expand our bridge class interface with properties which will hold gyro data::
+
+    @property (nonatomic) double gy_x;
+    @property (nonatomic) double gy_y;
+    @property (nonatomic) double gy_z;
+
+Then in bridge class implementation add following method::
+
+    - (void)startGyroscope {
+        
+        if ([self.motionManager isGyroAvailable] == YES) {
+            [self.motionManager startGyroUpdatesToQueue:queue withHandler:^(CMGyroData *gyroData, NSError *error) {
+                self.gy_x = gyroData.rotationRate.x;
+                self.gy_y = gyroData.rotationRate.y;
+                self.gy_z = gyroData.rotationRate.z;
+            }];
+        }
+    }
+
+I suppose that this method is known, because is very simmilar as the method for getting accelerometer data. Let's write some python code to read data from python::
+
+    from pyobjus import autoclass
+
+    def run():
+        Bridge = autoclass('bridge')
+        br = Bridge.alloc().init()
+        br.startGyroscope()
+
+        for i in range(10000):
+            print 'x: {0} y: {1} z: {2}'.format(br.gy_x, br.gy_y, br.gy_z)
+
+        br.stopGyroscope()
+
+    if __name__ == "__main__":
+        run()
+
+You will output simmilar to this::
+
+    x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
+    x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
+    x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
+    x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
+    x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
+    x: 0.019542276079 y: 0.018291389315 z: -0.00338913880323
+    x: 0.018301243011 y: 0.018291389315 z: -0.00338913880323
+    x: 0.018301243011 y: 0.018291389315 z: -0.00338913880323
+    x: 0.018301243011 y: 0.018291389315 z: -0.00338913880323
+    x: 0.018301243011 y: 0.018291389315 z: -0.00338913880323
+    x: 0.018301243011 y: 0.018291389315 z: -0.00338913880323
+    x: 0.0183009766949 y: 0.0170807162834 z: -0.00339499775763
+    x: 0.0183009766949 y: 0.0170807162834 z: -0.00339499775763
+
+So now you can use gyro data in you python kivy application.
+
+Accessing magnetometer
+----------------------
+
+TODO:
