@@ -21,6 +21,7 @@ There are also nice examples of using classes from Foundation framework. These y
    foundation_eg
    pyobjus_ios
    api
+   remarks
 
 Indices and tables
 ==================
