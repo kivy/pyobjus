@@ -127,18 +127,48 @@ Utility functions
 
 .. function:: objc_arr(some_array)
 
-    Initialize `NSNumber` with `NSArray` type.
+    Initialize `NSArray` type
 
-    :param some_double: Array parameter
-    :rtype: NSNumber.numberWithDouble: Python representation
+    :param some_array: List of parameters. For eg: 
+    
+    .. code-block:: python
+
+        objc_arr(objc_str('Hello'), objc_str('some str'), objc_i(42))
 
 
-.. function:: objc_b(some_bool)
+    :rtype: NSArray Python representation
 
-    Initialize `NSNumber` with `Bool` type.
 
-    :param some_char: Bool parameter
-    :rtype: NSNumber.numberWithBool: Python representation
+.. function:: objc_dict(some_dict)
+
+    Initialize `NSDictionary` type 
+
+    :param some_dict: Dict parameter. For eg:
+    
+    .. code-block:: python
+
+        objc_dict({
+            'name': objc_str('User name'),
+            'date': autoclass('NSDate').date(),
+            'processInfo': autoclass('NSProcessInfo').processInfo()
+        })
+
+    :rtype: NSDictionary Python representation
+
+Pyobjus types
+-------------
+
+.. class:: ObjcChar
+
+.. class:: ObjcInt
+
+    Python Int representation
+
+.. class:: ObjcShort
+
+.. class:: ObjcFloat
+
+TODO: other types...
 
 
 Objective-C signature format
