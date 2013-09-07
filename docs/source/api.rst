@@ -10,13 +10,135 @@ This part of the documentation covers all the interfaces of Pyobjus.
 Reflection functions
 --------------------
 
-.. function:: autoclass(name)
+.. function:: autoclass(name[, copy_properties=None, load_class_methods=None, load_instance_methods=None, reset_autoclass=None])
 
-    Return a :class:`ObjClass` that represent the class passed from `name`.
+    Get and load Objective C class
+    
+    :param name: Name of Objective C class which you want to load
+    :param copy_properties: Denotes if user want to copy properties of some Objective C class. Default is to copy all properties of some class.
+    :type copy_properties: None or Boolean
+    :param load_class_methods: If this argument is set to `None`, all class methods will be loaded. But user can also specify class methods which he want to load, for eg. `load_class_methods=['alloc']`.
+    :type load_class_methods: None or List
+    :param load_instance_methods: If this argument is set to `None`, all instance methods will be loaded. You can also specify which instance methods to load, eg. `load_instance_methods=['init']`.
+    :type load_instance_methods: None or List
+    :param reset_autoclass: If this argument is set to True, and previously you restricted loading of some methods, when you call autoclass function with this argument for some class, all methods will be loaded again.
+    :type reset_autoclass: None or Boolean
+    :rtype: Return a :class:`ObjClass` that represent the class passed from `name`.
 
     >>> from pyobjus import autoclass
     >>> autoclass('NSString')
     <class '__main__.NSString'>
+
+
+Utility functions
+-----------------
+
+.. function:: selector(objc_method)
+
+    Get the selector for method spcified with objc_method parameter
+
+    :param objc_method: Name of Objective C method for which we want to get SEL
+    :type objc_method: String
+    :rtype: ObjcSelector, which is Python representation for Objective C SEL type
+
+
+.. function:: dereference(objc_reference[, of_type=None, return_count=None, partition=None])
+
+    Dereference C pointer to get actual values
+
+    :param objc_reference: `ObjcReferenceToType` Python representation of C pointer
+    :param of_type: If function which you call returns value, for example, int, float, etc., in that case pyobjus can figure out type in which to convert. But if you returnes void pointer for eg. then you need to specify type in which you want to convert. Example of this is: `dereference(someObjcReferenceToType, of_type=ObjcInt)`
+    :param return_count: When you are returning C array, you can/need specify number of returned values with this argument.
+    :type return_count: Integer
+    :param partition: when you want to dereference multidimentional array, you need to spcify dimentions. Provide list with numbers which denotes dimensions. For `int array[10][10]`, you need to specify `partition=[10, 10]`
+    :rtype: Actual value for some `ObjcReferenceToType` type
+
+.. function:: objc_c(some_char)
+
+    Initialize `NSNumber` with `Char` type.
+
+    :param some_char: Char parameter
+    :rtype: NSNumber.numberWithChar: Python representation
+
+
+.. function:: objc_i(some_int)
+
+    Initialize `NSNumber` with `Int` type.
+
+    :param some_int: Int parameter
+    :rtype: NSNumber.numberWithInt: Python representation
+
+
+.. function:: objc_ui(some_unsigned_int)
+
+    Initialize `NSNumber` with `Unsigned Int` type.
+
+    :param some_unsigned_int: Unsigned Int parameter
+    :rtype: NSNumber.numberWithUnsignedInt: Python representation
+
+
+.. function:: objc_l(some_long)
+
+    Initialize `NSNumber` with `Long` type.
+
+    :param some_char: Long parameter
+    :rtype: NSNumber.numberWithLong: Python representation
+
+
+.. function:: objc_ll(some_long_long)
+
+    Initialize `NSNumber` with `Long Long` type.
+
+    :param some_long_long: Long Long parameter
+    :rtype: NSNumber.numberWithLongLong: Python representation
+
+
+.. function:: objc_f(some_float)
+
+    Initialize `NSNumber` with `Float` type.
+
+    :param some_float: Float parameter
+    :rtype: NSNumber.numberWithFloat: Python representation
+
+
+.. function:: objc_d(some_double)
+
+    Initialize `NSNumber` with `Double` type.
+
+    :param some_double: Double parameter
+    :rtype: NSNumber.numberWithDouble: Python representation
+
+
+.. function:: objc_b(some_bool)
+
+    Initialize `NSNumber` with `Bool` type.
+
+    :param some_char: Bool parameter
+    :rtype: NSNumber.numberWithBool: Python representation
+
+
+.. function:: objc_str(some_string)
+
+    Initialize `NSNumber` with `NSString` type.
+
+    :param some_float: String parameter
+    :rtype: NSString.stringWithUTF8String: Python representation
+
+
+.. function:: objc_arr(some_array)
+
+    Initialize `NSNumber` with `NSArray` type.
+
+    :param some_double: Array parameter
+    :rtype: NSNumber.numberWithDouble: Python representation
+
+
+.. function:: objc_b(some_bool)
+
+    Initialize `NSNumber` with `Bool` type.
+
+    :param some_char: Bool parameter
+    :rtype: NSNumber.numberWithBool: Python representation
 
 
 Objective-C signature format
