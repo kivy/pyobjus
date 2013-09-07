@@ -155,8 +155,6 @@ So let we see basic example how to read accelerometer data from pyobjus::
         for i in range(10000):
             print 'x: {0} y: {1} z: {2}'.format(br.ac_x, br.ac_y, br.ac_z)
 
-        br.stopAccelerometer()
-
     if __name__ == "__main__":
         run()
 
@@ -207,8 +205,6 @@ I suppose that this method is known, because is very simmilar as the method for 
         for i in range(10000):
             print 'x: {0} y: {1} z: {2}'.format(br.gy_x, br.gy_y, br.gy_z)
 
-        br.stopGyroscope()
-
     if __name__ == "__main__":
         run()
 
@@ -233,4 +229,54 @@ So now you can use gyro data in you python kivy application.
 Accessing magnetometer
 ----------------------
 
-TODO:
+I suppose that you can guess that this will be almost identical as two previous. Let's add two new properties to interface of bridge class::
+
+    @property (nonatomic) double mg_x;
+    @property (nonatomic) double mg_y;
+    @property (nonatomic) double mg_z;
+
+And add following method to bridge class::
+
+    - (void)startMagnetometer {        
+        if (self.motionManager.magnetometerAvailable) {
+            [self.motionManager startMagnetometerUpdatesToQueue:queue withHandler:^(CMMagnetometerData *magnetometerData, NSError *error) {
+                self.mg_x = magnetometerData.magneticField.x;
+                self.mg_y = magnetometerData.magneticField.y;
+                self.mg_z = magnetometerData.magneticField.z;
+            }];
+        }
+    }
+
+Now we can use above methods from pyobjus to get data from magnetometer::
+
+    from pyobjus import autoclass
+
+    def run():
+        Bridge = autoclass('bridge')
+        br = Bridge.alloc().init()
+        br.startMagnetometer()
+
+        for i in range(10000):
+            print 'x: {0} y: {1} z: {2}'.format(br.mg_x, br.mg_y, br.mg_z)
+
+    if __name__ == "__main__":
+        run()
+
+
+You will get outpout simmilar to this::
+
+    x: 29.109375 y: -46.694519043 z: -27.4476470947
+    x: 29.109375 y: -46.694519043 z: -27.4476470947
+    x: 29.109375 y: -47.7679595947 z: -24.6468658447
+    x: 28.03125 y: -47.7679595947 z: -24.6468658447
+    x: 28.03125 y: -47.7679595947 z: -24.6468658447
+    : 28.03125 y: -47.7679595947 z: -24.6468658447
+    x: 28.03125 y: -47.7679595947 z: -24.6468658447
+    x: 28.03125 y: -48.3046875 z: -27.4476470947
+    x: 27.4921875 y: -48.3046875 z: -27.4476470947
+    x: 27.4921875 y: -48.3046875 z: -27.4476470947
+    x: 27.4921875 y: -48.3046875 z: -27.4476470947
+    x: 27.4921875 y: -48.3046875 z: -27.4476470947
+    x: 27.4921875 y: -47.2312469482 z: -28.5679626
+
+You can add additional bridge methods to you pyobjus iOS app, just change content of bridge.m/.h files, or add completely new files and classes to your xcode project, and after that you can consume them with pyobjus, on the already known way.
