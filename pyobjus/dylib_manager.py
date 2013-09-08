@@ -17,7 +17,7 @@ def load_dylib(path, **kwargs):
         Work in progress
     '''
 
-    # LOADING USER DEFINED CLASS (dylib) FROM /objc_usr_classes/ DIR #
+    # LOADING USER DEFINED CLASS (dylib) FROM /objc_classes/test/ DIR #
     usr_path = kwargs.get('usr_path', True)
     if not usr_path:
         if os.getcwd().split('/')[-1] != 'pyobjus':

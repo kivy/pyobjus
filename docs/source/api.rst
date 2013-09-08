@@ -155,21 +155,167 @@ Utility functions
 
     :rtype: NSDictionary Python representation
 
-Pyobjus types
+Global variables
+----------------
+
+.. data:: dev_platform
+
+    Platform for which pyobjus is compiled
+
+Pyobjus Objective C types
 -------------
 
 .. class:: ObjcChar
 
+    Objective C ``char`` representation
+
 .. class:: ObjcInt
 
-    Python Int representation
+    Objective C ``int`` representation
 
 .. class:: ObjcShort
 
+    Objective C ``short`` representation
+
+.. class:: ObjcLong
+
+    Objective C ``long`` representation 
+
+.. class:: ObjcLongLong
+
+    Objective C ``long long`` representation
+
+.. class:: ObjcUChar
+
+    Objective C ``unsigned char`` representation
+
+.. class:: ObjcUInt
+
+    Objective C ``unsigned int`` representation
+
+.. class:: ObjcUShort
+
+    Objective C ``unsigned short`` representation
+
+.. class:: ObjcULong
+
+    Objective C ``unsigned long`` representation
+
+.. class:: ObjcULongLong
+
+    Objective C ``unsigned long long`` representation
+
 .. class:: ObjcFloat
 
-TODO: other types...
+    Objective C ``float``` representation
 
+.. class:: ObjcDouble
+
+    Objective C ``double`` representation
+
+.. class:: ObjcBool
+
+    Objective C ``bool`` representation
+
+.. class:: ObjcBOOL
+
+    Objective C ``BOOL`` representation
+
+.. class:: ObjcVoid
+
+    Objective C ``void`` representation
+
+.. class:: ObjcString
+
+    Objective C ``char*`` representation
+
+.. class:: ObjcClassInstance
+
+    Representation of Objective C class instance
+
+.. class:: ObjcClass
+
+    Representation of Objective C ``Class``
+
+.. class:: ObjcSelector
+
+    Representation of Objective C ``SEL``
+
+.. class:: ObjcMethod
+
+    Representation of Objective C method
+
+.. class:: CArray
+
+    Representation of Objective C (C) array
+
+.. class:: CArrayCount
+
+    Representation of type, which holds ``outCount*`` for some C array -> number of received array elements
+
+.. exception:: ObjcException
+
+    Representation of some Objective C exception
+
+Structure types
+---------------
+
+.. module:: pyobjus.objc_py_types
+
+.. class:: NSRange
+
+    .. cmember:: unsigned long long location
+
+    .. cmember:: unsigned long long length
+
+.. class:: NSPoint
+
+    .. cmember:: double x
+
+    .. cmember:: double y
+
+.. class:: NSSize
+
+    .. cmember:: double width
+
+    .. cmember:: double height
+
+.. class:: NSRect
+
+    .. cmember:: NSPoint origin
+
+    .. cmember:: NSSize size
+
+
+Dynamic library manager
+-----------------------
+
+.. module:: pyobjus.dylib_manager
+
+.. function:: load_dylib(path)
+
+    Function for loading user defined dylib
+
+    :param path: Path to some dylib
+
+.. function:: make_dylib(path [, frameworks=None, out=None, options=None])
+
+    Function for making dylib from Python
+
+    :param path: Path to files 
+    :param frameworks: List of frameworks to link with.
+    :type frameworks: List
+    :param options: List of options for compiler
+    :type options: List
+    :param out: Out location. Default is to write on location specified by path arg
+
+.. function:: load_framework(framework)
+
+    Function loads Objective C framework via NSBundle
+
+    :param framework: Path to framework
+    :type framework: String
+    :raises: ``ObjcException`` if framework can't be found
 
 Objective-C signature format
 ----------------------------
