@@ -1,4 +1,4 @@
-from objc_py_types import Factory
+from objc_py_types import Factory, NSRect, NSSize, NSPoint
 from libc.stdio cimport printf
 
 factory = Factory()
@@ -78,7 +78,7 @@ def dereference(py_ptr, **kwargs):
         #    pass
     return convert_cy_ret_to_py(<id*>c_addr, py_ptr.of_type, py_ptr.size)
 
-cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value=True):
+cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value=True, py_val=None):
     ''' Function for casting Python data type (struct, union) to some Cython type
     
     Args:
@@ -91,6 +91,10 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value
         void* to eqvivalent Cython data type
     '''    
     cdef void *val_ptr = malloc(size)
+    cdef CGRect rect
+    cdef CGRect *rect_ptr
+    cdef CGSize sz
+    cdef CGPoint point
 
     if str(of_type) == '_NSRange':
         if by_value:
@@ -110,10 +114,31 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value
         else:
             (<CGSize**>val_ptr)[0] = <CGSize*>py_obj
 
-    elif str(of_type) == 'CGRect':
+    elif str(of_type) == 'CGRect' and dev_platform == 'darwin':
         if by_value:
             (<CGRect*>val_ptr)[0] = (<CGRect*>py_obj)[0]
         else:
+            (<CGRect**>val_ptr)[0] = <CGRect*>py_obj
+    elif str(of_type) == 'CGRect' and dev_platform == 'ios':
+
+        if py_val:
+            point.x = py_val.origin.x
+            point.y = py_val.origin.y
+            sz.width = py_val.size.width
+            sz.height = py_val.size.height
+
+        if by_value and py_val:
+            rect.origin = point
+            rect.size = sz
+            (<CGRect*>val_ptr)[0] = rect
+
+        # TODO: find appropriate method and test these cases on iOS
+        elif not by_value and py_val:
+            rect_ptr = <CGRect*>malloc(sizeof(CGRect))
+            rect_ptr.origin = point
+            rect_ptr.size = sz
+            (<CGRect**>val_ptr)[0] = rect_ptr
+        elif not by_value and not py_val: 
             (<CGRect**>val_ptr)[0] = <CGRect*>py_obj
 
     else:
@@ -157,6 +182,8 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
     return cret
 
 cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False, main_cls_name=None):
+
+    cdef CGRect rect
 
     if f_result is NULL:
         dprint('null pointer in convert_cy_ret_to_py function', of_type='w')
@@ -224,12 +251,21 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
 
     # return type -> struct OR union
     elif sig[0] in ['(', '{']:
+
         #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
         if <long>f_result[0] in ctypes_struct_cache:
             dprint("ctypes struct value found in cache", of_type='i')
             val = ctypes.cast(<unsigned long long>f_result[0], ctypes.POINTER(factory.find_object(return_type, members=members))).contents
         else:
-            val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type, members=members))).contents
+            if return_type[0] != 'CGRect' or dev_platform == 'darwin':
+                val = ctypes.cast(<unsigned long long>f_result, ctypes.POINTER(factory.find_object(return_type, members=members))).contents
+            else:
+                # NOTE: this is hardcoded case for CGRect on iOS
+                # For some reason CGRect with ctypes don't work as it should work on arm
+                rect = (<CGRect*>f_result)[0]
+                val = NSRect()
+                val.size = NSSize(rect.size.width, rect.size.height)
+                val.origin = NSPoint(rect.origin.x, rect.origin.y)
         factory.empty_cache()
         return val
 
@@ -400,6 +436,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     cdef void *arg_val_ptr = NULL
     cdef object del_arg_val_ptr = False
     cdef object objc_ref = False
+    cdef CGRect rect
 
     if by_value:
         by = 'value'
@@ -575,11 +612,11 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
         if by_value:
             str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
             ctypes_struct_cache.append(<unsigned long long>str_long_ptr)
-            val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type)
+            val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, by_value=True, py_val=arg)
         else:
             if not objc_ref:
                 str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
-                val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, by_value=False)
+                val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, by_value=False, py_val=arg)
             else:
                 val_ptr = cast_to_cy_data_type(<id*>arg_val_ptr, size, arg_type, by_value=False)
 
