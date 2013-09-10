@@ -436,7 +436,6 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     cdef void *arg_val_ptr = NULL
     cdef object del_arg_val_ptr = False
     cdef object objc_ref = False
-    cdef CGRect rect
 
     if by_value:
         by = 'value'
