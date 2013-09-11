@@ -279,3 +279,131 @@ You will get outpout simmilar to this::
     x: 27.4921875 y: -47.2312469482 z: -28.5679626
 
 You can add additional bridge methods to you pyobjus iOS app, just change content of `bridge.m/.h` files, or add completely new files and classes to your xcode project, and after that you can consume them with pyobjus, on the already known way.
+
+Pyobjus-ball example
+--------------------
+
+We made simple example of using accelerometer to control ball on screen. Also, with this example you can set you screen brightness using kivy slider.
+
+I won't explain details about kivy language or kivy itself, you can find excellent examples and docs on official kivy site.
+
+So, here is the code of ``main.py`` file::
+
+    from random import random
+    from kivy.app import App
+    from kivy.uix.widget import Widget
+    from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProperty
+    from kivy.vector import Vector
+    from kivy.clock import Clock
+    from kivy.graphics import Color
+    from pyobjus import autoclass
+
+    class Ball(Widget):
+
+        velocity_x = NumericProperty(0)
+        velocity_y = NumericProperty(0)
+        h = NumericProperty(0)
+        velocity = ReferenceListProperty(velocity_x, velocity_y)
+
+        def move(self):
+            self.pos = Vector(*self.velocity) + self.pos
+
+    class PyobjusGame(Widget):
+
+        ball = ObjectProperty(None)
+        screen = ObjectProperty(autoclass('UIScreen').mainScreen())
+        bridge = ObjectProperty(autoclass('bridge').alloc().init())
+        sensitivity = ObjectProperty(50)
+        br_slider = ObjectProperty(None)
+
+        def __init__(self, *args, **kwargs):
+            super(PyobjusGame, self).__init__()
+            self.bridge.startAccelerometer()
+
+        def __dealloc__(self, *args, **kwargs):
+            self.bridge.stopAccelerometer()
+            super(PyobjusGame, self).__dealloc__()
+
+        def reset_ball_pos(self):
+            self.ball.pos = self.width / 2, self.height / 2
+
+        def on_bright_slider_change(self):
+            self.screen.brightness = self.br_slider.value
+
+        def update(self, dt):
+            self.ball.move()
+            self.ball.velocity_x = self.bridge.ac_x * self.sensitivity
+            self.ball.velocity_y = self.bridge.ac_y * self.sensitivity
+
+            if (self.ball.y < 0) or (self.ball.top >= self.height):
+                self.reset_ball_pos()
+                self.ball.h = random()
+
+            if (self.ball.x < 0) or (self.ball.right >= self.width):
+                self.reset_ball_pos()
+                self.ball.h = random()
+
+
+    class PyobjusBallApp(App):
+
+        def build(self):
+            game = PyobjusGame()
+            Clock.schedule_interval(game.update, 1.0/60.0)
+            return game
+
+
+    if __name__ == '__main__':
+        PyobjusBallApp().run()
+
+And contents of ``pyobjusball.kv`` is::
+
+    <Ball>:
+        size: 50, 50
+        h: 0
+        canvas:
+            Color:
+                hsv: self.h, 1, 1,
+            Ellipse:
+                pos: self.pos
+                size: self.size          
+
+    <PyobjusGame>:
+        ball: pyobjus_ball
+        br_slider: bright_slider
+
+        Label:
+            text: 'Screen brightness'
+            pos: bright_slider.x, bright_slider.y + bright_slider.height / 2
+        Slider:
+            pos: self.parent.width / 4, self.parent.height / 1.1
+            id: bright_slider
+            value: 0.5
+            max: 1
+            min: 0
+            width: self.parent.width / 2
+            height: self.parent.height / 10
+            on_touch_up: root.on_bright_slider_change()
+
+        Ball:
+            id: pyobjus_ball
+            center: self.parent.center
+
+Now create directory with name ``pyobjus-ball`` and place above files in it::
+
+    mkdir pyobjus-ball
+    mv main.py pyobjus-ball
+    mv pyobjusball.kv pyobjus-ball
+
+In this step I suppose that you already have downloaded and built ``kivy-ios`` so please navigate to directory where ``kivy-ios`` is located.
+Now execute following::
+
+    tools/create-xcode-project.sh pyobjusBall /path/to/pyobjus-ball
+    open app-pyobjusball/pyobjusball.xcodeproj/
+
+After this step xcode will be opened, and if you connected your iOS device on you computer, you can run project, and you will see app running on your device.
+
+This is screenshoot from iPad.
+
+.. figure::  images/IMG_0330.PNG
+   :align:   center
+   :scale:   30%
