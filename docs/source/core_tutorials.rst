@@ -8,19 +8,19 @@ This part of documentation covers tutorials related to API of pyobjus
 Using dylib_manager
 -------------------
 
-As you now, you need to load code into pyobjus to it can actually find appropriate class with autoclass function.
+As you now, you need to load code into pyobjus so it can actually find appropriate class with autoclass function.
 
 Maybe you want to write some Objective C code, and you want to load it into pyobjus, or you want
-to use some exising .dylib or sommething similar. 
+to use some exising `.dylib` or sommething similar. 
 
-This problems will solve pyobjus dylib_manager. Currently it has few functions, so let we see what we can do with 
+Those problems will solve pyobjus dylib_manager. Currently it has few functions, so let's see what we can do with 
 them.
 
 make_dylib and load_dylib functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For the first example, let we say that we want to write our class in Objective C, and after that we want
-to load that class into pyobjus. Okey, let write class::
+For the first example, let's say that we want to write our class in Objective C, and after that we want
+to load that class into pyobjus. Okey, let's write class::
 
     #import <Foundation/Foundation.h>
 
@@ -37,7 +37,7 @@ to load that class into pyobjus. Okey, let write class::
 
     @end
 
-Next step is to make .dylib for this class, and load that .dylib into pyobjus. Suppose that we save previous code 
+Next step is to make .dylib for this class, and load that .dylib into pyobjus. Suppose that we have saved previous code 
 into `objc_lib.m` file.
 
 With pyobjus you can compile `objc_lib.m` into `objc_lib.dylib` in the following way::
@@ -49,7 +49,7 @@ With this we say to pyobjus to link `objc_lib.m` with Foundation framework, and 
 just add elements to array.
 
 Previous command will result with `objc_lib.dylib` file in the same directory as the `objc_lib.m` file.
-If you want to save it to another dir, and with different name, you can call make_dylib on this way::
+If you want to save it to another dir, and with different name, you can call `make_dylib` on this way::
 
     make_dylib('objc_lib.m', frameworks=['Foundation'], out='/path/to/dylib/dylib_name.dylib')
 
@@ -73,17 +73,17 @@ This will output with::
 load_framework function
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-There often can be situations when you need to load classes into pyobjus which don't beolngs to 
+There often can be situations when you need to load classes into pyobjus which don't belongs to 
 Foundation framework, for example you want to load class from AppKit framework.
 
-In that cases you have available load_framework function of dylib_manager.
+In those cases you have available load_framework function of dylib_manager.
 
-So let see one simple example of using this function::
+So let's see one simple example of using this function::
 
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
 
-You may wonder what is the INCLUDE, and can we load all Frameworks on this way?
+You may wonder what is the INCLUDE, and can we load all Frameworks in this way?
 So INCLUDE is enum, which contains paths to Frameworks. Currently INCLUDE contains paths to following frameworks::
 
     Foundation = '/System/Library/Frameworks/Foundation.framework',
@@ -93,7 +93,7 @@ So INCLUDE is enum, which contains paths to Frameworks. Currently INCLUDE contai
     CoreData = '/System/Library/Frameworks/CoreData.framework'
 
 If Framework path which you want to load isn't present in INCLUDE enum, you can specify it manualy.
-Let we say that path to AppKit isn't available via INCLUDE enum. You can load Framework on following way::
+Let's say that path to AppKit isn't available via INCLUDE enum. You can load Framework on following way::
 
     load_framework('/System/Library/Frameworks/AppKit.framework')
 
@@ -103,9 +103,7 @@ Using struct types
 
 Pyobjus currently support ``NSRange``, ``NSPoint``, ``NSSize`` and ``NSRect`` structures. They are defined via ``ctypes.Structure`` type.
 
-We will try to find best way to add your types into pyobjus, so that you can make and use functions which returns custom. Currently this is work in progress.
-
-Consider following. You have Objective C class with name ObjcClass, and useRange: method of that class which is defined on this way::
+Consider following. You have Objective C class with name ObjcClass, and useRange: method of that class which is defined in this way::
 
     - (void) useRange:(NSRange)r {
         printf("location: %ld, length: %ld\n", r.location, r.length);
@@ -125,7 +123,7 @@ This will output with::
 
     >>> location: 10, length: 20
 
-The simmilar situation is with returning and using Objective C structure types. Let we say that ObjcClass has another method, with name makeRange::
+The simmilar situation is with returning and using Objective C structure types. Let's say that ObjcClass has another method, with name makeRange::
 
     - (NSRange) makeRange {
         NSRange range;
@@ -134,7 +132,7 @@ The simmilar situation is with returning and using Objective C structure types. 
         return range;
     }
 
-Using this method from Python is really simple. Let we say that we have includes from previous Python code example::
+Using this method from Python is really simple. Let's say that we have included it from previous Python code example::
 
     range = o_cls.makeRange()
     print range.length
@@ -147,7 +145,7 @@ And this will output with::
 
 As you can see dealing with Objective C structs from pyobjus is simple.
 
-For the end of this section let see how to create NSRect type from example::
+On the end of this section let's see how to create ``NSRect`` type from example::
 
     point = NSPoint(30, 50)
     size = NSSize(60, 70)
@@ -156,23 +154,23 @@ For the end of this section let see how to create NSRect type from example::
 Dealing with pointers
 ---------------------
 
-As you now C has very powerful feature, with name pointers. Objective C is superset of C language, so it also has this great feature.
+As you know C has very powerful feature, with name pointers. Objective C is superset of C language, so Objective C also has this great feature.
 
 But wait, we are in Python, how we can deal with pointers from Python???
 
 Passing pointers
 ~~~~~~~~~~~~~~~~
 
-Relax, pyobjus is doing job for you here. I think that is the best to view some example of that. So, let we expand our ObjcClass class with another method::
+Relax, pyobjus is doing job for you here. I think that is the best way is to view some example of that. So, let's expand our ObjcClass class with another method::
 
     - (void) useRangePtr:(NSRange*)r_p {
         NSRange r = r_p[0];
         printf("location: %ld, length: %ld\n", r.location, r.length);
     }
 
-In previous examples you saw example of making ``NSRange`` from Python, and you pass value of ``NSRange``. But now we have situation when method expect pointer to some type.
+In previous examples you have seen example of making ``NSRange`` from Python, and you have sent value of ``NSRange`` type. But now we have situation when method accepts pointer to some type.
 
-With pyobjus, you can call method on following way::
+With pyobjus, you can call method in following way::
 
     range = NSRange(40, 80)
     o_cls.useRangePtr_(range)
@@ -181,12 +179,13 @@ And this will output::
 
     >>> location:40, length: 80
 
-So what hapened here? We passes argument on the same way as with ``useRange:`` method.
+So what have happened here? We pass argument on the same way as with ``useRange:`` method.
 
-Pyobjus will know if method accepts pointer to type, or accepts value. If accepts pointer to type it will make pointer, and put passed value to location on which pointer points,
-so with this, you don't need to worry about, is using accepting pointer or actual value, pyobjus will do this conversion for you.
+Pyobjus would know if method would accept pointer on type, or accept value. If method accepts pointer on type, pyobjus will make pointer of that type, 
+and put passed value to location on which previously created pointer points.
+So with this, you don't need to pay attention about argument types if they are pointers or values on some type.
 
-You can also return pointers to types from Objective C methods. Let we add another method to ObjcClass::
+You can also return pointers to types from Objective C methods. Let's add another method to ObjcClass::
 
     - (NSRange*) makeRangePtr {
         NSRange *r_p = malloc(sizeof(NSRange));
@@ -197,8 +196,8 @@ You can also return pointers to types from Objective C methods. Let we add anoth
         return r_p;
     }
 
-As you can see, this method is making ``NSRange`` pointer, assigning value to is, and at the end, it returns pointer to user.
-From Python you can consume this method on this way::
+As you can see, this method makes ``NSRange`` pointer, assigning value to it, and at the end, it returns pointer to user.
+From Python you can consume this method in this way::
 
     range_ptr = o_cls.makeRangePtr()
     # let we see actual type of returned object
@@ -209,7 +208,7 @@ This will output following::
     >>> <pyobjus.ObjcReferenceToType object at 0x10f34bcb0>
 
 So here we can see another type -> ObjcReferenceToType. When we have method which returns pointer to some type, pyobjus will wrap that pointer with ObjcReferenceToType object,
-so after return, that object now contains actual address of pointer. We can pass that type to function which accepts pointer to type.
+so object now contains actual address of C pointer. We can pass that type to function which accepts pointer to type.
 
 Example::
 
@@ -227,15 +226,15 @@ To dereference pointer use dereference function::
 
     from pyobjus import dereference
 
-If function returns pointer to some known type, with other words, type isn't void* you can use dereference function in this way::
+If function returns pointer to some known type, with other words, type isn't void*, you can use dereference function in this way::
 
     range_ptr = o_cls.makeRangePtr()
     range = dereference(range_ptr)
 
-Pyobjus will parse return signature from method signature, so it will know in which type to convert pointer value.
+Pyobjus will parse returned signature from method signature, so it will know in which type to convert pointer value.
 If you return void pointer, you will need to specify type in which you want to pyobjus convert actual value on which pointer points.
 
-Let we add method to out ObjcClass::
+Now we can add method::
 
     - (void*) makeIntVoidPtr {
         int *a = malloc(sizeof(int));
@@ -253,7 +252,7 @@ This will output with::
 
     >>> 12345
 
-Note that you can specify ``of_type`` optional argument although methods returns ``NSRange`` pointer. 
+Notice that you can specify ``of_type`` optional argument although methods returns ``NSRange`` pointer. 
 With this you will be sure that pyobjus will convert value to that type.
 
 Here is the list of possible types::
@@ -279,11 +278,11 @@ Here is the list of possible types::
     'ObjcSelector', 
     'ObjcMethod'
 
-Above types resides inside pyobjus module, so you can import in on following way::
+Those already listed types are placed inside pyobjus module, so you can import them in following way::
 
     from pyobjus import ObjcChar, ObjcInt # etc...
 
-Inside ``pyobjus.objc_py_types`` module resides struct and unions types. Currently this is list of them::
+Inside ``pyobjus.objc_py_types`` module are placed structs and unions types. This is list of them::
 
     'NSRange',
     'NSPoint',
@@ -297,10 +296,10 @@ You can import them with::
 Objective C <-> pyobjus literals
 --------------------------------
 
-If you are fammiliar with Objective C literals you know that is great feature, because reduces amount of code to write.
-You may wonder is there some equvivalent with pyobjus. Ansert is, YES.
+If you are fammiliar with Objective C literals, then you know that is great feature, because literals reduces amount of code to write.
+You may wonder is there some equvivalent with pyobjus. The answer is YES.
 
-I thing that next example will illustrate how to use pyobjus literals, and what are the Objective C equvivalents::
+I think that next example will illustrate how to use pyobjus literals, and what are the Objective C equvivalents::
 
     from pyobjus import *
 
@@ -359,9 +358,9 @@ followed with letter/letters which denotes Objective C type, for examples i for 
 Unknown types
 -------------
 
-Let we say that we have defined following structures in our ObjcClass.
+Let's say that we have defined following structures in our ObjcClass.
 
-Note that we arent specify type of structs, so they types will be missing in method signatures::
+Note that we haven't specify type of structs, so their types will be missing in method signatures::
 
     typedef struct {
         float a;
@@ -376,7 +375,7 @@ Note that we arent specify type of structs, so they types will be missing in met
         unknown_str_new u_str;
     } unknown_str;
 
-Let play know. Suppose that we have defined following objective c method::
+Let's play. Suppose that we have defined following objective c method::
 
     - (unknown_str) makeUnknownStr {
         unknown_str str;
@@ -387,30 +386,30 @@ Let play know. Suppose that we have defined following objective c method::
         return str;
     }
 
-Purpose of this method is to make unknown type struct, and assing some values to it's members
-If you see debug logs of pyobjus, you will see that method returns following type::
+Purpose of this method is to make unknown type struct, and adding some values to it's members
+If you see debug logs of pyobjus, you will notice that method returns following type::
 
     {?=ii{CGRect={CGPoint=dd}{CGSize=dd}}{?=fi{CGRect={CGPoint=dd}{CGSize=dd}}}}
 
-From this we can see that method returns some type, which contains of two integers, and two structs. One of them
-is ``CGRect``, and another is some unknown type, which contains of float, integer and ``CGRect`` struct
-So, if user doesn't have defined this struct, pyobjus can generate this type for him. Let's call this function::
+From this we can see that method returns some type, which contains two integers, and two structs. One struct
+is ``CGRect``, and another is some unknown type, which contains float, integer and ``CGRect`` struct
+So, if user haven't defined this struct, pyobjus can generate this type for him. Let's call this function::
 
     ret_type = o_cls.makeUnknownStr()
 
 But wait, how will pyobjus know about field names in struct, because from method signature we know 
-only types, not actual names. Well, pyobjus will generate some 'random' names in alphabetical order.
+only types, not actual names? Well, pyobjus will generate some 'random' names in alphabetical order.
 
-In our case, first member will have name 'a', second will have name 'b', and third will have name ``CGRect``,
-which is used because can help user as indicator of type is actual type is missing. Last one is another 
+In our case, first member will have name 'a', second will have name 'b', and third name ``CGRect``,
+which is used because can help user as indicator of type if actual type is missing. Last one is another 
 unknown type, so pyobjus will generate name for him and it will have name 'c'. 
 
-Note that in case of CGRect, that memeber will have origin and size members, because he is already defined, 
-and we know info about his members, but for last member, pyobjus will continue recursive generating names 
-for it's members
+Notice that in case of ``CGRect``, memeber will have ``origin`` and ``size`` members, because it is already defined, 
+and we know info about its members. But for last member, pyobjus will continue recursive generating names 
+for its members.
 
-Maybe you are asking yourself know, how you will know actual generated name, so pyobjus will help you about this.
-There is getMembers function, which returns name and type of some field in struct::
+Maybe you are asking yourself now, how will you know actual generated name, so pyobjus will help you with this.
+There is ``getMembers`` function, which returns name and type of some field in struct::
 
     print ret_type.getMembers()
 
@@ -418,7 +417,7 @@ Python will output with::
 
     >>> [('a', <class 'ctypes.c_int'>), ('b', <class 'ctypes.c_int'>), ('CGRect', <class 'pyobjus.objc_py_types.NSRect'>), ('c', <class 'pyobjus.objc_py_types.UnknownType'>)]
 
-If you want to provide your names for fields, you can do on this way::
+If you want to provide your name fields, you can do in this way::
 
     ret_type = o_cls.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_field'])
 
@@ -443,11 +442,11 @@ Python will output with::
     >>> [<class 'ctypes.c_int'>, <class 'ctypes.c_int'>, <class 'pyobjus.objc_py_types.NSRect'>, <class 'pyobjus.objc_py_types.UnknownType'>]
 
 If you want to use returned type to pass it as argument to some function there will be some problems. 
-Pyobjus is use ctypes structures, so we can get actual pointer to C structure from Python object,
-but if we want to get working correct values of passed arg, we need to cast pointer to appropriate type.
+Pyobjus uses ctypes structures, so we can get actual pointer to C structure from Python object,
+but if we want to get correct values of passed arg, we need to cast pointer to appropriate type.
 
 If type is defined in ``pyobjus/objc_cy_types.pxi`` pyobjus will convert it for us, but if it isn't, we will need to convert
-it by ourselfs, for example internaly in Objective C method where we are passing struct value. Lets see example of this::
+it by ourselfs. For example internally in Objective C method where we are passing struct value. Lets see example of this::
 
     - (void) useUnknownStr:(void*)str_vp {
         unknown_str *str_p = (unknown_str*)str_vp;
@@ -468,7 +467,7 @@ Using class
 
 As you know, ``class`` is Python keyword, so that might be a problem.
 
-Let's we say that we want to get Class type for NSString instance...
+Let's say that we want to get Class type for ``NSString`` instance...
 
 We can use following::
 
@@ -484,7 +483,7 @@ So, now we can use isKindOfClass: method::
 
     text.isKindOfClass_(NSString)
 
-This will output ``True``. Let we see another example::
+This will output ``True``. Let's see another example::
 
     NSArray = autoclass('NSArray')
     text.isKindOfClass_(NSArray)
@@ -496,7 +495,7 @@ So, as you can see, if you want to use ``class`` with pyobjus, you will need to 
 Using @selector
 ---------------
 
-There may be situations when you need to use ``@selector``, which is Objective C feature. With pyobjus you can also get SEL type for some method. Let's we say that we want to get SEL for init method::
+There may be situations when you need to use ``@selector``, which is Objective C feature. With pyobjus you can also get SEL type for method. Let's say that we want to get SEL for init method::
 
     from pyobjus import selector
     selector('init')
@@ -505,9 +504,9 @@ This will output with::
 
     <pyobjus.ObjcSelector object at 0x1057361c8>
 
-So as you can see instead of using this ``@selector(init)`` with Objective C, you want use ``selector('init')`` with pyobjus and Python to get SEL type for some method.
+So, as you can see, instead of using this ``@selector(init)`` with Objective C, you will use ``selector('init')`` with pyobjus and Python to get SEL type for some method.
 
-If you want get SEL for initWithUTF8String: you can use::
+If you want get SEL for ``initWithUTF8String:`` you can use::
 
     selector('initWithUTF8String:')
 
