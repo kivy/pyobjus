@@ -512,7 +512,36 @@ If you want get SEL for ``initWithUTF8String:`` you can use::
 
 Other cases are the same for all methods.
 
-Other
------
+Using enum types
+----------------
 
-Work in progress...
+Pyobjus currently support ``NSComparisonResult`` and ``NSStringEncoding`` enums. If you want to use some others, you need to expand pyobjus with additional types by adding then into ``pyobjus/objc_py_types.py`` file.
+
+But, let we see how to use supported enum types with pyobjus. Consider following example::
+
+    from pyobjus import autoclass, objc_str
+    from pyobjus.objc_py_types import NSComparisonResult
+
+    def enum_example():
+        text = objc_str('some text')
+        text_to_compare = objc_str('some text')
+        if text.compare_(text_to_compare) == NSComparisonResult.NSOrderedSame:
+            print 'the same strings'
+
+        text_to_compare = objc_str('text')
+        if text.compare_(text_to_compare) == NSComparisonResult.NSOrderedAscending:
+            print 'NSOrderedAscending strings'
+
+    if __name__ == '__main__':
+        enum_example()
+
+You can see that we use ``NSComparisonResult`` enum in above example to compare two strings. Enum is defined in this way::
+
+    NSComparisonResult = enum("NSComparisonResult", NSOrderedAscending=-1, NSOrderedSame=0, NSOrderedDescending=1)
+
+The first argument of ``enum`` function is name of new enum type, and rest of arguments are fields declarations of that enum. As you can see it is preety simple to declare enum with pyobjus, so you can add new enum types to pyobjus.
+
+Using C array
+-------------
+
+TODO:
