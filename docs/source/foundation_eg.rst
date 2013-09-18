@@ -10,7 +10,7 @@ This part of the documentation covers examples of using classes from foundation 
 NSArray example
 ---------------
 
-Here is the example of using NSArray class::
+Here is an example of using NSArray class::
 
     from pyobjus import autoclass
 
@@ -38,7 +38,7 @@ This will output::
 NSArray with pyobjus literals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you want you can use sommething like Objective C literals to create NSArray::
+If you want, you can use sommething like Objective C literals to create NSArray::
 
     from pyobjus import objc_arr, objc_str
 
@@ -53,7 +53,7 @@ and this will output::
 NSDictionary example
 --------------------
 
-Here is the example of using NSDictoinary class::
+Here is an example of using NSDictoinary class::
 
     from pyobjus import autoclass
 
@@ -83,7 +83,7 @@ NSDictionary with pyobjus literals
 
 We can use pyobjus `literals` also with NSDictionary class.
 
-So let we add two elements to dictionary. The first one has key 'first_key', and value @'string value of first key', and second has key 'second_key', with value NSArray::
+So let's add two elements to dictionary. The first one has key 'first_key', and value @'string value of first key', and the second one has key 'second_key', with value NSArray::
 
     from pyobjus import objc_dict, objc_str, objc_arr
 
@@ -115,7 +115,7 @@ This will output::
 NSMutableArray example
 ----------------------
 
-This class is ofter usefull is you need to add elements after you create array. So let's see example of using this class with pyobjus::
+This class is often usefull if you need to add elements after you create array. So let's see example of using this class with pyobjus::
 
     from pyobjus import autoclass
 
@@ -153,22 +153,22 @@ This class is ofter usefull is you need to add elements after you create array. 
 
 This will output::
 
-    >>> count of array before object delete --> 3
-    >>> count of array after object delete --> 1
+    >>> number of array before object delete --> 3
+    >>> number of array after object delete --> 1
     >>> string value of returned object --> some text for NSMutableArray
     >>> string value of returned object at index 1 --> some other text for NSMutableArray
 
 NSMutableDictionary example
 ---------------------------
 
-As with this class above, you can also with this class add and delete elements and after you create object.::
+As with this class above, you can also with this class add and delete elements and after you've created object.::
 
     from pyobjus import autoclass
 
     NSString = autoclass('NSString')
     NSMutableDictionary = autoclass("NSMutableDictionary")
 
-    # note that you can insted of this line use objc_str('some text for NSDictoinary')
+    # notice that you can instead of this line use objc_str('some text for NSDictoinary')
     string_object = NSString.stringWithUTF8String_("some text for NSDictionary")
     string_key = NSString.stringWithUTF8String_("someKey")
 
@@ -186,7 +186,7 @@ As with this class above, you can also with this class add and delete elements a
     for key in objects_dict:
         mutable_dictionary.setObject_forKey_(objects_dict[key], key)
 
-    # let we return some object
+    # let's return some object
     returned_nsstring = mutable_dictionary.objectForKey_(string_key)
 
     # we can iterate over dict values
