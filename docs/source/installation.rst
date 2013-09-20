@@ -26,3 +26,8 @@ Or you can build documentation for yourself::
 
     make html
     open docs/build/html/index.html 
+
+Installation on the iOS
+-----------------------
+
+Please look at :ref:`pyobjus_ios` section.

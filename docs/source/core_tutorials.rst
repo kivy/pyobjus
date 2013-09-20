@@ -544,4 +544,128 @@ The first argument of ``enum`` function is name of new enum type, and rest of ar
 Using C array
 -------------
 
-TODO:
+In this section we will explain how to use C array from pyobjus.
+
+Let's say that we made library ``CArrayTestlib.dylib``, which contains test functions for C array. Let's load it::
+
+    import ctypes
+    from pyobjus import autoclass, selector, dereference, CArray, CArrayCount
+    from pyobjus.dylib_manager import load_dylib
+
+    load_dylib('CArrayTestlib.dylib', usr_path=False)
+    CArrayTestlib = autoclass("CArrayTestlib")
+    _instance = CArrayTestlib.alloc()
+
+Now we can call ``setIntValues:`` method::
+
+    - (void) setIntValues:(int[10])val_arr
+    {
+        NSLog(@"Setting int array values...");
+        memcpy(self->values, val_arr, sizeof(int) * 10);
+        NSLog(@"Values copied...");
+    }
+
+on this way::
+
+    nums = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9] 
+    array = (ctypes.c_int * 10)(*nums)  
+    _instance.setIntValues_(array)
+
+We can also return array values of this function::
+
+    - (int*) getIntValues
+    {
+        if (!self->values)
+        {
+            NSLog(@"Values have not been set.");
+            return NULL;
+        }
+        else
+            return self->values;
+    }
+
+on this way::
+
+    returned_PyList = dereference(_instance.getIntValues(), of_type=CArray, return_count=10)
+    print returned_PyList
+
+Note that here we passing ``return_count`` optional argument, which holds number of array items which are retured from ``getIntValues`` method.
+
+But what if we don't know array count? In that case we need to have some argument in which method will put array count value.
+
+Consider following method::
+
+    - (int*) getIntValuesWithCount:(unsigned int*) n
+    {
+        NSLog(@" ... ... [+] getIntValuesWithCount(n=%zd)", n);
+        NSLog(@" ... ... [+] *n=%zd", *n);
+        if (!self->values)
+        {
+            NSLog(@"Values have not been set");
+            return NULL;
+        }
+        else
+        {
+            *n = 10;
+            NSLog(@" ... ... [+] getIntValuesWithCount(n=%zd)", n);
+            NSLog(@" ... ... [+] *n=%zd", *n);
+            return self->values;
+        }
+    }
+
+First argument of this function will contain array count when return statement is reached. So let's call it::
+
+    returned_PyList_withCount = dereference(_instance.getIntValuesWithCount_(CArrayCount), of_type=CArray)
+    print returned_PyList_withCount
+
+Pyobjus will internally read from that argument and convert returned C array to python array.
+
+If method returns values/ArrayCount over reference and you don't provide ``CArrayCount``
+on the right position in the method signature, you will get ``IndexError: tuple index out of range``
+or segmentation fault, so don't forget to provide ``CArrayCount`` on the right position.
+
+You may wonder, can you use multidimensional arrays from pyobjus? Yes, you can. Consider following method::
+
+    - (void) set2DIntValues: (int[10][10]) val_arr
+    {
+        NSLog(@"Setting 2D int array values...");
+        memcpy(self->int_2d_arr, val_arr, sizeof(int) * 10 * 10);
+        NSLog(@"Values copied...");
+    }
+    - (int*) get2DIntValues
+    {
+        if (!self->int_2d_arr)
+        {
+            NSLog(@"Values have not been set for int 2d array.");
+            return NULL;
+        }
+        else
+        {
+            return (int*)self->int_2d_arr;
+        }
+    }
+
+To call this method first we need to make multidimensional array from python in this way::
+
+    twoD_array = [
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+        [31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+        [41, 42, 43, 44, 45, 46, 47, 48, 49, 50],
+        [51, 52, 53, 54, 55, 56, 57, 58, 59, 60],
+        [61, 62, 63, 64, 65, 66, 67, 68, 69, 70],
+        [71, 72, 73, 74, 75, 76, 77, 78, 79, 80],
+        [81, 82, 83, 84, 85, 86, 87, 88, 89, 90],
+        [91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+    ]
+
+This will be representation of ``int[10][10]``, so let's call above method::
+
+    _instance.set2DIntValues_(twoD_array)
+    returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,10])
+    print returned_2d_list
+
+You can see optional ``partition`` argument of dereference function. Arguments contains format of C array. In this case it is ``[10, 10]``.
+
+You can find additional examples on this `link <https://github.com/ivpusic/pyobjus/blob/master/examples/using_carray.py>`_.

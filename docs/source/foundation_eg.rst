@@ -201,3 +201,8 @@ So this will output::
 
     >>> some other text for NSDictionary
     >>> some text for NSDictionary
+
+Other
+-----
+
+Other examples are located on this External hyperlinks, `link <https://github.com/kivy/pyobjus/tree/master/examples>`_.
