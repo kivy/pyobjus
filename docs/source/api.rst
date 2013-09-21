@@ -286,6 +286,44 @@ Structure types
 
     .. cmember:: NSSize size
 
+Enumeration types
+-----------------
+
+.. module:: pyobjus.objc_py_types
+
+.. class:: NSComparisonResult
+
+    .. attribute:: NSOrderedAscending = -1
+    .. attribute:: NSOrderedSame = 0
+    .. attribute:: NSOrderedDescending = 1
+
+.. class:: NSStringEncoding
+
+    .. attribute:: NSASCIIStringEncoding = 1
+    .. attribute:: NSNEXTSTEPStringEncoding = 2
+    .. attribute:: NSJapaneseEUCStringEncoding = 3
+    .. attribute:: NSUTF8StringEncoding = 4
+    .. attribute:: NSISOLatin1StringEncoding = 5
+    .. attribute:: NSSymbolStringEncoding = 6
+    .. attribute:: NSNonLossyASCIIStringEncoding = 7
+    .. attribute:: NSShiftJISStringEncoding = 8
+    .. attribute:: NSISOLatin2StringEncoding = 9
+    .. attribute:: NSUnicodeStringEncoding = 10
+    .. attribute:: NSWindowsCP1251StringEncoding = 11
+    .. attribute:: NSWindowsCP1252StringEncoding = 12
+    .. attribute:: NSWindowsCP1253StringEncoding = 13
+    .. attribute:: NSWindowsCP1254StringEncoding = 14
+    .. attribute:: NSWindowsCP1250StringEncoding = 15
+    .. attribute:: NSISO2022JPStringEncoding = 21
+    .. attribute:: NSMacOSRomanStringEncoding = 30
+    .. attribute:: NSUTF16StringEncoding = 10
+    .. attribute:: NSUTF16BigEndianStringEncoding = 0x90000100
+    .. attribute:: NSUTF16LittleEndianStringEncoding = 0x94000100
+    .. attribute:: NSUTF32StringEncoding = 0x8c000100
+    .. attribute:: NSUTF32BigEndianStringEncoding = 0x98000100
+    .. attribute:: NSUTF32LittleEndianStringEncoding = 0x9c000100
+    .. attribute:: NSProprietaryStringEncoding = 65536
+
 
 Dynamic library manager
 -----------------------
