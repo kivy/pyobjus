@@ -205,4 +205,4 @@ So this will output::
 Other
 -----
 
-Other examples are located on this External hyperlinks, `link <https://github.com/kivy/pyobjus/tree/master/examples>`_.
+Other examples are located on this `link <https://github.com/kivy/pyobjus/tree/master/examples>`_.

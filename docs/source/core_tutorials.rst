@@ -86,11 +86,118 @@ So let's see one simple example of using this function::
 You may wonder what is the INCLUDE, and can we load all Frameworks in this way?
 So INCLUDE is enum, which contains paths to Frameworks. Currently INCLUDE contains paths to following frameworks::
 
-    Foundation = '/System/Library/Frameworks/Foundation.framework',
+    Accelerate = '/System/Library/Frameworks/Accelerate.framework',
+    Accounts = '/System/Library/Frameworks/Accounts.framework',
+    AddressBook = '/System/Library/Frameworks/AddressBook.framework',
+    AGL = '/System/Library/Frameworks/AGL.framework',
     AppKit = '/System/Library/Frameworks/AppKit.framework',
-    UIKit = '/System/Library/Frameworks/UIKit.framework',
-    CoreGraphich = '/System/Library/Frameworks/CoreGraphics.framework',
-    CoreData = '/System/Library/Frameworks/CoreData.framework'
+    AppKitScripting = '/System/Library/Frameworks/AppKitScripting.framework',
+    AppleScriptKit = '/System/Library/Frameworks/AppleScriptKit.framework',
+    AppleScriptObjC = '/System/Library/Frameworks/AppleScriptObjC.framework',
+    AppleShareClientCore = '/System/Library/Frameworks/AppleShareClientCore.framework',
+    AppleTalk = '/System/Library/Frameworks/AppleTalk.framework',
+    ApplicationServices = '/System/Library/Frameworks/ApplicationServices.framework',
+    AudioToolbox = '/System/Library/Frameworks/AudioToolbox.framework',
+    AudioUnit = '/System/Library/Frameworks/AudioUnit.framework',
+    AudioVideoBridging = '/System/Library/Frameworks/AudioVideoBridging.framework',
+    Automator = '/System/Library/Frameworks/Automator.framework',
+    AVFoundation = '/System/Library/Frameworks/AVFoundation.framework',
+    CalendarStore = '/System/Library/Frameworks/CalendarStore.framework',
+    Carbon = '/System/Library/Frameworks/Carbon.framework',
+    CFNetwork = '/System/Library/Frameworks/CFNetwork.framework',
+    Cocoa = '/System/Library/Frameworks/Cocoa.framework',
+    Collaboration = '/System/Library/Frameworks/Collaboration.framework',
+    CoreAudio = '/System/Library/Frameworks/CoreAudio.framework',
+    CoreAudioKit = '/System/Library/Frameworks/CoreAudioKit.framework',
+    CoreData = '/System/Library/Frameworks/CoreData.framework',
+    CoreFoundation = '/System/Library/Frameworks/CoreFoundation.framework',
+    CoreGraphics = '/System/Library/Frameworks/CoreGraphics.framework',
+    CoreLocation = '/System/Library/Frameworks/CoreLocation.framework',
+    CoreMedia = '/System/Library/Frameworks/CoreMedia.framework',
+    CoreMediaIO = '/System/Library/Frameworks/CoreMediaIO.framework',
+    CoreMIDI = '/System/Library/Frameworks/CoreMIDI.framework',
+    CoreMIDIServer = '/System/Library/Frameworks/CoreMIDIServer.framework',
+    CoreServices = '/System/Library/Frameworks/CoreServices.framework',
+    CoreText = '/System/Library/Frameworks/CoreText.framework',
+    CoreVideo = '/System/Library/Frameworks/CoreVideo.framework',
+    CoreWiFi = '/System/Library/Frameworks/CoreWiFi.framework',
+    CoreWLAN = '/System/Library/Frameworks/CoreWLAN.framework',
+    DirectoryService = '/System/Library/Frameworks/DirectoryService.framework',
+    DiscRecording = '/System/Library/Frameworks/DiscRecording.framework',
+    DiscRecordingUI = '/System/Library/Frameworks/DiscRecordingUI.framework',
+    DiskArbitration = '/System/Library/Frameworks/DiskArbitration.framework',
+    DrawSprocket = '/System/Library/Frameworks/DrawSprocket.framework',
+    DVComponentGlue = '/System/Library/Frameworks/DVComponentGlue.framework',
+    DVDPlayback = '/System/Library/Frameworks/DVDPlayback.framework',
+    EventKit = '/System/Library/Frameworks/EventKit.framework',
+    ExceptionHandling = '/System/Library/Frameworks/ExceptionHandling.framework',
+    ForceFeedback = '/System/Library/Frameworks/ForceFeedback.framework',
+    Foundation = '/System/Library/Frameworks/Foundation.framework',
+    FWAUserLib = '/System/Library/Frameworks/FWAUserLib.framework',
+    GameKit = '/System/Library/Frameworks/GameKit.framework',
+    GLKit = '/System/Library/Frameworks/GLKit.framework',
+    GLUT = '/System/Library/Frameworks/GLUT.framework',
+    GSS = '/System/Library/Frameworks/GSS.framework',
+    ICADevices = '/System/Library/Frameworks/ICADevices.framework',
+    ImageCaptureCore = '/System/Library/Frameworks/ImageCaptureCore.framework',
+    ImageIO = '/System/Library/Frameworks/ImageIO.framework',
+    IMServicePlugIn = '/System/Library/Frameworks/IMServicePlugIn.framework',
+    InputMethodKit = '/System/Library/Frameworks/InputMethodKit.framework',
+    InstallerPlugins = '/System/Library/Frameworks/InstallerPlugins.framework',
+    InstantMessage = '/System/Library/Frameworks/InstantMessage.framework',
+    IOBluetooth = '/System/Library/Frameworks/IOBluetooth.framework',
+    IOBluetoothUI = '/System/Library/Frameworks/IOBluetoothUI.framework',
+    IOKit = '/System/Library/Frameworks/IOKit.framework',
+    IOSurface = '/System/Library/Frameworks/IOSurface.framework',
+    JavaFrameEmbedding = '/System/Library/Frameworks/JavaFrameEmbedding.framework',
+    JavaScriptCore = '/System/Library/Frameworks/JavaScriptCore.framework',
+    JavaVM = '/System/Library/Frameworks/JavaVM.framework',
+    Kerberos = '/System/Library/Frameworks/Kerberos.framework',
+    Kernel = '/System/Library/Frameworks/Kernel.framework',
+    LatentSemanticMapping = '/System/Library/Frameworks/LatentSemanticMapping.framework',
+    LDAP = '/System/Library/Frameworks/LDAP.framework',
+    MediaToolbox = '/System/Library/Frameworks/MediaToolbox.framework',
+    Message = '/System/Library/Frameworks/Message.framework',
+    NetFS = '/System/Library/Frameworks/NetFS.framework',
+    OpenAL = '/System/Library/Frameworks/OpenAL.framework',
+    OpenCL = '/System/Library/Frameworks/OpenCL.framework',
+    OpenDirectory = '/System/Library/Frameworks/OpenDirectory.framework',
+    OpenGL = '/System/Library/Frameworks/OpenGL.framework',
+    OSAKit = '/System/Library/Frameworks/OSAKit.framework',
+    PCSC = '/System/Library/Frameworks/PCSC.framework',
+    PreferencePanes = '/System/Library/Frameworks/PreferencePanes.framework',
+    PubSub = '/System/Library/Frameworks/PubSub.framework',
+    Python = '/System/Library/Frameworks/Python.framework',
+    QTKit = '/System/Library/Frameworks/QTKit.framework',
+    Quartz = '/System/Library/Frameworks/Quartz.framework',
+    QuartzCore = '/System/Library/Frameworks/QuartzCore.framework',
+    QuickLook = '/System/Library/Frameworks/QuickLook.framework',
+    QuickTime = '/System/Library/Frameworks/QuickTime.framework',
+    Ruby = '/System/Library/Frameworks/Ruby.framework',
+    RubyCocoa = '/System/Library/Frameworks/RubyCocoa.framework',
+    SceneKit = '/System/Library/Frameworks/SceneKit.framework',
+    ScreenSaver = '/System/Library/Frameworks/ScreenSaver.framework',
+    Scripting = '/System/Library/Frameworks/Scripting.framework',
+    ScriptingBridge = '/System/Library/Frameworks/ScriptingBridge.framework',
+    Security = '/System/Library/Frameworks/Security.framework',
+    SecurityFoundation = '/System/Library/Frameworks/SecurityFoundation.framework',
+    SecurityInterface = '/System/Library/Frameworks/SecurityInterface.framework',
+    ServerNotification = '/System/Library/Frameworks/ServerNotification.framework',
+    ServiceManagement = '/System/Library/Frameworks/ServiceManagement.framework',
+    Social = '/System/Library/Frameworks/Social.framework',
+    StoreKit = '/System/Library/Frameworks/StoreKit.framework',
+    SyncServices = '/System/Library/Frameworks/SyncServices.framework',
+    System = '/System/Library/Frameworks/System.framework',
+    SystemConfiguration = '/System/Library/Frameworks/SystemConfiguration.framework',
+    Tcl = '/System/Library/Frameworks/Tcl.framework',
+    Tk = '/System/Library/Frameworks/Tk.framework',
+    TWAIN = '/System/Library/Frameworks/TWAIN.framework',
+    vecLib = '/System/Library/Frameworks/vecLib.framework',
+    VideoDecodeAcceleration = '/System/Library/Frameworks/VideoDecodeAcceleration.framework',
+    VideoToolbox = '/System/Library/Frameworks/VideoToolbox.framework',
+    WebKit = '/System/Library/Frameworks/WebKit.framework',
+    XgridFoundation = '/System/Library/Frameworks/XgridFoundation.framework'
+
 
 If Framework path which you want to load isn't present in INCLUDE enum, you can specify it manualy.
 Let's say that path to AppKit isn't available via INCLUDE enum. You can load Framework on following way::
@@ -540,6 +647,23 @@ You can see that we use ``NSComparisonResult`` enum in above example to compare 
     NSComparisonResult = enum("NSComparisonResult", NSOrderedAscending=-1, NSOrderedSame=0, NSOrderedDescending=1)
 
 The first argument of ``enum`` function is name of new enum type, and rest of arguments are fields declarations of that enum. As you can see it is preety simple to declare enum with pyobjus, so you can add new enum types to pyobjus.
+
+Using vararg methods
+--------------------
+
+As you know, Objective C support vararg (Variable Arguments) methods, so it will be great if you can use vararg methods from pyobjus. Fortunately you can.
+
+Let's we say that we want to use ``arrayWithObjects:`` method, which is one of varargs methods::
+
+    from pyobjus import autoclass, objc_str
+
+    NSArray = autoclass('NSArray')
+    array = NSArray.arrayWithObjects_(objc_str('first string'), objc_str('second string'), None)
+
+    text = array.objectAtIndex_(1)
+    print text.UTF8String()
+
+As you can see, last argument of varargs methods must be ``None``.
 
 Using C array
 -------------
