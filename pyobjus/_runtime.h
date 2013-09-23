@@ -1,5 +1,5 @@
 #include <objc/runtime.h>
-#include <objc/objc-runtime.h>
+#include <objc/message.h>
 #include <stdio.h>
 #include <dlfcn.h>
 #include <string.h>

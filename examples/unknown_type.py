@@ -1,6 +1,5 @@
-import os
-import ctypes
-from pyobjus import autoclass, selector, load_usr_lib
+from pyobjus import autoclass, selector
+from pyobjus.dylib_manager import load_dylib
 
 # Let we say that we have defined following structures in our dylib
 # Note that we arent specify type of structs, so they types will be missing in method signatures
@@ -18,7 +17,7 @@ from pyobjus import autoclass, selector, load_usr_lib
 #   unknown_str_new u_str;
 # } unknown_str;
 
-load_usr_lib('usrlib.dylib', usr_path=False)
+load_dylib('testlib.dylib', usr_path=False)
 Car = autoclass('Car')
 car = Car.alloc().init()
 
@@ -40,6 +39,8 @@ car = Car.alloc().init()
 # is CGRect, and another is some unknown type, which contains of float, integer and CGRect struct
 # So, if user doesn't have defined this struct, pyobjus can generate this type for him. Let's call this function:
 ret_type = car.makeUnknownStr()
+
+ret_type = car.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_field'])
 
 # But wait, how will pyobjus know about field names in struct, because from method signature we know 
 # only types, not actual names. Well, pyobjus will generate some 'random' names in alphabetical order

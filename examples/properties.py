@@ -1,8 +1,7 @@
-import os
-import ctypes
-from pyobjus import autoclass, dereference, load_usr_lib
+from pyobjus import autoclass, dereference
+from pyobjus.dylib_manager import load_dylib
 
-load_usr_lib('usrlib.dylib', usr_path=False)
+load_dylib('testlib.dylib', usr_path=False)
 Car = autoclass('Car')
 car = Car.alloc().init()
 

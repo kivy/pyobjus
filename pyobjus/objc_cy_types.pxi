@@ -8,8 +8,11 @@ cdef extern from "CoreFoundation/CoreFoundation.h":
 cdef extern from "CoreGraphics/CoreGraphics.h":
     
     ctypedef struct CGPoint:
-        pass
+        float x
+        float y
     ctypedef struct CGSize:
-        pass
+        float width
+        float height
     ctypedef struct CGRect:
-        pass
+        CGPoint origin
+        CGSize size

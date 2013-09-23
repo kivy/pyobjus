@@ -11,11 +11,14 @@ from pyobjus import *
 from objc_py_types import *
 
 NSArray = autoclass("NSArray")
-NSString = autoclass('NSString')
 NSMutableArray = autoclass("NSMutableArray")
+NSString = autoclass('NSString')
 
 text = NSString.stringWithUTF8String_("some text from Python")
 print text.UTF8String()
+
+test_array = NSArray.alloc().initWithObjects_(text, None)
+
 newText = NSString.stringWithUTF8String_("text")
 string_for_static_array = text
 
@@ -114,7 +117,6 @@ range_new.length = 5
 car = autoclass('Car')
 c = car.alloc().init()
 r = c.makeCarIdint()
-print r.type
 c.driveWithCari_(r)
 c.driveWithCari_(542354)
 
@@ -146,7 +148,7 @@ c.voidToStr_("iv")
 
 p = NSValue.valueWithPointer_(range_new)
 val_ptr = p.pointerValue()
-print dereference(val_ptr, type=NSRange).length
+print dereference(val_ptr, of_type=NSRange).length
 
 rng = c.makeRangePtr()
 rn = NSRange(23, 43)
@@ -162,7 +164,7 @@ c.useClassVoidPtr_(c.makeClass())
 
 p = NSValue.valueWithPointer_(range_new)
 p_v = p.pointerValue()
-print dereference(p_v, type=NSRange).location
+print dereference(p_v, of_type=NSRange).location
 
 rng = NSRange(9, 10)
 rg = NSValue.valueWithRange_(rng)
@@ -202,39 +204,39 @@ print rect.size.width
 print rect.size.height
 
 cls_p = c.makeClassVoidPtr()
-cls = dereference(cls_p, type=ObjcClass)
+cls = dereference(cls_p, of_type=ObjcClass)
 c.driveWithClass_(cls)
 
 s_vp = c.makeSelectorVoidPtr()
-sel = dereference(s_vp, type=ObjcSelector)
+sel = dereference(s_vp, of_type=ObjcSelector)
 c.useSelector_(sel)
 c.useSelectorPtr_(s_vp)
 
 p = NSValue.valueWithPointer_(text)
 p_v = p.pointerValue()
-print dereference(p_v, type=ObjcClassInstance).UTF8String()
+print dereference(p_v, of_type=ObjcClassInstance).UTF8String()
 
 pv = NSValue.valueWithPointer_(rect)
 rct = pv.pointerValue()
-print dereference(rct, type=NSRect).origin.x
+print dereference(rct, of_type=NSRect).origin.x
 
 cls_p = c.oclass()
 nsv = NSValue.valueWithPointer_(cls_p)
 cls_p = nsv.pointerValue()
-cls = dereference(cls_p, type=ObjcClass)
+cls = dereference(cls_p, of_type=ObjcClass)
 c.driveWithClass_(cls)
 
 i_vp = c.makeIntVoidPtr()
-print dereference(i_vp, type=ObjcInt)
+print dereference(i_vp, of_type=ObjcInt)
 
 f_vp = c.makeFloatVoidPtr()
-print dereference(f_vp, type=ObjcFloat)
+print dereference(f_vp, of_type=ObjcFloat)
 
 b_ptr = c.makeBoolPtr()
 print dereference(b_ptr)
 
 b_v_ptr = c.makeBoolVoidPtr()
-print dereference(b_v_ptr, type=ObjcBool)
+print dereference(b_v_ptr, of_type=ObjcBool)
 
 print c.makeULongLong()
 
@@ -252,7 +254,7 @@ c.useBOOL_(BOOL)
 c.useBOOLPtr_(BOOL_ptr)
 
 BOOL_v_p = c.makeBOOLVoidPtr()
-print dereference(BOOL_v_p, type=ObjcBOOL)
+print dereference(BOOL_v_p, of_type=ObjcBOOL)
 
 union = c.makeUnion()
 union_ptr = c.makeUnionPtr()
@@ -316,3 +318,29 @@ print dereference(c.prop_int_ptr)
 
 c.prop_double_ptr = 1010.3030
 print dereference(c.prop_double_ptr)
+
+a = autoclass('NSString')
+print dir(a)
+b = autoclass('NSString', load_class_methods=['alloc'])
+print dir(b)
+a = autoclass('NSString', reset_autoclass=True)
+print dir(a)
+
+print objc_c("C").charValue()
+print objc_i(123).intValue()
+print objc_ui(32243423).unsignedIntegerValue()
+print objc_l(42342342).longValue()
+print objc_ll(53453453).longLongValue()
+print objc_f(4343.4343).floatValue()
+print objc_d(555.3333).doubleValue()
+print objc_b(True).boolValue()
+print objc_b(False).boolValue()
+print objc_str('string literal test!').UTF8String()
+print objc_arr(text, objc_str('other string'), objc_i(232343)).objectAtIndex_(2)
+print objc_dict({'first': text, 'second': objc_f(3.14)}).objectForKey_(objc_str('second')).floatValue()
+
+text = NSString.stringWithUTF8String_('it works!')
+rng = NSRange(0, 3)
+r = text.lineRangeForRange_(rng)
+print r.location
+print r.length

@@ -1,11 +1,10 @@
-import ctypes
-import os
-from pyobjus import autoclass, dereference, objc_py_types as opy, ObjcSelector, load_usr_lib
+from pyobjus import autoclass, dereference, objc_py_types as opy, ObjcSelector
+from pyobjus.dylib_manager import load_dylib
 
-load_usr_lib('usrlib.dylib', usr_path=False)
+load_dylib('testlib.dylib', usr_path=False)
 NSString = autoclass('NSString')
 NSValue = autoclass('NSValue')
-# this is class defined in user dynamic lib (objc_usr_classes/usrlib.m)
+# this is class defined in user dynamic lib (objc_test/testlib.m)
 Car = autoclass('Car')
 car = Car.alloc().init()
 
@@ -61,5 +60,5 @@ print sel
 #   return (void*)s;
 # }
 sel_void_ptr = car.makeSelectorVoidPtr()
-sel = dereference(sel_void_ptr, type=ObjcSelector)
+sel = dereference(sel_void_ptr, of_type=ObjcSelector)
 print sel

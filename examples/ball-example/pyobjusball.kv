@@ -1,0 +1,30 @@
+<Ball>:
+    size: 50, 50
+    h: 0
+    canvas:
+        Color:
+            hsv: self.h, 1, 1,
+        Ellipse:
+            pos: self.pos
+            size: self.size          
+
+<PyobjusGame>:
+    ball: pyobjus_ball
+    br_slider: bright_slider
+
+    Label:
+        text: 'Screen brightness'
+        pos: bright_slider.x, bright_slider.y + bright_slider.height / 2
+    Slider:
+        pos: self.parent.width / 4, self.parent.height / 1.1
+        id: bright_slider
+        value: 0.5
+        max: 1
+        min: 0
+        width: self.parent.width / 2
+        height: self.parent.height / 10
+        on_touch_up: root.on_bright_slider_change()
+
+    Ball:
+        id: pyobjus_ball
+        center: self.parent.center

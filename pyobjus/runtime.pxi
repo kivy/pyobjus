@@ -36,6 +36,7 @@ cdef extern from "objc/runtime.h":
     Ivar*           class_copyIvarList(Class cls, unsigned int *outCount)
     objc_property_t* class_copyPropertyList(Class cls, unsigned int *outCount)
     Ivar            class_getInstanceVariable(Class cls, const_char_ptr name)
+    const_char_ptr  class_getName(Class cls)
 
     const_char_ptr  ivar_getName(Ivar ivar)
     const_char_ptr  ivar_getTypeEncoding(Ivar ivar)
