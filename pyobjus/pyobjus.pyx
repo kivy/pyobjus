@@ -1,3 +1,6 @@
+# IMPORTANT: when you are pushing code to github, REMOVE first line -> dev_platform = 'something'
+# othervise pyobjus won't work property on both platforms
+# dev_platform is setted at compile time of pyobjus lib -> setup.py script
 '''
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
