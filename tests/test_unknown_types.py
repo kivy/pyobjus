@@ -1,7 +1,6 @@
 import unittest
-import os
-import ctypes
-from pyobjus import autoclass, selector, load_usr_lib
+from pyobjus import autoclass, selector
+from pyobjus.dylib_manager import load_dylib
 
 Car = car = None
 
@@ -9,7 +8,7 @@ class UnknownTypesTest(unittest.TestCase):
 
     def setUp(self):
         global Car, car
-        load_usr_lib('usrlib.dylib', usr_path=False)
+        load_dylib('testlib.dylib', usr_path=False)
         Car = autoclass('Car')
         car = Car.alloc().init()
 

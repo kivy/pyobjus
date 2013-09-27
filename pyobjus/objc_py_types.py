@@ -1,13 +1,18 @@
 import ctypes
 import itertools
 from ctypes import Structure
-from debug import dprint
-from pyobjus import signature_types_to_list
+from pyobjus import signature_types_to_list, dev_platform
 
 ########## NS STRUCT TYPES ##########
 
+if dev_platform == 'darwin':
+    ulng = ctypes.c_ulonglong
+# for some reason ctypes doesn't work ok with c_ulonglong on ARM
+elif dev_platform == 'ios':
+    ulng = ctypes.c_ulong
+
 class NSRange(Structure):
-    _fields_ = [('location', ctypes.c_ulonglong), ('length', ctypes.c_ulonglong)]
+    _fields_ = [('location', ulng), ('length', ulng)]
 CFRange = _NSRange = NSRange
 
 class NSPoint(Structure):
@@ -95,8 +100,8 @@ class Factory(object):
                 if True not in kwargs.values():
                     return self._fields_
                 if 'only_types' in kwargs:
-                    return [type[1] for type in self._fields_]
-                return [type[0] for type in self._fields_]
+                    return [ty[1] for ty in self._fields_]
+                return [ty[0] for ty in self._fields_]
 
         self.field_name_ind = 0
         sig_list = signature_types_to_list(obj_type[1])
@@ -116,13 +121,13 @@ class Factory(object):
                 else:
                     members_keys.append(val)
 
-        for type in sig_list:
+        for _type in sig_list:
             field_name = None
             if members_cpy is not None and len(members_cpy) > self.field_name_ind:
                 field_name = members_keys[self.field_name_ind]
 
-            if type.find('=') is not -1:
-                type_obj = type[1:-1].split('=', 1)
+            if _type.find('=') is not -1:
+                type_obj = _type[1:-1].split('=', 1)
                 if type_obj[0] is '?':
                     if not field_name:
                         # TODO: This is temporary solution. Find more efficient solution for this! 
@@ -144,9 +149,9 @@ class Factory(object):
             else:
                 if not field_name:
                     field_name, letter, perm_n, perms = self._generate_variable_name(letter, perm_n, perms)
-                    field_list.append((field_name, types[type]))
+                    field_list.append((field_name, types[_type]))
                 else:
-                    field_list.append((field_name, types[type]))
+                    field_list.append((field_name, types[_type]))
             self.field_name_ind += 1
         UnknownType._fields_ = field_list
         return UnknownType

@@ -1,14 +1,13 @@
 import unittest
-import os
-import ctypes
-from pyobjus import autoclass, dereference, objc_py_types as opy, load_usr_lib
+from pyobjus import autoclass, dereference, objc_py_types as opy
+from pyobjus.dylib_manager import load_dylib
 
 Car = None
 
 class Union(unittest.TestCase):
 
     def setUp(self):
-        load_usr_lib('usrlib.dylib', usr_path=False)
+        load_dylib('testlib.dylib', usr_path=False)
         global Car
         Car = autoclass('Car')
 

@@ -8,3 +8,5 @@ build/*
 output
 test.py
 docs/build/*
+.DS_Store
+objc_usr_classes/.DS_Store

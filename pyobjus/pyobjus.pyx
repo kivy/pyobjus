@@ -1,12 +1,16 @@
+# IMPORTANT: when you are pushing code to github, REMOVE first line -> dev_platform = 'something'
+# othervise pyobjus won't work property on both platforms
+# dev_platform is setted at compile time of pyobjus lib -> setup.py script
 '''
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
 
 __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar', 'ObjcUInt', 
         'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
-        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'ObjcInt', 
-        'ObjcFloat', 'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types', 
-        'dereference', 'signature_types_to_list', 'load_usr_lib')
+        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass', 
+        'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list', 
+        'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
+        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray', 'CArrayCount')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -20,7 +24,7 @@ from debug import dprint
 import ctypes
 import objc_py_types
 from objc_py_types import Factory
-from dylib_manager import load_usr_lib
+import dylib_manager
 
 # do the initialization!
 pyobjc_internal_init()
@@ -30,6 +34,7 @@ cdef pr(void *pointer):
     return '0x%x' % <unsigned long>pointer
 
 cdef dict oclass_register = {}
+cdef dict omethod_partial_register = {}
 
 class MetaObjcClass(type):
     def __new__(meta, classname, bases, classDict):
@@ -86,7 +91,7 @@ def selector(name):
     """
     osel = ObjcSelector()
     osel.selector = sel_registerName(name)
-    dprint(pr(osel.selector), type="i")
+    dprint(pr(osel.selector), of_type="i")
     return osel
 
 cdef class ObjcMethod(object):
@@ -100,6 +105,7 @@ cdef class ObjcMethod(object):
     cdef object signature_default_args
     cdef object return_type
     cdef object members
+    cdef object main_cls_name
     cdef Class o_cls
     cdef id o_instance
     cdef SEL selector 
@@ -122,10 +128,12 @@ cdef class ObjcMethod(object):
         self.is_varargs = False
 
     def __dealloc__(self):
+        # NOTE: Commented lines here cause seg fault if we uncomment them!
+        # TODO: See that is the problem!!!
         self.is_ready = 0
-        if self.f_result_type != NULL:
-            free(self.f_result_type)
-            self.f_result_type = NULL
+        #if self.f_result_type != NULL:
+        #    free(self.f_result_type)
+        #    self.f_result_type = NULL
         if self.f_arg_types != NULL:
             free(self.f_arg_types)
             self.f_arg_types = NULL
@@ -133,8 +141,9 @@ cdef class ObjcMethod(object):
             if self.f_result_type.elements != NULL:
                 free(self.f_result_type.elements)
                 self.f_result_type.elements = NULL
-            free(self.f_result_type)
-            self.f_result_type = NULL
+            #free(self.f_result_type)
+            #self.f_result_type = NULL
+        # TODO: Memory management
 
     def __init__(self, signature, objc_name, **kwargs):
         super(ObjcMethod, self).__init__()
@@ -144,6 +153,7 @@ cdef class ObjcMethod(object):
         self.name = kwargs.get('name')
         self.objc_name = objc_name
         self.factory = Factory()
+        self.main_cls_name = kwargs.get('main_cls_name')
 
         py_selectors = kwargs.get('selectors', [])
         if len(py_selectors):
@@ -176,6 +186,22 @@ cdef class ObjcMethod(object):
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
+        
+        ## signature tuple compression for carray
+        tmp_sig = []
+        arr_sig = ""
+        
+        for item in self.signature_args:
+            if item[0].startswith("["):
+                arr_sig += item[0] + item[1]
+            elif item[0].endswith("]"):
+                arr_sig += item[0]
+                tmp_sig.append((arr_sig, item[1], item[2]))
+            else:
+                tmp_sig.append(item)
+        dprint("pre-zip signature: {0}".format(self.signature_args))
+        dprint("array signature zip: {0}".format(tmp_sig))
+        self.signature_args = tmp_sig
         
         # resolve f_result_type 
         if self.signature_return[0][0] == '(':
@@ -222,7 +248,7 @@ cdef class ObjcMethod(object):
             self.members = kwargs['members']
 
         if len(args) > (len(self.signature_args) - 2):
-            dprint("preparing potential varargs method...", type='i')
+            dprint("preparing potential varargs method...", of_type='i')
             self.is_varargs = True
             self.is_ready = False 
 
@@ -242,7 +268,7 @@ cdef class ObjcMethod(object):
     def _reset_method_attributes(self):
         '''Method for setting adapted attributes values to default ones
         '''
-        dprint("reseting method attributes...", type='i')
+        dprint("reseting method attributes...", of_type='i')
         self.signature_args = self.signature_default_args
         self.is_ready = False
         self.ensure_method()
@@ -287,10 +313,16 @@ cdef class ObjcMethod(object):
         cdef ObjcClassInstance ocl
         f_index = 1
 
+        carray = False
         # populate the rest of f_args based on method signature
         for index in range(2, len(self.signature_args)):
             # argument passed to call
-            arg = args[index-2]
+            arg = args[index - 2]
+            
+            if arg == CArrayCount: 
+                arg, carray = 0, True
+            #dprint("ARG, CArrayCount, type(arg): {0}, {1}, {2}".format(arg, carray, type(arg)))
+            
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
                     index, self.f_arg_types[index][0].size, arg))
@@ -313,10 +345,10 @@ cdef class ObjcMethod(object):
         if self.signature_return[0][0] not in ['(', '{']:
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
         else:
-            # TODO FIXME NOTE: Currently this only work on x86_64 architecture
-            # We need add cases for powerPC 32bit and 64bit, and IA-32 architecture
+            # TODO FIXME NOTE: Currently this only work on x86_64 architecture and armv7 ios
 
-            IF UNAME_MACHINE == "x86_64":
+            if dev_platform == 'darwin':
+            # OSX -> X86_64
             # From docs: If the type has class MEMORY, then the caller provides space for the return
             # value and passes the address of this storage in %rdi as if it were the ﬁrst
             # argument to the function. In effect, this address becomes a “hidden” ﬁrst
@@ -345,9 +377,13 @@ cdef class ObjcMethod(object):
                 else:
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
-                dprint("x86_64 architecture {0} call".format(fun_name), type='i')
-            ELSE:
-                dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", type='e')
+                dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
+            elif dev_platform == 'ios':
+                ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
+                dprint('ios platform objc_msgSend_stret call')
+
+            else:
+                dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", of_type='e')
                 raise SystemExit()
 
         if self.is_varargs:
@@ -358,42 +394,92 @@ cdef class ObjcMethod(object):
         cdef bytes bret
 
         sig = self.signature_return[0]
-        dprint("return signature", self.signature_return[0], type="i")
+        dprint("return signature", self.signature_return[0], of_type="i")
         
         if sig == '@':
             ret_id = (<id>res_ptr[0])
             if ret_id == self.o_instance:
                 return self.p_class
-        
-        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members) 
-        
+
+
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name) 
+
+
+        if type(ret_py_val) == ObjcReferenceToType and carray == True:
+            mm = ctypes.cast((<unsigned long*>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
+            ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
+
+
         return ret_py_val
 
 registers = []
 tmp_properties_keys = []
 
-cdef class_get_methods(Class cls, static=False):
+cdef objc_method_to_py(Method method, main_cls_name, static=True):
+    ''' Function for making equvivalent Python object for some Method C type
+    
+    Args:
+        method: Method which we want to convert
+        main_cls_name: Name of class to which method belongs
+        static: Is method static
+
+    Returns:
+        ObjcMethod instance
+    '''
+
+    cdef char* method_name = <char*>sel_getName(method_getName(method))
+    cdef char* method_args = <char*>method_getTypeEncoding(method)
+    cdef bytes py_name = (<bytes>method_name).replace(":", "_")
+
+    return py_name, ObjcMethod(<bytes>method_args, method_name, static=static, main_cls_name=main_cls_name)
+        
+cdef class_get_methods(Class cls, static=False, main_cls_name=None):
     cdef unsigned int index, num_methods
-    cdef char *method_name
-    cdef char *method_args
-    cdef bytes py_name
     cdef dict methods = {}
     cdef Method* class_methods = class_copyMethodList(cls, &num_methods)
+    main_cls_name = main_cls_name or class_getName(cls)
     for i in xrange(num_methods):
-        method_name = <char*>sel_getName(method_getName(class_methods[i]))
-        method_args = <char*>method_getTypeEncoding(class_methods[i])
-        py_name = (<bytes>method_name).replace(":", "_")
-
+        py_name, converted_method = objc_method_to_py(class_methods[i], main_cls_name, static)
         if py_name not in tmp_properties_keys:
-            methods[py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
+            methods[py_name] = converted_method
         else:
-            methods['__getter__' + py_name] = ObjcMethod(<bytes>method_args, method_name, static=static)
+            methods['__getter__' + py_name] = converted_method
     free(class_methods)
     return methods
 
-cdef class_get_static_methods(Class cls):
+cdef class_get_static_methods(Class cls, main_cls_name=None):
     cdef Class meta_cls = <Class>object_getClass(<id>cls)
-    return class_get_methods(meta_cls, True)
+    return class_get_methods(meta_cls, True, main_cls_name=main_cls_name)
+
+cdef class_get_partial_methods(Class cls, methods, class_methods=True):
+    ''' Function for copying only limited number of methods for some class
+    
+    Args:
+        cls: Class for which we want to copy methods
+        methods: Python array containing list of methods to copy
+        class_methods: Are methods what we want to copy class or instance type
+
+    Returns:
+        Dict with methods
+    '''
+
+    cdef Method objc_method
+    cdef dict static_methods_dict = {}
+
+    for method in methods:
+        if class_methods:
+            objc_method = class_getClassMethod(cls, sel_registerName(method))
+            static = True
+        else:
+            objc_method = class_getInstanceMethod(cls, sel_registerName(method))
+            static = False
+        py_name, converted_method = objc_method_to_py(objc_method, class_getName(cls), static=static)
+        
+        if py_name not in tmp_properties_keys:
+            static_methods_dict[py_name] = converted_method
+        else:
+            static_methods_dict['__getter__' + py_name] = converted_method
+    return static_methods_dict
 
 cdef class_get_super_class_name(Class cls):
     """ Get super class name of some class
@@ -418,7 +504,8 @@ cdef get_class_method(Class cls, char *name):
         ObjcMethod instance
     '''
     cdef Method m_cls = class_getClassMethod(cls, sel_registerName(name))
-    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), name, static=True)
+    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), name, static=True, \
+        main_cls_name=class_getName(cls))
 
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
@@ -431,20 +518,21 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """
     cdef dict super_cls_methods_dict = {}
     cdef Class cls_super = class_getSuperclass(<Class>cls)
+    cdef object main_cls_name = class_getName(cls)
     super_cls_name = object_getClassName(<id>cls_super)
     
     while str(super_cls_name) != "nil":
-        if(instance_methods == True):
+        if(instance_methods):
             super_cls_methods_dict.update(class_get_methods(cls_super))
         else:
-            super_cls_methods_dict.update(class_get_static_methods(cls_super))
+            super_cls_methods_dict.update(class_get_static_methods(cls_super, main_cls_name=main_cls_name))
 
         super_cls_name = class_get_super_class_name(cls_super)
         cls_super = <Class>objc_getClass(super_cls_name)
 
     return super_cls_methods_dict
 
-cdef get_class_ivars(Class cls):
+cdef get_class_proerties(Class cls):
     ''' Function for getting a list of properties of some objective c class
     
     Args:
@@ -473,20 +561,35 @@ def check_copy_properties(cls_name):
         True if user want to copy properties, or false if he doesn't want to do that.
         Value None is returned if object haven't __copy_properties__ attribute
     '''
-    if oclass_register[cls_name].get('class') is not None:
-        return oclass_register[cls_name].get('class').__copy_properties__
+    if cls_name in oclass_register:
+        if oclass_register[cls_name].get('class') is not None:
+            return oclass_register[cls_name].get('class').__copy_properties__
     return None
 
 def autoclass(cls_name, **kwargs):
 
     new_instance = kwargs.get('new_instance', False)
+    load_class_methods_dict = kwargs.get('load_class_methods')
+    load_instance_methods_dict = kwargs.get('load_instance_methods')
+    reset_autoclass = kwargs.get('reset_autoclass')
+    if not new_instance and load_instance_methods_dict:
+        omethod_partial_register[cls_name] = load_instance_methods_dict
+
+    if reset_autoclass:
+        # TODO: Find better solution here!
+        # Problem is because in some cases class and instance are having different names,
+        # so, if there way to return instance name for some class 
+        # In that case we will del only class and instance from oclass_register and omethod_partial_register
+        oclass_register.clear()
+        omethod_partial_register.clear()
     # if class or class instance is already in cache, return requested value
-    if cls_name in oclass_register:
-        if not new_instance and "class" in oclass_register[cls_name]:
-            dprint("getting class from cache...", type='i')
+    if cls_name in oclass_register and load_class_methods_dict is None \
+        and load_instance_methods_dict is None and cls_name not in omethod_partial_register:
+        if (not new_instance and "class" in oclass_register[cls_name]):
+            dprint("getting class from cache...", of_type='i')
             return oclass_register[cls_name]['class']
-        elif new_instance and "instance" in oclass_register[cls_name]:
-            dprint('getting instance from cache...', type='i')
+        elif (new_instance and "instance" in oclass_register[cls_name]):
+            dprint('getting instance from cache...', of_type='i')
             return oclass_register[cls_name]['instance']
 
     # Resolving does user want to copy properties of class, or it doesn't
@@ -505,24 +608,33 @@ def autoclass(cls_name, **kwargs):
 
     properties_dict = {}
     if copy_properties:
-        properties_dict = get_class_ivars(cls)
+        properties_dict = get_class_proerties(cls)
         global tmp_properties_keys
         tmp_properties_keys = properties_dict.keys()
 
-    cdef dict instance_methods = class_get_methods(cls)
-    cdef dict class_methods = class_get_static_methods(cls)
+    cdef dict instance_methods
+    cdef dict class_methods
     cdef dict class_dict = {'__objcclass__':  cls_name, '__copy_properties__': copy_properties}
 
     # if this isn't new instance of some class, retrieve only static methods
     if not new_instance:
-        class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
+        if not load_class_methods_dict:
+            class_methods = class_get_static_methods(cls)
+            class_dict.update(resolve_super_class_methods(cls, instance_methods=False))
+        else:
+            class_methods = class_get_partial_methods(cls, load_class_methods_dict)
         class_dict.update(class_methods)
     # otherwise retrieve instance methods
     else:
-        class_dict.update(resolve_super_class_methods(cls))
+        if not load_instance_methods_dict:
+            instance_methods = class_get_methods(cls)
+            class_dict.update(resolve_super_class_methods(cls))
+        else:
+            instance_methods = class_get_partial_methods(cls, load_instance_methods_dict, class_methods=False)
         class_dict.update(instance_methods)
         # for some reason, if we don't override this instance method with class method, it won't work correctly
-        class_dict.update({'isKindOfClass_': get_class_method(cls, 'isKindOfClass:')})
+        if not load_instance_methods_dict:
+            class_dict.update({'isKindOfClass_': get_class_method(cls, 'isKindOfClass:')})
 
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})

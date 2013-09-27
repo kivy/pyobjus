@@ -1,4 +1,3 @@
-import ctypes
 from pyobjus import autoclass
 
 NSString = autoclass('NSString')

@@ -53,7 +53,7 @@ class NSString(unittest.TestCase):
        range = opy.NSRange(10, 20)
        range_ptr = NSValue.valueWithPointer_(range)
        range_val_ptr = range_ptr.pointerValue()
-       range_deref = dereference(range_val_ptr, type=opy.NSRange)
+       range_deref = dereference(range_val_ptr, of_type=opy.NSRange)
        self.assertEquals(range_deref.location, 10)
        self.assertEquals(range_deref.length, 20)
 
@@ -61,7 +61,7 @@ class NSString(unittest.TestCase):
         rect = opy.NSRect(opy.NSPoint(3, 5), opy.NSSize(320, 480))
         rct_ptr = NSValue.valueWithPointer_(rect)
         rect_val_ptr = rct_ptr.pointerValue()
-        rect_deref = dereference(rect_val_ptr, type=opy.NSRect)
+        rect_deref = dereference(rect_val_ptr, of_type=opy.NSRect)
         self.assertEquals(rect_deref.origin.x, 3)
         self.assertEquals(rect_deref.origin.y, 5)
         self.assertEquals(rect_deref.size.width, 320)
