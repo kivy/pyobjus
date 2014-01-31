@@ -5,12 +5,12 @@
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
 
-__all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar', 'ObjcUInt', 
-        'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 
-        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass', 
-        'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list', 
+__all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar', 'ObjcUInt',
+        'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid',
+        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass',
+        'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list',
         'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
-        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray', 'CArrayCount')
+        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray', 'CArrayCount', 'objc_delegate')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -35,12 +35,13 @@ cdef pr(void *pointer):
 
 cdef dict oclass_register = {}
 cdef dict omethod_partial_register = {}
+delegate_register = dict()
 
 class MetaObjcClass(type):
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
         tp = type.__new__(meta, classname, bases, classDict)
-        
+
         if(classDict['__objcclass__'] not in oclass_register):
             oclass_register[classDict['__objcclass__']] = {}
 
@@ -62,8 +63,8 @@ class MetaObjcClass(type):
             return ObjcException('__objcclass__ definition missing')
 
         cdef bytes __objcclass__ = <bytes>classDict['__objcclass__']
-        cdef ObjcClassStorage storage = ObjcClassStorage()
 
+        cdef ObjcClassStorage storage = ObjcClassStorage()
         storage.o_cls = <Class>objc_getClass(__objcclass__)
         if storage.o_cls == NULL:
             raise ObjcException('Unable to found the class {0!r}'.format(
@@ -108,7 +109,7 @@ cdef class ObjcMethod(object):
     cdef object main_cls_name
     cdef Class o_cls
     cdef id o_instance
-    cdef SEL selector 
+    cdef SEL selector
     cdef SEL *selectors
     cdef ObjcClassInstance p_class
     cdef int is_varargs
@@ -186,11 +187,11 @@ cdef class ObjcMethod(object):
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
-        
+
         ## signature tuple compression for carray
         tmp_sig = []
         arr_sig = ""
-        
+
         for item in self.signature_args:
             if item[0].startswith("["):
                 arr_sig += item[0] + item[1]
@@ -202,8 +203,8 @@ cdef class ObjcMethod(object):
         dprint("pre-zip signature: {0}".format(self.signature_args))
         dprint("array signature zip: {0}".format(tmp_sig))
         self.signature_args = tmp_sig
-        
-        # resolve f_result_type 
+
+        # resolve f_result_type
         if self.signature_return[0][0] == '(':
             self.f_result_type = type_encoding_to_ffitype(self.signature_return[0], str_in_union=True)
         else:
@@ -212,7 +213,7 @@ cdef class ObjcMethod(object):
         # casting is needed here because otherwise we will get warning at compile
         cdef unsigned int num_args = <unsigned int>len(self.signature_args)
         cdef unsigned int size = sizeof(ffi_type) * num_args
-        # allocate memory to hold ffi_type* of arguments 
+        # allocate memory to hold ffi_type* of arguments
         self.f_arg_types = <ffi_type **>malloc(size)
         if self.f_arg_types == NULL:
             raise MemoryError()
@@ -226,7 +227,7 @@ cdef class ObjcMethod(object):
             self.f_arg_types[index] = type_encoding_to_ffitype(arg[0])
             index = index + 1
 
-        # FFI PREP 
+        # FFI PREP
         cdef ffi_status f_status
         f_status = ffi_prep_cif(&self.f_cif, FFI_DEFAULT_ABI,
                 num_args, self.f_result_type, self.f_arg_types)
@@ -250,19 +251,19 @@ cdef class ObjcMethod(object):
         if len(args) > (len(self.signature_args) - 2):
             dprint("preparing potential varargs method...", of_type='i')
             self.is_varargs = True
-            self.is_ready = False 
+            self.is_ready = False
 
             # we are substracting 2 because first two arguments are selector and self
             self.signature_default_args = self.signature_args[:]
             num_of_signature_args = len(self.signature_args) - 2
             num_of_passed_args = len(args)
             num_of_arguments_to_add = num_of_passed_args - num_of_signature_args
-            
+
             for i in range(num_of_arguments_to_add):
                 self.signature_args.append(self.signature_args[-1])
-            
+
             # we need prepare new number of arguments for ffi_call
-            self.ensure_method()        
+            self.ensure_method()
         return self._call_instance_method(*args)
 
     def _reset_method_attributes(self):
@@ -276,7 +277,7 @@ cdef class ObjcMethod(object):
         self.is_varargs = False
 
     def _call_instance_method(self, *args):
-        
+
         dprint('-' * 80)
         dprint('call_instance_method()', self.name, pr(self.o_cls), pr(self.o_instance))
         self.ensure_method()
@@ -318,30 +319,30 @@ cdef class ObjcMethod(object):
         for index in range(2, len(self.signature_args)):
             # argument passed to call
             arg = args[index - 2]
-            
-            if arg == CArrayCount: 
+
+            if arg == CArrayCount:
                 arg, carray = 0, True
             #dprint("ARG, CArrayCount, type(arg): {0}, {1}, {2}".format(arg, carray, type(arg)))
-            
+
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
                     index, self.f_arg_types[index][0].size, arg))
 
             # cast the argument type based on method sig and store at val_ptr
             sig, offset, attr = self.signature_args[index]
-            
+
             by_value = True
             if sig[0][0] == '^':
                 by_value = False
                 sig = sig.split('^')[1]
-            
+
             dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
             f_index += 1
             f_args[f_index] = convert_py_arg_to_cy(arg, sig, by_value, self.f_arg_types[index][0].size)
             dprint('pointer before ffi_call:', pr(f_args[f_index]))
 
         res_ptr = <id*>malloc(self.f_result_type.size)
-        
+
         if self.signature_return[0][0] not in ['(', '{']:
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
         else:
@@ -354,7 +355,7 @@ cdef class ObjcMethod(object):
             # argument to the function. In effect, this address becomes a “hidden” ﬁrst
             # argument.
 
-            # If the size of an object is larger than two eightbytes, or in C++, 
+            # If the size of an object is larger than two eightbytes, or in C++,
             # is a nonPOD structure or union type, or contains unaligned ﬁelds, it has class MEMORY
             # SOURCE: http://www.uclibc.org/docs/psABI-x86_64.pdf
                 fun_name = ""
@@ -369,7 +370,7 @@ cdef class ObjcMethod(object):
                 stret = False
                 if self.signature_return[0][0] in ['{', '('] and size_ret > 16:
                     stret = True
-                
+
                 if stret:
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
@@ -395,14 +396,13 @@ cdef class ObjcMethod(object):
 
         sig = self.signature_return[0]
         dprint("return signature", self.signature_return[0], of_type="i")
-        
+
         if sig == '@':
             ret_id = (<id>res_ptr[0])
             if ret_id == self.o_instance:
                 return self.p_class
 
-
-        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name) 
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name)
 
 
         if type(ret_py_val) == ObjcReferenceToType and carray == True:
@@ -417,7 +417,7 @@ tmp_properties_keys = []
 
 cdef objc_method_to_py(Method method, main_cls_name, static=True):
     ''' Function for making equvivalent Python object for some Method C type
-    
+
     Args:
         method: Method which we want to convert
         main_cls_name: Name of class to which method belongs
@@ -432,7 +432,7 @@ cdef objc_method_to_py(Method method, main_cls_name, static=True):
     cdef bytes py_name = (<bytes>method_name).replace(":", "_")
 
     return py_name, ObjcMethod(<bytes>method_args, method_name, static=static, main_cls_name=main_cls_name)
-        
+
 cdef class_get_methods(Class cls, static=False, main_cls_name=None):
     cdef unsigned int index, num_methods
     cdef dict methods = {}
@@ -453,7 +453,7 @@ cdef class_get_static_methods(Class cls, main_cls_name=None):
 
 cdef class_get_partial_methods(Class cls, methods, class_methods=True):
     ''' Function for copying only limited number of methods for some class
-    
+
     Args:
         cls: Class for which we want to copy methods
         methods: Python array containing list of methods to copy
@@ -474,7 +474,7 @@ cdef class_get_partial_methods(Class cls, methods, class_methods=True):
             objc_method = class_getInstanceMethod(cls, sel_registerName(method))
             static = False
         py_name, converted_method = objc_method_to_py(objc_method, class_getName(cls), static=static)
-        
+
         if py_name not in tmp_properties_keys:
             static_methods_dict[py_name] = converted_method
         else:
@@ -483,10 +483,10 @@ cdef class_get_partial_methods(Class cls, methods, class_methods=True):
 
 cdef class_get_super_class_name(Class cls):
     """ Get super class name of some class
-    
+
     Args:
         cls: Class for which we will lookup for super class name
-    
+
     Returns:
         Super class name of class
     """
@@ -495,7 +495,7 @@ cdef class_get_super_class_name(Class cls):
 
 cdef get_class_method(Class cls, char *name):
     ''' Function for getting class method for given Class
-    
+
     Args:
         cls: Class for which we will look up for method
         name: name of method
@@ -509,10 +509,10 @@ cdef get_class_method(Class cls, char *name):
 
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
     """ Getting super classes methods of some class
-    
+
     Args:
         cls: Class for which we will try to get super methods
-        
+
     Returns:
         A dict with super methods
     """
@@ -520,7 +520,7 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
     cdef Class cls_super = class_getSuperclass(<Class>cls)
     cdef object main_cls_name = class_getName(cls)
     super_cls_name = object_getClassName(<id>cls_super)
-    
+
     while str(super_cls_name) != "nil":
         if(instance_methods):
             super_cls_methods_dict.update(class_get_methods(cls_super))
@@ -534,7 +534,7 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
 
 cdef get_class_proerties(Class cls):
     ''' Function for getting a list of properties of some objective c class
-    
+
     Args:
         cls: Class which properties we want to obtain
     Returns:
@@ -556,7 +556,7 @@ cdef get_class_proerties(Class cls):
 
 def check_copy_properties(cls_name):
     ''' Function for checking value of __copy_properties__ attribute
-    
+
     Returns:
         True if user want to copy properties, or false if he doesn't want to do that.
         Value None is returned if object haven't __copy_properties__ attribute
@@ -567,7 +567,6 @@ def check_copy_properties(cls_name):
     return None
 
 def autoclass(cls_name, **kwargs):
-
     new_instance = kwargs.get('new_instance', False)
     load_class_methods_dict = kwargs.get('load_class_methods')
     load_instance_methods_dict = kwargs.get('load_instance_methods')
@@ -578,7 +577,7 @@ def autoclass(cls_name, **kwargs):
     if reset_autoclass:
         # TODO: Find better solution here!
         # Problem is because in some cases class and instance are having different names,
-        # so, if there way to return instance name for some class 
+        # so, if there way to return instance name for some class
         # In that case we will del only class and instance from oclass_register and omethod_partial_register
         oclass_register.clear()
         omethod_partial_register.clear()
@@ -646,3 +645,108 @@ def autoclass(cls_name, **kwargs):
         return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()
 
     return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance,), class_dict)
+
+cdef id protocol_method_implementation(id self, SEL _cmd, ...):
+    '''Implementation of dynamically added protocol instance method.
+
+    This function dispatches the protocol method call to the corresponded
+    Python method implementation. It also convert Objective C arguments to
+    corresponded python objects.
+    '''
+    # Determines the signature.
+    cdef Class cls = object_getClass(self)
+    cls_name = class_getName(cls)
+    cdef Method method = class_getInstanceMethod(cls, _cmd)
+    cdef objc_method_description desc = method_getDescription(method)[0]
+    signature_args = parse_signature(<bytes>desc.types)[1]
+
+    # Converts C arguments to Python arguments.
+    py_method_args = []
+    cdef va_list c_args
+    cdef id c_arg
+    va_start(c_args, _cmd)
+    for i in range(2, len(signature_args)):  # skips self and _cmd
+        c_arg = <id>va_arg(c_args, id_type)
+        sig = signature_args[i]
+        arg_type = type_encoding_to_ffitype(sig[0])
+        py_arg = convert_cy_ret_to_py(<id*>(<unsigned long long>c_arg), sig[0],
+                                      <size_t>arg_type.size, members=None,
+                                      objc_prop=False, main_cls_name=cls_name)
+        py_method_args.append(py_arg)
+    va_end(c_args)
+
+    # Calls the protocol method defined in Python object.
+    delegate = delegate_register[cls_name]
+    py_method_name = sel_getName(_cmd).replace(':', '_')
+    py_method = getattr(delegate, py_method_name)
+    py_method(*py_method_args)
+
+def objc_delegate(py_obj, protocols):
+    '''Converts Python delegate instance to Objective C delegate instance.
+
+    This function dynamically creates a new Objective C class and adds
+    desired protocol methods that implemented in the passed py_obj.
+
+    py_obj:
+        The instance of Python delegate class.
+    protocols:
+        A list of protocol names to conform.
+    Returns:
+        A python object of the corresponded Objective C delegate instance.
+    '''
+    cls_name = py_obj.__class__.__name__
+
+    # Returns the cached delegate instance if exisits. Needs to find a way
+    # to release unused instances.
+    if cls_name in delegate_register:
+        return delegate_register[cls_name]
+
+    # Creates an Objective C class inherited from NSObject and added protocol
+    # methods implemented in py_obj.
+    cdef Class superclass = <Class>objc_getClass('NSObject')
+    cdef Class objc_cls = <Class>objc_allocateClassPair(superclass,
+                                                        cls_name, 0)
+    cdef Protocol *protocol
+    cdef unsigned int num_descs
+    cdef objc_method_description* descs
+    cdef objc_method_description desc
+    cdef SEL selector
+    cdef char* method_args
+    cdef const_char_ptr selector_name
+
+    for protocol_name in protocols:
+        protocol = objc_getProtocol(protocol_name)
+        descs = protocol_copyMethodDescriptionList(protocol, NO, YES,
+                                                   &num_descs)
+        for i in xrange(num_descs):
+            desc = descs[i]
+            selector = desc.name
+            selector_name = sel_getName(selector)
+            py_method_name = selector_name.replace(':', '_')
+            if hasattr(py_obj, py_method_name):
+                class_addMethod(objc_cls, selector,
+                                &protocol_method_implementation, desc.types)
+        free(descs)
+    objc_registerClassPair(objc_cls)
+
+    cdef dict class_dict = {'__objcclass__':  cls_name,
+                            '__copy_properties__': False}
+    # Loads alloc and init method for instantiate the delegate class.
+    class_dict.update(class_get_partial_methods(objc_cls, ['alloc']))
+    class_dict.update(class_get_partial_methods(objc_cls, ['init'], False))
+    # Loads created protocol methods.
+    class_dict.update(class_get_methods(objc_cls))
+
+    if "class" in class_dict:
+        class_dict.update({'oclass': class_dict['class']})
+        class_dict.pop("class", None)
+
+    meta_object_cls = MetaObjcClass.__new__(MetaObjcClass, cls_name,
+                                            (ObjcClassInstance,),
+                                            class_dict)
+    objc_instance = meta_object_cls.alloc().init()
+
+    if cls_name not in 'delegate_register':
+        delegate_register[cls_name] = py_obj
+
+    return objc_instance
