@@ -1,6 +1,3 @@
-# IMPORTANT: when you are pushing code to github, REMOVE first line -> dev_platform = 'something'
-# othervise pyobjus won't work property on both platforms
-# dev_platform is setted at compile time of pyobjus lib -> setup.py script
 '''
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
@@ -13,6 +10,7 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
         'CArrayCount', 'protocol')
 
+include "config.pxi"
 include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
@@ -36,6 +34,7 @@ cdef pr(void *pointer):
 
 cdef dict oclass_register = {}
 cdef dict omethod_partial_register = {}
+cdef object dev_platform = PLATFORM
 delegate_register = dict()
 
 class MetaObjcClass(type):
@@ -349,7 +348,7 @@ cdef class ObjcMethod(object):
         else:
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture and armv7 ios
 
-            if dev_platform == 'darwin':
+            IF PLATFORM == 'darwin':
             # OSX -> X86_64
             # From docs: If the type has class MEMORY, then the caller provides space for the return
             # value and passes the address of this storage in %rdi as if it were the ﬁrst
@@ -380,11 +379,12 @@ cdef class ObjcMethod(object):
                     ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
-            elif dev_platform == 'ios':
+
+            ELIF PLATFORM == 'ios':
                 ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
                 dprint('ios platform objc_msgSend_stret call')
 
-            else:
+            ELSE:
                 dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", of_type='e')
                 raise SystemExit()
 

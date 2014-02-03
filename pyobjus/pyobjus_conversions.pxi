@@ -114,32 +114,33 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value
         else:
             (<CGSize**>val_ptr)[0] = <CGSize*>py_obj
 
-    elif str(of_type) == 'CGRect' and dev_platform == 'darwin':
-        if by_value:
-            (<CGRect*>val_ptr)[0] = (<CGRect*>py_obj)[0]
-        else:
-            (<CGRect**>val_ptr)[0] = <CGRect*>py_obj
-    elif str(of_type) == 'CGRect' and dev_platform == 'ios':
+    elif str(of_type) == 'CGRect':
+        IF PLATFORM == 'darwin':
+            if by_value:
+                (<CGRect*>val_ptr)[0] = (<CGRect*>py_obj)[0]
+            else:
+                (<CGRect**>val_ptr)[0] = <CGRect*>py_obj
 
-        if py_val:
-            point.x = py_val.origin.x
-            point.y = py_val.origin.y
-            sz.width = py_val.size.width
-            sz.height = py_val.size.height
+        ELIF PLATFORM == 'ios':
+            if py_val:
+                point.x = py_val.origin.x
+                point.y = py_val.origin.y
+                sz.width = py_val.size.width
+                sz.height = py_val.size.height
 
-        if by_value and py_val:
-            rect.origin = point
-            rect.size = sz
-            (<CGRect*>val_ptr)[0] = rect
+            if by_value and py_val:
+                rect.origin = point
+                rect.size = sz
+                (<CGRect*>val_ptr)[0] = rect
 
-        # TODO: find appropriate method and test these cases on iOS
-        elif not by_value and py_val:
-            rect_ptr = <CGRect*>malloc(sizeof(CGRect))
-            rect_ptr.origin = point
-            rect_ptr.size = sz
-            (<CGRect**>val_ptr)[0] = rect_ptr
-        elif not by_value and not py_val: 
-            (<CGRect**>val_ptr)[0] = <CGRect*>py_obj
+            # TODO: find appropriate method and test these cases on iOS
+            elif not by_value and py_val:
+                rect_ptr = <CGRect*>malloc(sizeof(CGRect))
+                rect_ptr.origin = point
+                rect_ptr.size = sz
+                (<CGRect**>val_ptr)[0] = rect_ptr
+            elif not by_value and not py_val: 
+                (<CGRect**>val_ptr)[0] = <CGRect*>py_obj
 
     else:
         if by_value:
