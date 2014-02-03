@@ -420,7 +420,10 @@ cdef void *parse_array(sig, arg, size, multidimension=False):
 
     return val_ptr
 
-cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
+cdef extern from "objc/objc.h":
+    cdef id *nil
+
+cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
         arg: argument to convert
@@ -448,7 +451,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
             del_arg_val_ptr = True
         by = 'reference'
 
-    dprint("passing argument {0} by {1}".format(arg, by), of_type='i')
+    dprint("passing argument {} by {} (sig={})".format(
+        arg, by, sig), of_type='i')
 
     # method is accepting char (or BOOL, which is also interpreted as char)
     if sig == 'c':
@@ -569,8 +573,15 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
         if arg == None:
             (<id*>val_ptr)[0] = <id>NULL
         else:
-            ocl = <ObjcClassInstance>arg
+            if isinstance(arg, ObjcClassInstance):
+                ocl = <ObjcClassInstance>arg
+            else:
+                # construct a delegate?
+                dprint('construct a delegate!')
+                ocl = <ObjcClassInstance>objc_create_delegate(arg)
+
             (<id*>val_ptr)[0] = <id>ocl.o_instance
+            
     # method is accepting class
     elif sig == '#':
         if by_value:
@@ -606,9 +617,11 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size):
     # NOTE: There are no problems with structs, only unions, reason -> libffi
     # TODO: ADD SUPPORT FOR PASSING UNIONS AS ARGUMENTS BY VALUE
     elif sig[0] in ['(', '{']:
-        dprint("==> Structure arg", arg)
+        dprint("==> Structure arg", arg, sig)
         arg_type = sig[1:-1].split('=', 1)[0]
-        if by_value:
+        if arg is None:
+            (<void**>val_ptr)[0] = nil
+        elif by_value:
             str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
             ctypes_struct_cache.append(<unsigned long long>str_long_ptr)
             val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, by_value=True, py_val=arg)

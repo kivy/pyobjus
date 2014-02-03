@@ -10,7 +10,8 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass',
         'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list',
         'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
-        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray', 'CArrayCount', 'objc_delegate')
+        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
+        'CArrayCount', 'protocol')
 
 include "common.pxi"
 include "runtime.pxi"
@@ -681,20 +682,44 @@ cdef id protocol_method_implementation(id self, SEL _cmd, ...):
     py_method = getattr(delegate, py_method_name)
     py_method(*py_method_args)
 
-def objc_delegate(py_obj, protocols):
+
+def protocol(protocol_name):
+    '''Mark the method as part of the implementation of the `protocol_name`.
+    For example::
+
+        class Ble(object):
+
+            @protocol('CBCentralManagerDelegate')
+            def centralManagerDidUpdateState_(self, central):
+                print 'central updated!'
+
+    And you can use the instance of Ble when you need a CBCentralManagerDelegate
+    delegate.
+    '''
+    def f(subf):
+        def f2(*args, **kwargs):
+            return subf(*args, **kwargs)
+        f2.__protocol__ = protocol_name
+        return f2
+    return f
+
+
+cdef ObjcClassInstance objc_create_delegate(py_obj):
     '''Converts Python delegate instance to Objective C delegate instance.
 
     This function dynamically creates a new Objective C class and adds
     desired protocol methods that implemented in the passed py_obj.
 
-    py_obj:
-        The instance of Python delegate class.
-    protocols:
-        A list of protocol names to conform.
-    Returns:
-        A python object of the corresponded Objective C delegate instance.
+    The instance passed as `py_obj` must have at least one decorated method with
+    :func:`protocol`, or an :class:`ObjcException` will be throw.
+
+    :arg py_obj: The instance of Python delegate class.
+    :returns: A python object of the corresponded Objective C delegate instance.
     '''
-    cls_name = py_obj.__class__.__name__
+    if isinstance(py_obj, type):
+        cls_name = py_obj.__name__
+    else:
+        cls_name = py_obj.__class__.__name__
 
     # Returns the cached delegate instance if exisits. Needs to find a way
     # to release unused instances.
@@ -713,8 +738,18 @@ def objc_delegate(py_obj, protocols):
     cdef SEL selector
     cdef char* method_args
     cdef const_char_ptr selector_name
+    cdef list protocols = []
 
-    for protocol_name in protocols:
+    for funcname in dir(py_obj):
+        func = getattr(py_obj, funcname)
+        if not hasattr(func, '__protocol__'):
+            continue
+
+        protocol_name = func.__protocol__
+        if protocol_name in protocols:
+            continue
+        protocols.append(protocol_name)
+
         protocol = objc_getProtocol(protocol_name)
         descs = protocol_copyMethodDescriptionList(protocol, NO, YES,
                                                    &num_descs)
@@ -728,6 +763,12 @@ def objc_delegate(py_obj, protocols):
                                 &protocol_method_implementation, desc.types)
         free(descs)
     objc_registerClassPair(objc_cls)
+
+    if not protocols:
+        raise ObjcException(
+            "You've passed {!r} as delegate, but there is "
+            "no @protocol methods declared.".format(
+                py_obj))
 
     cdef dict class_dict = {'__objcclass__':  cls_name,
                             '__copy_properties__': False}
