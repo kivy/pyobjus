@@ -1,4 +1,5 @@
-DEBUG = False
+import os
+DEBUG = os.environ.get('PYOBJUS_DEBUG', '') == '1'
 
 debug_types = {
     "d": "DEBUG",
