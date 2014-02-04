@@ -2,13 +2,16 @@
 Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
 '''
 
-__all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar', 'ObjcUInt',
-        'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat', 'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid',
-        'ObjcString', 'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod', 'MetaObjcClass',
-        'ObjcException', 'autoclass', 'selector', 'objc_py_types', 'dereference', 'signature_types_to_list',
-        'dylib_manager', 'objc_c', 'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
-        'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
-        'CArrayCount', 'protocol')
+__all__ = (
+    'ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar',
+    'ObjcUInt', 'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat',
+    'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 'ObjcString',
+    'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod',
+    'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types',
+    'dereference', 'signature_types_to_list', 'dylib_manager', 'objc_c',
+    'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
+    'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
+    'CArrayCount', 'protocol')
 
 include "config.pxi"
 dev_platform = PLATFORM
@@ -30,24 +33,27 @@ import dylib_manager
 # do the initialization!
 pyobjc_internal_init()
 
-cdef pr(void *pointer):
-    # convert a void* to a 0x... value
-    return '0x%x' % <unsigned long>pointer
-
 cdef dict oclass_register = {}
 cdef dict omethod_partial_register = {}
 delegate_register = dict()
 
+
+cdef pr(void *pointer):
+    # convert a void* to a 0x... value
+    return '0x%x' % <unsigned long>pointer
+
+
 class MetaObjcClass(type):
+
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
         tp = type.__new__(meta, classname, bases, classDict)
 
-        if(classDict['__objcclass__'] not in oclass_register):
+        if classDict['__objcclass__'] not in oclass_register:
             oclass_register[classDict['__objcclass__']] = {}
 
         # for every class we save class instance and class object to cache
-        if(ObjcClassHlp not in bases):
+        if ObjcClassHlp not in bases:
             oclass_register[classDict['__objcclass__']]['instance'] = tp
         else:
             oclass_register[classDict['__objcclass__']]['class'] = tp
@@ -84,7 +90,7 @@ class MetaObjcClass(type):
 
 
 def selector(name):
-    """ Function for getting selector for given method name
+    """Function for getting selector for given method name
 
     Args:
         name: method name
@@ -95,6 +101,7 @@ def selector(name):
     osel.selector = sel_registerName(name)
     dprint(pr(osel.selector), of_type="i")
     return osel
+
 
 cdef class ObjcMethod(object):
     cdef bytes name
