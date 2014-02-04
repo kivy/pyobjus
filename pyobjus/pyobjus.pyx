@@ -11,6 +11,8 @@ __all__ = ('ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'Objc
         'CArrayCount', 'protocol')
 
 include "config.pxi"
+dev_platform = PLATFORM
+
 include "common.pxi"
 include "runtime.pxi"
 include "ffi.pxi"
@@ -34,7 +36,6 @@ cdef pr(void *pointer):
 
 cdef dict oclass_register = {}
 cdef dict omethod_partial_register = {}
-cdef object dev_platform = PLATFORM
 delegate_register = dict()
 
 class MetaObjcClass(type):
