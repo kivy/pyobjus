@@ -712,6 +712,33 @@ def protocol(protocol_name):
     return f
 
 
+def objc_protocol_get_delegates(protocol_name):
+    cdef objc_method_description* descs
+    cdef Protocol *protocol
+    cdef unsigned int num_descs
+    cdef objc_method_description desc
+
+    # try to find the protocol in the executable
+    protocol = objc_getProtocol(protocol_name)
+    dprint('  protocol found?', protocol != NULL)
+    if protocol != NULL:
+        delegates_types = {}
+        descs = protocol_copyMethodDescriptionList(
+                protocol, NO, YES, &num_descs)
+        for i in xrange(num_descs):
+            desc = descs[i]
+            selector = desc.name
+            selector_name = sel_getName(selector)
+            delegates_types[selector_name] = [desc.types, desc.types]
+        free(descs)
+        return delegates_types
+
+    # not found, try to search in the user-build protocols
+    from .protocols import protocols
+    if protocol_name in protocols:
+        return protocols.get(protocol_name)
+
+
 cdef ObjcClassInstance objc_create_delegate(py_obj):
     '''Converts Python delegate instance to Objective C delegate instance.
 
@@ -739,14 +766,11 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     cdef Class superclass = <Class>objc_getClass('NSObject')
     cdef Class objc_cls = <Class>objc_allocateClassPair(superclass,
                                                         cls_name, 0)
-    cdef Protocol *protocol
-    cdef unsigned int num_descs
-    cdef objc_method_description* descs
-    cdef objc_method_description desc
     cdef SEL selector
     cdef char* method_args
-    cdef const_char_ptr selector_name
     cdef list protocols = []
+
+    dprint('create delegate from {!r}'.format(py_obj))
 
     for funcname in dir(py_obj):
         func = getattr(py_obj, funcname)
@@ -754,22 +778,24 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
             continue
 
         protocol_name = func.__protocol__
+        dprint('  - found a @protocol {} for {}'.format(
+            protocol_name, funcname))
         if protocol_name in protocols:
             continue
         protocols.append(protocol_name)
 
-        protocol = objc_getProtocol(protocol_name)
-        descs = protocol_copyMethodDescriptionList(protocol, NO, YES,
-                                                   &num_descs)
-        for i in xrange(num_descs):
-            desc = descs[i]
-            selector = desc.name
-            selector_name = sel_getName(selector)
+        delegates = objc_protocol_get_delegates(protocol_name)
+        if delegates is None:
+            raise ObjcException('Undeclared protocol {}'.format(protocol_name)) 
+
+        for selector_name, sigs in delegates.items():
+
             py_method_name = selector_name.replace(':', '_')
             if hasattr(py_obj, py_method_name):
-                class_addMethod(objc_cls, selector,
-                                &protocol_method_implementation, desc.types)
-        free(descs)
+                class_addMethod(
+                    objc_cls, sel_registerName(selector_name),
+                    &protocol_method_implementation, sigs[-1])
+
     objc_registerClassPair(objc_cls)
 
     if not protocols:
