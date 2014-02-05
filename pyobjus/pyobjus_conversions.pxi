@@ -165,7 +165,7 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
     dprint(' - object_getClassName(f_result) =', bret)
     if bret == 'nil':
         dprint('<-- returned pointer value:', pr(ret_id), of_type="w")
-        return <unsigned long long>ret_id
+        return None
 
     load_instance_methods = None
     if bret in omethod_partial_register:
