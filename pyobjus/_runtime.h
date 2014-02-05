@@ -26,3 +26,4 @@ id allocAndInitAutoreleasePool() {
 void drainAutoreleasePool(id pool) {
   (void)objc_msgSend(pool, sel_registerName("drain"));
 }
+

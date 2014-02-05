@@ -182,6 +182,35 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
     dprint('<-- return object', cret)
     return cret
 
+
+# Tagged pointers
+ctypedef enum:
+    kCFTaggedObjectID_Integer = (3 << 1) + 1
+
+cdef is_tagged_pointer(void *_pointer):
+    cdef unsigned long long pointer = <unsigned long long>_pointer
+    return pointer & 0x1 == 0x1
+
+cdef read_tagged_pointer(void *_pointer):
+    cdef unsigned long long pointer = <unsigned long long>_pointer
+    cdef unsigned char _cls = pointer & 0xf
+    cdef unsigned char _type
+
+    if _cls == kCFTaggedObjectID_Integer:
+        _type = (pointer >> 4) & 0xf
+        if _type == 0:
+            return <char>(pointer >> 8)
+        elif _type == 1:
+            return <short>(pointer >> 8)
+        elif _type == 2:
+            return <int>(pointer >> 8)
+        elif _type == 3:
+            return <int>(pointer >> 8)
+
+    raise ObjcException('We got a tagged pointer, but we dont know how to read it: {}'.format(
+        <unsigned long long>pointer))
+
+
 cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False, main_cls_name=None):
 
     cdef CGRect rect
@@ -235,6 +264,8 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
             return None
     # return type -> id
     if sig == '@':
+        if is_tagged_pointer(f_result[0]):
+            return read_tagged_pointer(f_result[0])
         return convert_to_cy_cls_instance(<id>f_result[0], main_cls_name)
     # return type -> class
     elif sig == '#':

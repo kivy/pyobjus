@@ -662,12 +662,17 @@ cdef id protocol_method_implementation(id self, SEL _cmd, ...):
     Python method implementation. It also convert Objective C arguments to
     corresponded python objects.
     '''
+
+    dprint('-' * 80)
+    dprint('protocol_method_implementation called from Objective-C')
     # Determines the signature.
     cdef Class cls = object_getClass(self)
     cls_name = class_getName(cls)
     cdef Method method = class_getInstanceMethod(cls, _cmd)
     cdef objc_method_description desc = method_getDescription(method)[0]
     signature_args = parse_signature(<bytes>desc.types)[1]
+
+    dprint('pmi: signature is {}'.format(signature_args))
 
     # Converts C arguments to Python arguments.
     py_method_args = []
@@ -676,9 +681,11 @@ cdef id protocol_method_implementation(id self, SEL _cmd, ...):
     va_start(c_args, _cmd)
     for i in range(2, len(signature_args)):  # skips self and _cmd
         c_arg = <id>va_arg(c_args, id_type)
+        dprint('pmi: c_arg at {} is {}'.format(i, pr(c_arg)))
         sig = signature_args[i]
         arg_type = type_encoding_to_ffitype(sig[0])
-        py_arg = convert_cy_ret_to_py(<id*>(<unsigned long long>c_arg), sig[0],
+        dprint('pmi: convert arg {} with type {}'.format(i, sig))
+        py_arg = convert_cy_ret_to_py(&c_arg, sig[0],
                                       <size_t>arg_type.size, members=None,
                                       objc_prop=False, main_cls_name=cls_name)
         py_method_args.append(py_arg)
