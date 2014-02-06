@@ -10,3 +10,4 @@ test.py
 docs/build/*
 .DS_Store
 objc_usr_classes/.DS_Store
+pyobjus/config.pxi

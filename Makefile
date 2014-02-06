@@ -1,7 +1,7 @@
 .PHONY: build_ext test
 
 build_ext:
-	env CFLAGS="-O0" python setup.py build_ext --inplace -f -g
+	env CFLAGS="-O0" python setup.py build_ext --inplace -g
 
 test_lib:
 	rm -rf objc_classes/test/usrlib.dylib

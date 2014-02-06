@@ -40,6 +40,16 @@ library_dirs = []
 extra_compile_args = []
 extra_link_args = []
 include_dirs = []
+depends = [join('pyobjus', x) for x in (
+    'config.pxi',
+    'common.pxi',
+    'ffi.pxi',
+    'objc_cy_types.pxi',
+    'pyobjus_conversions.pxi',
+    'pyobjus_types.pxi',
+    'runtime.pxi',
+    'type_enc.pxi',
+    'pyobjus.pyx')]
 
 # create the extension
 setup(name='pyobjus',
@@ -50,6 +60,7 @@ setup(name='pyobjus',
       ext_modules=[
           Extension(
               'pyobjus', [join('pyobjus', x) for x in files],
+              depends=depends,
               libraries=libraries,
               library_dirs=library_dirs,
               include_dirs=include_dirs,
