@@ -455,6 +455,35 @@ cdef void *parse_array(sig, arg, size, multidimension=False):
 cdef extern from "objc/objc.h":
     cdef id *nil
 
+cpdef object convert_py_to_nsobject(arg):
+    if arg is None or isinstance(arg, ObjcClassInstance):
+        return arg
+    elif arg in (True, False):
+        return autoclass('NSNumber').alloc().initWithBool_(int(arg))
+    elif isinstance(arg, (str, unicode)):
+        return autoclass('NSString').alloc().initWithUTF8String_(arg)
+    elif isinstance(arg, long):
+        return autoclass('NSNumber').alloc().initWithInt_(arg)
+    elif isinstance(arg, int):
+        return autoclass('NSNumber').alloc().initWithLong_(arg)
+    elif isinstance(arg, float):
+        return autoclass('NSNumber').alloc().initWithFloat_(arg)
+    elif isinstance(arg, list):
+        args = arg + [None]
+        return autoclass('NSArray').alloc().initWithObjects_(*args)
+    elif isinstance(arg, dict):
+        items = []
+        for key, value in arg.items():
+            items.append(key)
+            items.append(value)
+        items.append(None)
+        return autoclass('NSDictionary').alloc().initWithObjectsAndKeys_(*items)
+    
+    # maybe it's a delegate ?
+    dprint('construct a delegate!')
+    return objc_create_delegate(arg)
+
+
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
@@ -602,16 +631,11 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
     # method is accepting an object
     elif sig == '@':
         dprint('====> ARG', <ObjcClassInstance>arg)
+        arg = convert_py_to_nsobject(arg)
         if arg == None:
             (<id*>val_ptr)[0] = <id>NULL
         else:
-            if isinstance(arg, ObjcClassInstance):
-                ocl = <ObjcClassInstance>arg
-            else:
-                # construct a delegate?
-                dprint('construct a delegate!')
-                ocl = <ObjcClassInstance>objc_create_delegate(arg)
-
+            ocl = <ObjcClassInstance>arg
             (<id*>val_ptr)[0] = <id>ocl.o_instance
             
     # method is accepting class

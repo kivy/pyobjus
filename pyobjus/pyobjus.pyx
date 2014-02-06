@@ -1,5 +1,26 @@
 '''
-Type documentation: https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
+Pyobjus
+=======
+
+.. note::
+
+    This project has been mostly a POC, then evolved into a GSOC. It remain
+    uncleaned in severals place. There is a time for discovery and testing, and
+    another time for cleaning and make things readable.
+
+    We now are trying to clean the code each time we dig in. Be gentle.
+
+.. todo::
+
+    - clean, clean, clean, clean
+    - pep8 compliant, at least
+    - reduce code overhead
+
+
+Type documentation:
+
+    https://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html
+
 '''
 
 __all__ = (
@@ -11,7 +32,7 @@ __all__ = (
     'dereference', 'signature_types_to_list', 'dylib_manager', 'objc_c',
     'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
     'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
-    'CArrayCount', 'protocol')
+    'CArrayCount', 'protocol', 'convert_py_to_nsobject')
 
 include "config.pxi"
 dev_platform = PLATFORM
@@ -108,10 +129,10 @@ cdef class ObjcMethod(object):
     cdef bytes signature
     cdef int is_static
     cdef object signature_return
+    cdef object signature_current_args
     cdef object signature_args
     cdef object factory
     # this attribute is required for pyobjus varargs implementation
-    cdef object signature_default_args
     cdef object return_type
     cdef object members
     cdef object main_cls_name
@@ -189,49 +210,59 @@ cdef class ObjcMethod(object):
         self.o_cls = o_cls
         self.o_instance = o_instance
 
-    cdef void ensure_method(self) except *:
-        if self.is_ready:
+    cdef void ensure_method(self, signature_args) except *:
+        if self.signature_current_args == signature_args:
             return
+        self.signature_current_args = signature_args
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
 
         ## signature tuple compression for carray
+        # FIXME: might be broken, need to be tested again.
         tmp_sig = []
-        arr_sig = ""
+        arr_sig = ''
 
-        for item in self.signature_args:
-            if item[0].startswith("["):
+        for item in signature_args:
+            if item[0].startswith('['):
                 arr_sig += item[0] + item[1]
-            elif item[0].endswith("]"):
+            elif item[0].endswith(']'):
                 arr_sig += item[0]
                 tmp_sig.append((arr_sig, item[1], item[2]))
             else:
                 tmp_sig.append(item)
-        dprint("pre-zip signature: {0}".format(self.signature_args))
-        dprint("array signature zip: {0}".format(tmp_sig))
-        self.signature_args = tmp_sig
+        dprint('pre-zip signature: {}'.format(signature_args))
+        dprint('array signature zip: {}'.format(tmp_sig))
+        #self.signature_args = tmp_sig
 
         # resolve f_result_type
         if self.signature_return[0][0] == '(':
-            self.f_result_type = type_encoding_to_ffitype(self.signature_return[0], str_in_union=True)
+            self.f_result_type = type_encoding_to_ffitype(
+                    self.signature_return[0], str_in_union=True)
         else:
-            self.f_result_type = type_encoding_to_ffitype(self.signature_return[0])
+            self.f_result_type = type_encoding_to_ffitype(
+                    self.signature_return[0])
 
         # casting is needed here because otherwise we will get warning at compile
-        cdef unsigned int num_args = <unsigned int>len(self.signature_args)
+        cdef unsigned int num_args = <unsigned int>len(signature_args)
         cdef unsigned int size = sizeof(ffi_type) * num_args
+
         # allocate memory to hold ffi_type* of arguments
+        if self.f_arg_types != NULL:
+            free(self.f_arg_types)
+            self.f_arg_types = NULL
         self.f_arg_types = <ffi_type **>malloc(size)
         if self.f_arg_types == NULL:
             raise MemoryError()
 
         # populate f_args_type array for FFI prep
         cdef int index = 0
-        for arg in self.signature_args:
+        for arg in signature_args:
             if arg[0][0] == '(':
-                raise ObjcException("Currently passing unions as arguments by value isn't supported in pyobjus!")
-            dprint("argument ==>", arg, len(self.signature_args))
+                raise ObjcException(
+                    'Currently passing unions as arguments by '
+                    'value is not supported in pyobjus!')
+            dprint('argument ==>', arg, len(signature_args))
             self.f_arg_types[index] = type_encoding_to_ffitype(arg[0])
             index = index + 1
 
@@ -253,42 +284,8 @@ cdef class ObjcMethod(object):
         return self
 
     def __call__(self, *args, **kwargs):
-        if 'members' in kwargs:
-            self.members = kwargs['members']
-
-        if len(args) > (len(self.signature_args) - 2):
-            dprint("preparing potential varargs method...", of_type='i')
-            self.is_varargs = True
-            self.is_ready = False
-
-            # we are substracting 2 because first two arguments are selector and self
-            self.signature_default_args = self.signature_args[:]
-            num_of_signature_args = len(self.signature_args) - 2
-            num_of_passed_args = len(args)
-            num_of_arguments_to_add = num_of_passed_args - num_of_signature_args
-
-            for i in range(num_of_arguments_to_add):
-                self.signature_args.append(self.signature_args[-1])
-
-            # we need prepare new number of arguments for ffi_call
-            self.ensure_method()
-        return self._call_instance_method(*args)
-
-    def _reset_method_attributes(self):
-        '''Method for setting adapted attributes values to default ones
-        '''
-        dprint("reseting method attributes...", of_type='i')
-        self.signature_args = self.signature_default_args
-        self.is_ready = False
-        self.ensure_method()
-        # this is little optimisation in case of calling varargs method multiple times with None as argument
-        self.is_varargs = False
-
-    def _call_instance_method(self, *args):
-
         dprint('-' * 80)
-        dprint('call_instance_method()', self.name, pr(self.o_cls), pr(self.o_instance))
-        self.ensure_method()
+        dprint('__call__()', self.name, pr(self.o_cls), pr(self.o_instance))
         dprint('--> want to call', self.name, args)
         dprint('--> return def is', self.signature_return)
         dprint('--> args def is', self.signature_args)
@@ -300,14 +297,21 @@ cdef class ObjcMethod(object):
         cdef size_t size
         cdef ObjcClassInstance arg_objcclass
         cdef size_t result_size = <size_t>int(self.signature_return[1])
+
+        # check that we have at least the same number of arguments as the
+        # signature want.
+        if len(args) < len(self.signature_args) - 2:
+            raise ObjcException('Not enough parameters for {}'.format(
+                self.name))
+
         # allocate f_args
-        f_args = <void**>malloc(sizeof(void *) * len(self.signature_args))
+        f_args = <void **>malloc(sizeof(void *) * (2 + len(args)))
         if f_args == NULL:
             free(f_args)
             raise MemoryError('Unable to allocate f_args')
 
         # arg 0 and 1 are the instance and the method selector
-        #for class methods, we need the class itself is theinstance
+        # for class methods, we need the class itself is theinstance
         if self.is_static:
             f_args[0] = &self.o_cls
             dprint(' - [0] static class instance', pr(self.o_cls))
@@ -320,39 +324,58 @@ cdef class ObjcMethod(object):
         dprint(' - selector is', pr(self.selector))
 
         cdef ObjcClassInstance ocl
-        f_index = 1
-
         carray = False
+
         # populate the rest of f_args based on method signature
-        for index in range(2, len(self.signature_args)):
-            # argument passed to call
-            arg = args[index - 2]
+        signature_args = self.signature_args[:]
+        for index, arg in enumerate(args):
+
+            dprint("==", index, arg)
 
             if arg == CArrayCount:
-                arg, carray = 0, True
-            #dprint("ARG, CArrayCount, type(arg): {0}, {1}, {2}".format(arg, carray, type(arg)))
+                arg = 0
+                carray = True
+
+            # automatically expand the signature args based on the last
+            # signature argument, to cover variables arguments (va_args)
+            sig_index = index + 2
+            if sig_index >= len(signature_args):
+                sig_index = -1
+                signature_args.append(signature_args[-1])
+
+            sig, offset, attr = sig_full = signature_args[sig_index]
+            arg_size = type_encoding_to_ffitype(sig).size
 
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg: {!r}".format(
-                    index, self.f_arg_types[index][0].size, arg))
+                    index, arg_size, arg))
 
             # cast the argument type based on method sig and store at val_ptr
-            sig, offset, attr = self.signature_args[index]
-
             by_value = True
             if sig[0][0] == '^':
                 by_value = False
                 sig = sig.split('^')[1]
 
-            dprint("fargs[{0}] = {1}, {2!r}".format(index, sig, arg))
-            f_index += 1
-            f_args[f_index] = convert_py_arg_to_cy(arg, sig, by_value, self.f_arg_types[index][0].size)
-            dprint('pointer before ffi_call:', pr(f_args[f_index]))
+            dprint('fargs[{}] = {}, {!r}'.format(index + 2, sig, arg))
+            f_args[index + 2] = convert_py_arg_to_cy(
+                    arg, sig, by_value, arg_size)
+            dprint('pointer before ffi_call:', pr(f_args[index + 2]))
 
-        res_ptr = <id*>malloc(self.f_result_type.size)
+        # ensure that ffi method is correctly prepared for our current signature
+        self.ensure_method(signature_args)
+        dprint('--- really call {} with args {} (signature is {})'.format(
+            self.name, args, signature_args))
+        for index in range(len(signature_args)):
+            dprint('   > {}: {}'.format(index, <unsigned long>f_args[index]))
+
+        # allocate the memory for the return value
+        res_ptr = <id *>malloc(self.f_result_type.size)
+        if res_ptr == NULL:
+            raise MemoryError('Unable to allocate res_ptr')
 
         if self.signature_return[0][0] not in ['(', '{']:
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
+
         else:
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture and armv7 ios
 
@@ -396,8 +419,6 @@ cdef class ObjcMethod(object):
                 dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", of_type='e')
                 raise SystemExit()
 
-        if self.is_varargs:
-            self._reset_method_attributes()
 
         cdef id ret_id
         cdef ObjcClassInstance cret
@@ -411,13 +432,14 @@ cdef class ObjcMethod(object):
             if ret_id == self.o_instance:
                 return self.p_class
 
-        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size, members=self.members, objc_prop=False, main_cls_name=self.main_cls_name)
-
+        ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size,
+                members=kwargs.get('members'), objc_prop=False,
+                main_cls_name=self.main_cls_name)
 
         if type(ret_py_val) == ObjcReferenceToType and carray == True:
-            mm = ctypes.cast((<unsigned long*>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
+            f_index = len(signature_args) - 1
+            mm = ctypes.cast((<unsigned long *>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
             ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
-
 
         return ret_py_val
 
