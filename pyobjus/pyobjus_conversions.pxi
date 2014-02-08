@@ -481,7 +481,9 @@ cpdef object convert_py_to_nsobject(arg):
     
     # maybe it's a delegate ?
     dprint('construct a delegate!')
-    return objc_create_delegate(arg)
+    d = objc_create_delegate(arg)
+    dprint('delegate is', d)
+    return d
 
 
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:

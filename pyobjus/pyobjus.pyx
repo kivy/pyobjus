@@ -32,7 +32,7 @@ __all__ = (
     'dereference', 'signature_types_to_list', 'dylib_manager', 'objc_c',
     'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
     'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
-    'CArrayCount', 'protocol', 'convert_py_to_nsobject')
+    'CArrayCount', 'protocol', 'convert_py_to_nsobject', 'symbol')
 
 include "config.pxi"
 dev_platform = PLATFORM
@@ -687,6 +687,7 @@ cdef id protocol_method_implementation(id self, SEL _cmd, ...):
 
     dprint('-' * 80)
     dprint('protocol_method_implementation called from Objective-C')
+    dprint('id={}'.format(pr(self)))
     # Determines the signature.
     cdef Class cls = object_getClass(self)
     cls_name = class_getName(cls)
@@ -714,10 +715,14 @@ cdef id protocol_method_implementation(id self, SEL _cmd, ...):
     va_end(c_args)
 
     # Calls the protocol method defined in Python object.
-    delegate = delegate_register[cls_name]
-    py_method_name = sel_getName(_cmd).replace(':', '_')
-    py_method = getattr(delegate, py_method_name)
-    py_method(*py_method_args)
+    # search the delegate object in our database
+    cdef ObjcClassInstance objc_delegate
+    for py_obj, objc_delegate in delegate_register.iteritems():
+        if objc_delegate.o_instance != self:
+            continue
+        py_method_name = sel_getName(_cmd).replace(':', '_')
+        py_method = getattr(py_obj, py_method_name)
+        py_method(*py_method_args)
 
 
 def protocol(protocol_name):
@@ -780,21 +785,21 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     :arg py_obj: The instance of Python delegate class.
     :returns: A python object of the corresponded Objective C delegate instance.
     '''
-    if isinstance(py_obj, type):
-        cls_name = py_obj.__name__
-    else:
-        cls_name = py_obj.__class__.__name__
+    if not isinstance(py_obj, object):
+        raise ObjcException('Delegate must be a instanciated class')
 
-    # Returns the cached delegate instance if exisits. Needs to find a way
+    cls_name = py_obj.__class__.__name__
+
+    # Returns the cached delegate instance if exists for the current py_obj
     # to release unused instances.
-    if cls_name in delegate_register:
-        return delegate_register[cls_name]
+    if py_obj in delegate_register:
+        return delegate_register[py_obj]
 
     # Creates an Objective C class inherited from NSObject and added protocol
     # methods implemented in py_obj.
     cdef Class superclass = <Class>objc_getClass('NSObject')
-    cdef Class objc_cls = <Class>objc_allocateClassPair(superclass,
-                                                        cls_name, 0)
+    cdef Class objc_cls = <Class>objc_allocateClassPair(
+            superclass, cls_name, 0)
     cdef SEL selector
     cdef char* method_args
     cdef list protocols = []
@@ -848,9 +853,19 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     meta_object_cls = MetaObjcClass.__new__(MetaObjcClass, cls_name,
                                             (ObjcClassInstance,),
                                             class_dict)
-    objc_instance = meta_object_cls.alloc().init()
-
-    if cls_name not in 'delegate_register':
-        delegate_register[cls_name] = py_obj
-
+    cdef ObjcClassInstance objc_instance = meta_object_cls.alloc().init()
+    delegate_register[py_obj] = objc_instance
     return objc_instance
+
+def symbol(name, clsname):
+    # search a symbol from loaded binaries
+    try:
+        addr = ctypes.c_void_p.in_dll(ctypes.pythonapi, name).value
+    except ValueError:
+        return None
+
+    cdef ObjcClassInstance cret 
+    cret = autoclass(clsname)(noinstance=True)
+    cret.instanciate_from(<id>addr, retain=0)
+    return cret
+
