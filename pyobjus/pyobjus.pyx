@@ -95,7 +95,7 @@ class MetaObjcClass(type):
         cdef ObjcClassStorage storage = ObjcClassStorage()
         storage.o_cls = <Class>objc_getClass(__objcclass__)
         if storage.o_cls == NULL:
-            raise ObjcException('Unable to found the class {0!r}'.format(
+            raise ObjcException('Unable to find class {0!r}'.format(
                 __objcclass__))
 
         classDict['__cls_storage'] = storage
@@ -786,7 +786,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     :returns: A python object of the corresponded Objective C delegate instance.
     '''
     if not isinstance(py_obj, object):
-        raise ObjcException('Delegate must be a instanciated class')
+        raise ObjcException('Delegate must be an instantiated class')
 
     cls_name = py_obj.__class__.__name__
 
