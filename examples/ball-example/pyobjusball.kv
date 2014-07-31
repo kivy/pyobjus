@@ -14,7 +14,7 @@
 
     Label:
         text: 'Screen brightness'
-        pos: bright_slider.x, bright_slider.y + bright_slider.height / 2
+        pos: bright_slider.x, bright_slider.y + (self.parent.height / 1.1) - (self.parent.height / 10)
     Slider:
         pos: self.parent.width / 4, self.parent.height / 1.1
         id: bright_slider
