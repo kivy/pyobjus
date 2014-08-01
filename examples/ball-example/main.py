@@ -5,7 +5,33 @@ from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProper
 from kivy.vector import Vector
 from kivy.clock import Clock
 from kivy.graphics import Color
+from kivy.logger import Logger
 from pyobjus import autoclass
+
+
+class Accelerometer:
+
+    def __init__(self):
+        self.motion_manager = autoclass('CMMotionManager').alloc().init()
+
+    def start(self):
+        if(self.motion_manager.isAccelerometerAvailable() == True):
+            self.motion_manager.startAccelerometerUpdates()
+        else:
+            Logger.info('accelerometer: not available.')
+
+    @property
+    def values(self):
+        if self.motion_manager.accelerometerData:
+            acceleration = self.motion_manager.accelerometerData.acceleration;
+            return (acceleration.a, acceleration.b, acceleration.c)
+        else:
+            Logger.info('accelerometer: data not yet available.')
+            return (0, 0, 0)
+
+    def stop(self):
+        self.motion_manager.stopAccelerometerUpdates()
+
 
 class Ball(Widget):
 
@@ -17,20 +43,23 @@ class Ball(Widget):
     def move(self):
         self.pos = Vector(*self.velocity) + self.pos
 
+
 class PyobjusGame(Widget):
 
     ball = ObjectProperty(None)
     screen = ObjectProperty(autoclass('UIScreen').mainScreen())
-    bridge = ObjectProperty(autoclass('bridge').alloc().init())
+    accelerometer = Accelerometer()
+
     sensitivity = ObjectProperty(50)
     br_slider = ObjectProperty(None)
 
     def __init__(self, *args, **kwargs):
         super(PyobjusGame, self).__init__()
-        self.bridge.startAccelerometer()
+        self.accelerometer.start()
 
     def __dealloc__(self, *args, **kwargs):
-        self.bridge.stopAccelerometer()
+        # self.bridge.stopAccelerometer()
+        self.accelerometer.stop()
         super(PyobjusGame, self).__dealloc__()
 
     def reset_ball_pos(self):
@@ -41,8 +70,10 @@ class PyobjusGame(Widget):
 
     def update(self, dt):
         self.ball.move()
-        self.ball.velocity_x = self.bridge.ac_x * self.sensitivity
-        self.ball.velocity_y = self.bridge.ac_y * self.sensitivity
+
+        val = self.accelerometer.values
+        self.ball.velocity_x = val[0] * self.sensitivity
+        self.ball.velocity_y = val[1] * self.sensitivity
 
         if (self.ball.y < 0) or (self.ball.top >= self.height):
             self.reset_ball_pos()
