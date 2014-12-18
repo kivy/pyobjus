@@ -185,7 +185,7 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
 
 # Tagged pointers
 ctypedef enum:
-    kCFTaggedObjectID_Integer = (3 << 1) + 1
+    kCFTaggedObjectID_Integer = (1 << 1) + 1
 
 cdef is_tagged_pointer(void *_pointer):
     cdef unsigned long long pointer = <unsigned long long>_pointer
@@ -206,6 +206,17 @@ cdef read_tagged_pointer(void *_pointer):
             return <int>(pointer >> 8)
         elif _type == 3:
             return <int>(pointer >> 8)
+        elif _type == 4:
+            return <int>(pointer >> 8)
+
+        #elif _type == 5:
+        #    return <unsigned float>(pointer >> 8)
+        #elif _type == 6:
+        #    return <unsigned float>(pointer >> 8)
+        elif _type == 7:
+            return <unsigned char>(pointer >> 8)
+        elif _type == 8:
+            return <unsigned short>(pointer >> 8)
 
     raise ObjcException('We got a tagged pointer, but we dont know how to read it: {}'.format(
         <unsigned long long>pointer))
