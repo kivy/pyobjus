@@ -3,9 +3,11 @@ from os import environ
 from os.path import dirname, join, exists
 import sys
 import subprocess
+import platform
 
 dev_platform = sys.platform
 kivy_ios_root = environ.get('KIVYIOSROOT', None)
+arch = environ.get('ARCH', platform.machine())
 if kivy_ios_root is not None:
     dev_platform = 'ios'
 
@@ -24,7 +26,8 @@ elif dev_platform == 'ios':
 # create a configuration file for pyobjus (export the platform)
 config_pxi_fn = join(dirname(__file__), 'pyobjus', 'config.pxi')
 config_pxi_need_update = True
-config_pxi = 'DEF PLATFORM = "{}"'.format(dev_platform)
+config_pxi = 'DEF PLATFORM = "{}"\n'.format(dev_platform)
+config_pxi += 'DEF ARCH = "{}"'.format(arch)
 if exists(config_pxi_fn):
     with open(config_pxi_fn) as fd:
         config_pxi_need_update = fd.read() != config_pxi

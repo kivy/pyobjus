@@ -412,8 +412,12 @@ cdef class ObjcMethod(object):
                 dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
 
             ELIF PLATFORM == 'ios':
-                ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
-                dprint('ios platform objc_msgSend_stret call')
+                IF ARCH == 'arm64':
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
+                    dprint('ios(arm64) platform objc_msgSend call')
+                ELSE:
+                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
+                    dprint('ios(armv7) platform objc_msgSend_stret call')
 
             ELSE:
                 dprint("UNSUPPORTED ARCHITECTURE! Program will exit now...", of_type='e')
