@@ -184,8 +184,8 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
 
 
 # Tagged pointers
-ctypedef enum:
-    kCFTaggedObjectID_Integer = (1 << 1) + 1
+kCFTaggedObjectID_Integer = (((<unsigned long long> NSNumber.alloc().initWithInt(0)) & 0xf) >> 4) & 0xf
+
 
 cdef is_tagged_pointer(void *_pointer):
     cdef unsigned long long pointer = <unsigned long long>_pointer
