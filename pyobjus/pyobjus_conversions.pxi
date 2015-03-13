@@ -185,18 +185,61 @@ cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
 
 # Tagged pointers
 ctypedef enum:
-    kCFTaggedObjectID_Integer = (1 << 1) + 1
+    OBJC_TAG_NSAtom            = 0
+    OBJC_TAG_1                 = 1
+    OBJC_TAG_NSString          = 2
+    OBJC_TAG_NSNumber          = 3
+    OBJC_TAG_NSIndexPath       = 4
+    OBJC_TAG_NSManagedObjectID = 5
+    OBJC_TAG_NSDate            = 6
+    OBJC_TAG_7                 = 7
 
-cdef is_tagged_pointer(void *_pointer):
-    cdef unsigned long long pointer = <unsigned long long>_pointer
-    return pointer & 0x1 == 0x1
+IF __LP64__ and PLATFORM == "ios":
+
+    # TODO
+
+ELIF __LP64__ and PLATFORM == "darwin":
+
+    cdef objc_is_tagged_pointer(void *ptr):
+        cdef unsigned long long pointer = <unsigned long long>ptr
+        return ((unsigned long long)pointer & 0x1) == 0x1
+
+    cdef objc_make_tagged_pointer(unsigned int tag, unsigned long long value):
+        return (void *)((value << 4) | ((unsigned long long)tag << 1) | 1)
+
+    cdef objc_get_tagged_pointer_tag(void *ptr):
+        return (((unsigned long long)ptr) & 0xe) >> 1
+
+    cdef objc_get_tagged_pointer_value(void *ptr):
+        return ((unsigned long long)ptr) >> 4
+
+    cdef objc_get_tagged_pointer_signed_value(void *ptr):
+        return ((long long)ptr) >> 4
+
+ELSE:
+
+    cdef objc_is_tagged_pointer(void *_pointer):
+        return False
+
+    cdef objc_make_tagged_pointer(unsigned int tag, unsigned long long value):
+        return 0
+
+    cdef objc_get_tagged_pointer_tag(void *ptr):
+        return 0
+
+    cdef objc_get_tagged_pointer_value(void *ptr):
+        return 0
+
+    cdef objc_get_tagged_pointer_signed_value(void *ptr):
+        return 0
+
 
 cdef read_tagged_pointer(void *_pointer):
     cdef unsigned long long pointer = <unsigned long long>_pointer
     cdef unsigned char _cls = pointer & 0xf
     cdef unsigned char _type
 
-    if _cls == kCFTaggedObjectID_Integer:
+    if _cls == OBJC_TAG_NSNumber:
         _type = (pointer >> 4) & 0xf
         if _type == 0:
             return <char>(pointer >> 8)
@@ -208,7 +251,6 @@ cdef read_tagged_pointer(void *_pointer):
             return <int>(pointer >> 8)
         elif _type == 4:
             return <int>(pointer >> 8)
-
         #elif _type == 5:
         #    return <unsigned float>(pointer >> 8)
         #elif _type == 6:
@@ -218,8 +260,11 @@ cdef read_tagged_pointer(void *_pointer):
         elif _type == 8:
             return <unsigned short>(pointer >> 8)
 
-    raise ObjcException('We got a tagged pointer, but we dont know how to read it: {}'.format(
-        <unsigned long long>pointer))
+    elif _cls == OBJC_TAG_NSString:
+        print("got nsstring?")
+
+    raise ObjcException('We got a tagged pointer, but we dont know how to read it: {} (cls={})'.format(
+        <unsigned long long>pointer, _cls))
 
 
 cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, objc_prop=False, main_cls_name=None):
