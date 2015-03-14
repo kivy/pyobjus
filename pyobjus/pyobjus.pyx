@@ -762,7 +762,7 @@ def objc_protocol_get_delegates(protocol_name):
     if protocol != NULL:
         delegates_types = {}
         descs = protocol_copyMethodDescriptionList(
-                protocol, NO, YES, &num_descs)
+                protocol, YES, YES, &num_descs)
         for i in xrange(num_descs):
             desc = descs[i]
             selector = desc.name
