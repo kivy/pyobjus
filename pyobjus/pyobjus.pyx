@@ -761,6 +761,16 @@ def objc_protocol_get_delegates(protocol_name):
     dprint('  protocol found?', protocol != NULL)
     if protocol != NULL:
         delegates_types = {}
+        # get non-required methods
+        descs = protocol_copyMethodDescriptionList(
+                protocol, NO, YES, &num_descs)
+        for i in xrange(num_descs):
+            desc = descs[i]
+            selector = desc.name
+            selector_name = sel_getName(selector)
+            delegates_types[selector_name] = [desc.types, desc.types]
+        free(descs)
+        # get required methods
         descs = protocol_copyMethodDescriptionList(
                 protocol, YES, YES, &num_descs)
         for i in xrange(num_descs):
@@ -806,7 +816,8 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
             superclass, cls_name, 0)
     cdef SEL selector
     cdef char* method_args
-    cdef list protocols = []
+    cdef dict delegates = {}
+    cdef int protocol_found = 0
 
     dprint('create delegate from {!r}'.format(py_obj))
 
@@ -814,29 +825,37 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         func = getattr(py_obj, funcname)
         if not hasattr(func, '__protocol__'):
             continue
+        protocol_found = 1
 
         protocol_name = func.__protocol__
         dprint('  - found a @protocol {} for {}'.format(
             protocol_name, funcname))
-        if protocol_name in protocols:
-            continue
-        protocols.append(protocol_name)
 
-        delegates = objc_protocol_get_delegates(protocol_name)
-        if delegates is None:
+        if protocol_name in delegates:
+            d = delegates[protocol_name]
+        delegates[protocol_name] = d = objc_protocol_get_delegates(protocol_name)
+        if d is None:
             raise ObjcException('Undeclared protocol {}'.format(protocol_name)) 
 
-        for selector_name, sigs in delegates.items():
+        selector_name = funcname.replace('_', ':')
+        dprint('    search the selector {}'.format(selector_name))
+        sigs = d.get(selector_name)
+        if not sigs:
+            dprint('    selector {} not found'.format(selector_name))
+            dprint('-- list of available selector for {} --'.format(protocol_name))
+            for val in d:
+                dprint('  * {}'.format(val))
+            raise ObjcException('Protocol {} dont have any selector named {}'.format(
+                protocol_name, selector_name))
 
-            py_method_name = selector_name.replace(':', '_')
-            if hasattr(py_obj, py_method_name):
-                class_addMethod(
-                    objc_cls, sel_registerName(selector_name),
-                    &protocol_method_implementation, sigs[-1])
+        dprint('    register a new method for {}'.format(selector_name))
+        class_addMethod(
+            objc_cls, sel_registerName(selector_name),
+            &protocol_method_implementation, sigs[-1])
 
     objc_registerClassPair(objc_cls)
 
-    if not protocols:
+    if protocol_found == 0:
         raise ObjcException(
             "You've passed {!r} as delegate, but there is "
             "no @protocol methods declared.".format(
