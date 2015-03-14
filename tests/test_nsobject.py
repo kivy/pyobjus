@@ -12,7 +12,8 @@ class NSObject(unittest.TestCase):
         NSString = autoclass('NSString')
 
     def test_hash(self):
-        self.assertIsInstance(NSObject.hash(), long)
+        a = NSObject.alloc().init()
+        self.assertIsInstance(a.hash, long)
 
     def test_isequal(self):
         a = NSObject.alloc().init()
@@ -26,13 +27,13 @@ class NSObject(unittest.TestCase):
 
     def test_description(self):
         a = NSObject.alloc().init()
-        text = a.description()
+        text = a.description
         self.assertIsNotNone(text)
 
     def test_debugDescription(self):
         a = NSObject.alloc()
-        text = a.debugDescription()
-        text = a.description()
+        text = a.debugDescription
+        text = a.description
         self.assertIsNotNone(text)
         self.assertIsNotNone(text.cString())
         self.assertTrue(text.cString().startswith('<NSObject:'))

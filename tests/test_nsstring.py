@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 import unittest
-from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass, objc_py_types as opy
+from pyobjus import autoclass, objc_py_types as opy
 
-NSString = None
+NSString = autoclass('NSString')
 N = lambda x: NSString.alloc().initWithUTF8String_(x)
 
 class NSObject(unittest.TestCase):
-
-    def setUp(self):
-        global NSString
-        NSString = autoclass('NSString')
 
     def test_utf8(self):
         s = u'\x09cole'
@@ -81,10 +77,6 @@ class NSObject(unittest.TestCase):
         self.assertTrue(text.isAbsolutePath())
         text = N('./gsoc/pyobjus')
         self.assertFalse(text.isAbsolutePath())
-
-    def test_smallestEncoding(self):
-        text = N("some text")
-        self.assertEquals(text.smallestEncoding(), opy.NSStringEncoding.NSMacOSRomanStringEncoding)
 
     def test_fastestEncoding(self):
         text = N("šome text")

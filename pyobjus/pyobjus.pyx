@@ -644,7 +644,7 @@ def autoclass(cls_name, **kwargs):
     if copy_properties:
         properties_dict = get_class_proerties(cls)
         global tmp_properties_keys
-        tmp_properties_keys = properties_dict.keys()
+        tmp_properties_keys[:] = properties_dict.keys()
 
     cdef dict instance_methods
     cdef dict class_methods
