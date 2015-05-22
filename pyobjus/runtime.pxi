@@ -44,7 +44,7 @@ cdef extern from "objc/runtime.h":
     id              objc_allocateClassPair(Class superclass, const_char_ptr name, size_t extraBytes)
     id              objc_getClass(const_char_ptr name)
     id              objc_getRequiredClass(const_char_ptr)
-    id              objc_msgSend(id, objc_selector *, ...)
+    id              objc_msgSend(id, SEL, ...)
     void            objc_msgSend_stret(id self, SEL selector, ...)
     void            objc_registerClassPair(Class cls)
 
