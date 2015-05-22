@@ -681,51 +681,115 @@ def autoclass(cls_name, **kwargs):
 
     return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance,), class_dict)
 
-cdef id protocol_method_implementation(id self, SEL _cmd, ...):
-    '''Implementation of dynamically added protocol instance method.
 
-    This function dispatches the protocol method call to the corresponded
-    Python method implementation. It also convert Objective C arguments to
-    corresponded python objects.
-    '''
+# -----------------------------------------------------------------------------
+# Delegate implementation
+#
+# Since ARM64 introduction (iOS 8), delegate implementation are using the
+# "slow" path of objective-c.
+# We are not able anymore to declare a variadic function for responding to any
+# kind of selector, as the ARM64 convention call differ from other platform,
+# and va_start/arg/end doesn't work on ARM64 as well.
+#
+# Instead, we are manually using forwardInvocation:, named as the "slow" path.
+# Ref: http://arigrant.com/blog/2013/12/13/a-selector-left-unhandled
+#
+# The idea is, when there is no implementation of a selector on the target,
+# objc will forward the call to a forwardInvocation: selector on the target,
+# containing the original invocation and parameters in a NSInvocation.
+# For pyobjus, it's separated in 3 steps:
+# - respondsToSelector: > the target class must indicate which selector is
+#                         implemented in Python
+# - methodSignatureForSelector: > the target class must return a
+#                                 NSMethodSignature for the selector
+# - forwardInvocation: > and then, the message will be passed to it
 
-    dprint('-' * 80)
-    dprint('protocol_method_implementation called from Objective-C')
-    dprint('id={}'.format(pr(self)))
-    # Determines the signature.
-    cdef Class cls = object_getClass(self)
-    cls_name = class_getName(cls)
-    cdef Method method = class_getInstanceMethod(cls, _cmd)
-    cdef objc_method_description desc = method_getDescription(method)[0]
-    signature_args = parse_signature(<bytes>desc.types)[1]
-
-    dprint('pmi: signature is {}'.format(signature_args))
-
-    # Converts C arguments to Python arguments.
-    py_method_args = []
-    cdef va_list c_args
-    cdef id c_arg
-    va_start(c_args, _cmd)
-    for i in range(2, len(signature_args)):  # skips self and _cmd
-        c_arg = <id>va_arg(c_args, id_type)
-        dprint('pmi: c_arg at {} is {}'.format(i, pr(c_arg)))
-        sig = signature_args[i]
-        arg_type = type_encoding_to_ffitype(sig[0])
-        dprint('pmi: convert arg {} with type {}'.format(i, sig))
-        py_arg = convert_cy_ret_to_py(&c_arg, sig[0],
-                                      <size_t>arg_type.size, members=None,
-                                      objc_prop=False, main_cls_name=cls_name)
-        py_method_args.append(py_arg)
-    va_end(c_args)
-
-    # Calls the protocol method defined in Python object.
-    # search the delegate object in our database
+cdef get_python_delegate_from_id(id self):
+    # returns a python delegate class from an objc instance
     cdef ObjcClassInstance objc_delegate
     for py_obj, objc_delegate in delegate_register.iteritems():
         if objc_delegate.o_instance != self:
             continue
+        return py_obj
+
+
+cdef BOOL protocol_respondsToSelector(id self, SEL _cmd, SEL selector):
+    # return True if a python delegate class responds to a specific selector
+    delegate = get_python_delegate_from_id(self)
+    if not delegate:
+        return 0
+    py_method_name = sel_getName(selector).replace(':', '_')
+    return hasattr(delegate, py_method_name)
+
+
+cdef id protocol_methodSignatureForSelector(id self, SEL _cmd, SEL selector):
+    # returns a method signature for a specific selector, needed for the
+    # fallback forwardInvocation:
+    cdef ObjcClassInstance sig
+    sig_name = "_sig_{}".format(sel_getName(selector))
+    delegate = get_python_delegate_from_id(self)
+    if not delegate:
+        return NULL
+
+    if not hasattr(delegate, sig_name):
+        # we didn't find a cached method signature, so create a new one.
+        sel_name = sel_getName(selector)
+        py_method_name = sel_name.replace(':', '_')
+
+        protocol_name = getattr(delegate, py_method_name).__protocol__
+        d = objc_protocol_get_delegates(protocol_name)
+        sigs = d.get(sel_name)
+
+        NSMethodSignature = autoclass("NSMethodSignature")
+        sig = NSMethodSignature.signatureWithObjCTypes_(sigs[-1])
+        setattr(delegate, sig_name, sig)
+    else:
+        sig = getattr(delegate, sig_name)
+
+    return sig.o_instance
+
+
+cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation):
+    # Implementation of dynamically added protocol instance method.
+    # This function dispatches the protocol method call to the corresponded
+    # Python method implementation. It also convert Objective C arguments to
+    # corresponded python objects.
+
+    dprint('-' * 80)
+    dprint('protocol_forwardInvocation called from Objective-C')
+    dprint('pfi: id={} invocation={}'.format(pr(self), pr(invocation)))
+    
+    # get the invocation object
+    cdef ObjcClassInstance inv = convert_to_cy_cls_instance(invocation)
+    cdef ObjcSelector target_selector = inv.selector
+    _cmd = target_selector.selector
+    signature = inv.methodSignature
+    py_method_args = []
+
+    dprint("pfi: invocation target selector: {}".format(sel_getName(_cmd)))
+    dprint("pfi: number of arguments: {}".format(signature.numberOfArguments))
+    cdef id c_arg
+    cdef Class cls = object_getClass(self)
+    cdef long i
+    cls_name = class_getName(cls)
+    for i in range(2, signature.numberOfArguments):
+        tp = signature.getArgumentTypeAtIndex_(i)
+        dprint("pfi: argument type at {}: {}".format(i, tp))
+        arg_type = type_encoding_to_ffitype(tp[0])
+        dprint('pfi: convert arg {} with type {}'.format(i, tp[0]))
+        c_arg = NULL
+        inv.getArgument_atIndex_(<unsigned long long>&c_arg, i)
+        py_arg = convert_cy_ret_to_py(&c_arg, tp[0],
+                                      <size_t>arg_type.size, members=None,
+                                      objc_prop=False, main_cls_name=cls_name)
+        py_method_args.append(py_arg)
+
+    # Calls the protocol method defined in Python object.
+    # search the delegate object in our database
+    delegate = get_python_delegate_from_id(self)
+    if delegate:
         py_method_name = sel_getName(_cmd).replace(':', '_')
-        py_method = getattr(py_obj, py_method_name)
+        py_method = getattr(delegate, py_method_name)
         py_method(*py_method_args)
 
 
@@ -821,6 +885,10 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
 
     dprint('create delegate from {!r}'.format(py_obj))
 
+    # XXX this was the code for older delegate creatieon
+    # it doesn't do anything concrete except ensuring there is atleast one
+    # protocol found, and that all the selector have a signature associated to
+    # it.
     for funcname in dir(py_obj):
         func = getattr(py_obj, funcname)
         if not hasattr(func, '__protocol__'):
@@ -848,18 +916,26 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
             raise ObjcException('Protocol {} dont have any selector named {}'.format(
                 protocol_name, selector_name))
 
-        dprint('    register a new method for {}'.format(selector_name))
-        class_addMethod(
-            objc_cls, sel_registerName(selector_name),
-            &protocol_method_implementation, sigs[-1])
-
-    objc_registerClassPair(objc_cls)
-
     if protocol_found == 0:
         raise ObjcException(
             "You've passed {!r} as delegate, but there is "
             "no @protocol methods declared.".format(
                 py_obj))
+
+    dprint('   register methodSignatureForSelector:')
+    class_addMethod(
+        objc_cls, sel_registerName("methodSignatureForSelector:"),
+        <IMP>&protocol_methodSignatureForSelector, "@@::")
+    dprint('   register forwardInvocation:')
+    class_addMethod(
+        objc_cls, sel_registerName("forwardInvocation:"),
+        <IMP>&protocol_forwardInvocation, "v@:@")
+    dprint('   register respondsToSelector:')
+    class_addMethod(
+        objc_cls, sel_registerName("respondsToSelector:"),
+        <IMP>&protocol_respondsToSelector, "v@::")
+
+    objc_registerClassPair(objc_cls)
 
     cdef dict class_dict = {'__objcclass__':  cls_name,
                             '__copy_properties__': False}
@@ -867,7 +943,8 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     class_dict.update(class_get_partial_methods(objc_cls, ['alloc']))
     class_dict.update(class_get_partial_methods(objc_cls, ['init'], False))
     # Loads created protocol methods.
-    class_dict.update(class_get_methods(objc_cls))
+    # XXX as a delegate, i don't think python need an access to it directly.
+    #class_dict.update(class_get_methods(objc_cls))
 
     if "class" in class_dict:
         class_dict.update({'oclass': class_dict['class']})
@@ -878,6 +955,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
                                             class_dict)
     cdef ObjcClassInstance objc_instance = meta_object_cls.alloc().init()
     delegate_register[py_obj] = objc_instance
+
     return objc_instance
 
 def symbol(name, clsname):

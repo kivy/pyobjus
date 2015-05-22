@@ -680,13 +680,16 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
             # ARRAY, ETC.
         else:
             # TODO: Add better conversion between primitive types!
-            if type(arg) is float:
-                (<float*>arg_val_ptr)[0] = <float>arg
-            elif type(arg) is int:
-                (<int*>arg_val_ptr)[0] = <int>arg
-            elif type(arg) is str:
-                strcpy(<char*>arg_val_ptr, <char*>arg)
-            (<void**>val_ptr)[0] = <void*>arg_val_ptr
+            if type(arg) is long:
+                (<void**>val_ptr)[0] = <void*><unsigned long long>arg
+            else:
+                if type(arg) is float:
+                    (<float*>arg_val_ptr)[0] = <float>arg
+                elif type(arg) is int:
+                    (<int*>arg_val_ptr)[0] = <int>arg
+                elif type(arg) is str:
+                    strcpy(<char*>arg_val_ptr, <char*>arg)
+                (<void**>val_ptr)[0] = <void*>arg_val_ptr
         
     # TODO: method is accepting bit field
     elif sig[0] == 'b':
