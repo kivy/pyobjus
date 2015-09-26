@@ -445,6 +445,12 @@ cdef class ObjcMethod(object):
             mm = ctypes.cast((<unsigned long *>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
             ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
 
+        # free f_args
+        for index, arg in enumerate(args):
+            print "free(1)", <unsigned long>f_args[index + 2]
+            free(f_args[index + 2])
+        free(f_args)
+
         return ret_py_val
 
 registers = []

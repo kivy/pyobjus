@@ -706,8 +706,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
         (<int*>val_ptr)[0] = 0
 
     # TODO: Find best time to dealloc memory used by this pointer
-    #if arg_val_ptr != NULL and del_arg_val_ptr:
-    #    free(arg_val_ptr)
-    #    arg_val_ptr = NULL
+    if arg_val_ptr != NULL and del_arg_val_ptr:
+        free(arg_val_ptr)
+        arg_val_ptr = NULL
 
     return val_ptr

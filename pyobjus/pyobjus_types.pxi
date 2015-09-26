@@ -601,6 +601,9 @@ cdef class ObjcClassInstance:
             self.resolve_methods()
             self.resolve_fields()
 
+    def get_address(self):
+        return <unsigned long><void *>self.o_instance
+
     def __getattribute__(self, name):
 
         if isinstance(object.__getattribute__(self, name), ObjcProperty):
