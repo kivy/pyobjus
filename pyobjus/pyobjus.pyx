@@ -447,7 +447,6 @@ cdef class ObjcMethod(object):
 
         # free f_args
         for index, arg in enumerate(args):
-            print "free(1)", <unsigned long>f_args[index + 2]
             free(f_args[index + 2])
         free(f_args)
 
