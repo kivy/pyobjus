@@ -718,7 +718,7 @@ cdef get_python_delegate_from_id(id self):
         return py_obj
 
 
-cdef BOOL protocol_respondsToSelector(id self, SEL _cmd, SEL selector):
+cdef BOOL protocol_respondsToSelector(id self, SEL _cmd, SEL selector) with gil:
     # return True if a python delegate class responds to a specific selector
     delegate = get_python_delegate_from_id(self)
     if not delegate:
@@ -727,7 +727,7 @@ cdef BOOL protocol_respondsToSelector(id self, SEL _cmd, SEL selector):
     return hasattr(delegate, py_method_name)
 
 
-cdef id protocol_methodSignatureForSelector(id self, SEL _cmd, SEL selector):
+cdef id protocol_methodSignatureForSelector(id self, SEL _cmd, SEL selector) with gil:
     # returns a method signature for a specific selector, needed for the
     # fallback forwardInvocation:
     cdef ObjcClassInstance sig
@@ -754,7 +754,7 @@ cdef id protocol_methodSignatureForSelector(id self, SEL _cmd, SEL selector):
     return sig.o_instance
 
 
-cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation):
+cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation) with gil:
     # Implementation of dynamically added protocol instance method.
     # This function dispatches the protocol method call to the corresponded
     # Python method implementation. It also convert Objective C arguments to
