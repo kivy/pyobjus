@@ -60,8 +60,8 @@ cdef class CArray:
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulong))
         if str(of_type) == "Q":  # ulonglong
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulonglong))
-        if str(of_type) == "C":  # uchar
-            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_uchar))
+        if str(of_type) == "C":  # ubyte (uchar)
+            arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ubyte))
         if str(of_type) == "B":  # bool
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_bool))
         if str(of_type) == "v":  # void
