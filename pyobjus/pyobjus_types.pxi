@@ -601,6 +601,17 @@ cdef class ObjcClassInstance:
             self.resolve_methods()
             self.resolve_fields()
 
+    def __hash__(self):
+        return self.get_address()
+
+    def __richcmp__(self, other, op):
+        if isinstance(other, ObjcClassInstance):
+            if op == 2:
+                return hash(self) == hash(other)
+            if op == 3:
+                return hash(self) != hash(other)
+        return False
+
     def get_address(self):
         return <unsigned long><void *>self.o_instance
 
