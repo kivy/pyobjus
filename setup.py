@@ -58,7 +58,7 @@ depends = [join('pyobjus', x) for x in (
 setup(name='pyobjus',
       version='1.0',
       cmdclass={'build_ext': build_ext},
-      packages=['pyobjus'],
+      packages=['pyobjus', 'pyobjus.consts'],
       ext_package='pyobjus',
       ext_modules=[
           Extension(
