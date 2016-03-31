@@ -3,12 +3,12 @@
 Quickstart
 ==========
 
-Eager to get started? This page will give you a good introduction to Pyobjus. It's assumed
-you have already Pyobjus installed. If you haven't, head over the
+Eager to get started? This page will give you a good introduction to Pyobjus.
+It's assumed you have already installed Pyobjus. If you haven't, head over the
 :ref:`installation` section.
 
 The simplest example
------------------
+--------------------
 
 The simplest Pyobjus example looks something like this::
 
@@ -25,16 +25,17 @@ conflict with Pyobjus itself::
     $ python test.py
     Hello world
 
-Using class not in the standard Framework
------------------------------------------
+Using classes not in the standard Framework
+-------------------------------------------
 
-If you want to use other class, than the available one from the linked
+If you want to use classes other than those available from the linked
 framework, you need to preload the framework first, or add the Framework to
-your application (ios only).  To preload the framework, you can use pyobjus dylib_manager::
+your application (iOS only).  To preload the framework, you can use the
+pyobjus dylib_manager::
 
-    # we want to use NSAlert, but it's not a standard objective-C class
-    # so we need to import the framework into the process (desktop)
-    # or otherwise link out app with the framework (ios)
+    # We want to use NSAlert, but it's not a standard objective-C class
+    # so we need to either import the framework into our process (desktop)
+    # or link the framework to our app (iOS)
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
 
@@ -46,7 +47,7 @@ your application (ios only).  To preload the framework, you can use pyobjus dyli
     # from pyobjus.dylib_manager import load_dylib
     # load_dylib('/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib')
 
-    # NOTE: there is section which explains how to use dylib_manager functions
+    # NOTE: there is a "Dynamic library manager" section dedicated explaining how to use dylib_manager functions
 
 Then we can use the NSAlert object::
 
