@@ -30,4 +30,4 @@ Or you can build documentation for yourself::
 Installation on iOS
 -------------------
 
-Please look at :ref:`pyobjus_ios` section.
+Please see the :ref:`pyobjus_ios` section.
