@@ -1,7 +1,8 @@
 Pyobjus
 =======
 
-Python module to access Objective-C class as Python class, using Objective-C runtime reflection.
+Python module for accessing Objective-C classes as Python classes using
+Objective-C runtime reflection.
 
 (Work in progress.)
 
