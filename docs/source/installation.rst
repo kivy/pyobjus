@@ -18,7 +18,7 @@ just type::
 
     make
 
-You can run the tests suite to make sure everything is running right::
+You can run the tests suite to make sure everything is running correctly::
 
     make tests
 
@@ -27,7 +27,7 @@ Or you can build documentation for yourself::
     make html
     open docs/build/html/index.html 
 
-Installation on the iOS
------------------------
+Installation on iOS
+-------------------
 
 Please look at :ref:`pyobjus_ios` section.
