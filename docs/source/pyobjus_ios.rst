@@ -3,9 +3,12 @@
 Pyobjus on iOS
 ==============
 
-You may wonder how to run pyobjus on iOS device. The solution for this problem is to use `kivy-ios <https://github.com/kivy/kivy-ios>`_.
+You may be wondering how to run pyobjus on iOS devices?
+The solution for this problem is to use `kivy-ios <https://github.com/kivy/kivy-ios>`_.
 
-As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things nedded for its running, and also provide sciprts for making xcode project from which you can run your python kivy pyobjus applications. Sounds great, and it is.
+As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things
+needed for running. It also provide scripts for making xcode projects from which you
+can run your python kivy pyobjus applications. Sounds great, and it is.
 
 Example with Kivy UI
 --------------------
