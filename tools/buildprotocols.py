@@ -49,21 +49,31 @@ def scan_header(framework, header_fn):
 
     protocol = None
     for line in lines:
-        line = line.splitlines()[0]
+        line = line.strip()
 
         if protocol is None:
-            if line.startswith('@protocol') and not line.strip().endswith(';'):
+            if line.startswith('@protocol') and not line.endswith(';'):
                 # extract protocol name
                 dprint(framework_name, line)
-                protocol_name = line.split()[1]
-                protocol = (protocol_name, [])
+                try:
+                    protocol_name = line.split()[1]
+                except IndexError:
+                    # not the droids we're looking for
+                    pass
+                else:
+                    protocol = (protocol_name, [])
         else:
             if line.startswith('@end'):
                 # done, insert the protocol!
                 insert_protocol(framework_name, protocol)
                 protocol = None
             elif line.startswith('-') and ':' in line:
-                protocol[1].append(parse_delegate(line))
+                try:
+                    delegate = parse_delegate(line)
+                except Exception:
+                    pass
+                else:
+                    protocol[1].append(delegate)
 
 
 def insert_protocol(framework_name, protocol):
