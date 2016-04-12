@@ -126,12 +126,15 @@ This is screenshoot from my iPad.
    :align:   center
    :scale:   30%
 
-Accessing accelerometer
------------------------
+Accessing the accelerometer
+---------------------------
 
-As you know, to access accelerometer on iOS device, you use CoreMotion framework. CoreMotion framework is added to default project template which ships with kivy-ios.
+To access the accelerometer on iOS devices, you use the CoreMotion framework.
+The CoreMotion framework is added by default in the project template which
+ships with kivy-ios.
 
-Let's say that we have class interface with following properties and variable::
+Let's say that we have a class interface with the following properties and
+variables::
 
     @interface bridge : NSObject {
         NSOperationQueue *queue;
@@ -143,7 +146,9 @@ Let's say that we have class interface with following properties and variable::
     @property (nonatomic) double ac_z;
     @end
 
-Also let's say that we have init method which inits ``motionManager`` and ``queue``, and we have method for running accelerometer, and method is declared as following::
+Also, let's say that we have an init method which inits the ``motionManager``
+and the ``queue``, and we have a method for running the accelerometer, and
+that method is declared as follows::
 
     - (void)startAccelerometer {
         if ([self.motionManager isAccelerometerAvailable] == YES) {
@@ -155,12 +160,18 @@ Also let's say that we have init method which inits ``motionManager`` and ``queu
         }
     }
 
-You can see here that we are specifying handler which will be called when we get some updates from accelerometer. Currently you can't implement this handler from pyobjus, so that may be a problem.
+You can see here that we are specifying a handler which will be called when we
+get some updates from the accelerometer. Currently you can't implement this
+handler from pyobjus, so that may be a problem.
 
-But, we have also solution for this. We have added bridge class, with this purpose, to implement handlers inside pure Objective C, and then we call methods of bridge class so we can get actual data.
-In this example we are storing `x`, `y` and `z` from accelerometer to ``ac_x``, ``ac_y`` and ``ac_z`` class properties, and as you know, we can easily access to class properties.
+But, we have solution for this. We have added a bridge class for this purpose:
+to implement handlers in pure Objective C, and then call methods of the bridge
+class so we can get the actual data in Python. In this example, we are storing
+the `x`, `y` and `z` values from the accelerometer in the ``ac_x``, ``ac_y``
+and ``ac_z`` class properties. We can then easily access these class
+properties.
 
-So let's see basic example how to read accelerometer data from pyobjus::
+So let's see a basic example how to read accelerometer data from pyobjus::
 
     from pyobjus import autoclass
 
@@ -176,7 +187,8 @@ So let's see basic example how to read accelerometer data from pyobjus::
     if __name__ == "__main__":
         run()
 
-So if you run this script on ipad, in the way we have showed above, you'll outpout simmilar to this in xcode console::
+So if you run this script on an iPad, in the way we have shown above, you'll
+get output similar to this in the xcode console::
 
     x: 0.0219268798828 y: 0.111801147461 z: -0.976440429688
     x: 0.0219268798828 y: 0.111801147461 z: -0.976440429688
@@ -187,21 +199,23 @@ So if you run this script on ipad, in the way we have showed above, you'll outpo
     x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
     x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
 
-As you can see, we have data from accelerometer, so you can use it for some practical purposes if you want.
+As you can see, we have data from the accelerometer, so you can use it for some
+practical purposes if you want.
 
-Accessing gyroscope
--------------------
+Accessing the gyroscope
+-----------------------
 
-In a similar way, as the accessing accelerometer, you can access gyroscope. So let's expand our bridge class interface with properties which will hold gyro data::
+In a similar way as we accessed the accelerometer, we can access the gyroscope.
+So let's expand our bridge class interface with properties which will hold gyro
+data::
 
     @property (nonatomic) double gy_x;
     @property (nonatomic) double gy_y;
     @property (nonatomic) double gy_z;
 
-Then in bridge class implementation add following method::
+Then in the bridge class implementation, add the following method::
 
     - (void)startGyroscope {
-        
         if ([self.motionManager isGyroAvailable] == YES) {
             [self.motionManager startGyroUpdatesToQueue:queue withHandler:^(CMGyroData *gyroData, NSError *error) {
                 self.gy_x = gyroData.rotationRate.x;
@@ -226,7 +240,7 @@ I suppose that this method is known to you, because is very similar as the metho
     if __name__ == "__main__":
         run()
 
-You will output simmilar to this::
+You will get output similar to this::
 
     x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
     x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
@@ -242,18 +256,19 @@ You will output simmilar to this::
     x: 0.0183009766949 y: 0.0170807162834 z: -0.00339499775763
     x: 0.0183009766949 y: 0.0170807162834 z: -0.00339499775763
 
-So now you can use gyro data in you python kivy application.
+So now you can use gyro data in your Python kivy application.
 
-Accessing magnetometer
-----------------------
+Accessing the magnetometer
+--------------------------
 
-I suppose that you can guess that this will be almost identical as those two previous. Let's add two new properties to interface of bridge class::
+You can probably guess that this will be almost identical to the previous two
+examples. Let's add two new properties to the interface of the bridge class::
 
     @property (nonatomic) double mg_x;
     @property (nonatomic) double mg_y;
     @property (nonatomic) double mg_z;
 
-And add following method to bridge class::
+And then add the following method to the bridge class::
 
     - (void)startMagnetometer {        
         if (self.motionManager.magnetometerAvailable) {
@@ -265,7 +280,8 @@ And add following method to bridge class::
         }
     }
 
-Now we can use the methods above from pyobjus to get data from magnetometer::
+Now we can use the methods above from pyobjus to get the data from the
+magnetometer::
 
     from pyobjus import autoclass
 
@@ -281,7 +297,7 @@ Now we can use the methods above from pyobjus to get data from magnetometer::
         run()
 
 
-You will get outpout similar to this::
+You will get output similar to this::
 
     x: 29.109375 y: -46.694519043 z: -27.4476470947
     x: 29.109375 y: -46.694519043 z: -27.4476470947
@@ -297,16 +313,22 @@ You will get outpout similar to this::
     x: 27.4921875 y: -48.3046875 z: -27.4476470947
     x: 27.4921875 y: -47.2312469482 z: -28.5679626
 
-You can add additional bridge methods to your pyobjus iOS app, just change content of `bridge.m/.h` files, or add completely new files and classes to your xcode project, and after that you can consume them with pyobjus, on the already known way.
+You can add additional bridge methods to your pyobjus iOS app by changing the
+content of the `bridge.m/.h` files, or by adding completely new files and
+classes to your xcode project. After that, you can consume them with pyobjus
+using the methods illustrated above.
 
 Pyobjus-ball example
 --------------------
 
-We made simple example of using accelerometer to control ball on screen. Also, with this example you can set you screen brightness using kivy slider.
+We've made a simple example using the accelerometer to control a ball on
+screen. In addition, with this example, you can set you screen brightness
+using a kivy slider.
 
-I won't explain details about kivy language or kivy itself, you can find excellent examples and docs on official kivy site.
+We won't go into the details of the kivy language or kivy itself as you can
+find excellent examples and docs on the official kivy site.
 
-So, here is the code of ``main.py`` file::
+So, here is the code of the ``main.py`` file::
 
     from random import random
     from kivy.app import App
