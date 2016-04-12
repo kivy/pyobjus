@@ -17,7 +17,7 @@ Let's first build kivy-ios. Execute following command::
 
     git clone https://github.com/kivy/kivy-ios.git
     cd kivy-ios
-    tools/build-all.sh
+    ./toolchain.py build kivy pyobjus
 
 This can take some time.
 
