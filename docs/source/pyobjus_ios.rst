@@ -94,7 +94,10 @@ Execute the following command::
 
     tools/create-xcode-project.sh paintApp /Users/myName/development/kivy-ios/pyobjus-ios/
 
-Notice following. First parameter which we are passing to script is name of our app. In this case that name of iOS app will be `paintApp`. Second parameter is absolute path to our python app which we want to run on iOS.
+Notice the following. First parameter which we are passing to the script is the
+name of our app. In this case, the name of our iOS app will be `paintApp`.
+The second parameter is the absolute path to our python app which we want to
+run on iOS.
 
 After executing this command you will get output similar to this::
 
@@ -107,15 +110,17 @@ After executing this command you will get output similar to this::
 
     You can now type: open /Users/myName/development/kivy-ios/app-paintapp/paintapp.xcodeproj
 
-So, if you enter into `app-paintapp` directory you will see that there are ``main.m`` and ``bridge.m``, ``bridge.m`` and other resources.
+So, if you enter the `app-paintapp` directory you will see that there are
+``main.m``, ``bridge.m`` and other resources.
 
 You can open this project with xcode now::
 
     open /Users/myName/development/kivy-ios/app-paintapp/paintapp.xcodeproj
 
-So if you have set your developer account, you only need to click play, and app will be deployed on your iOS device.
+If you have setup your developer account, you only need to click play and the
+app will be deployed on your iOS device.
 
-This is screenshoot from my iPad
+This is screenshoot from my iPad.
 
 .. figure::  images/IMG_0322.PNG
    :align:   center
