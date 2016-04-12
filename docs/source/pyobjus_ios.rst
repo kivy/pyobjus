@@ -396,7 +396,7 @@ So, here is the code of the ``main.py`` file::
     if __name__ == '__main__':
         PyobjusBallApp().run()
 
-And contents of ``pyobjusball.kv`` is::
+And the contents of ``pyobjusball.kv`` are::
 
     <Ball>:
         size: 50, 50
@@ -429,21 +429,25 @@ And contents of ``pyobjusball.kv`` is::
             id: pyobjus_ball
             center: self.parent.center
 
-Now create directory with name ``pyobjus-ball`` and place the files above in it::
+Now create a directory with the name ``pyobjus-ball`` and place the files above
+in it::
 
     mkdir pyobjus-ball
     mv main.py pyobjus-ball
     mv pyobjusball.kv pyobjus-ball
 
-In this step, I suppose that you already have downloaded and built ``kivy-ios`` so, please navigate to directory where ``kivy-ios`` is located.
-Now execute following::
+In this step, we assume that you have already have downloaded and built
+``kivy-ios``. Navigate to the directory where ``kivy-ios`` is located,
+then execute the following commands::
 
     tools/create-xcode-project.sh pyobjusBall /path/to/pyobjus-ball
     open app-pyobjusball/pyobjusball.xcodeproj/
 
-After this step xcode will be opened, and if you have connected your iOS device on you computer, you can run project, and you will see app running on your device.
+After this step, xcode will open and, if you have connected your iOS
+device to your computer, you can run the project and will see your app
+running on your device.
 
-This is screenshoot from iPad.
+This is screenshoot from an iPad.
 
 .. figure::  images/IMG_0330.PNG
    :align:   center
