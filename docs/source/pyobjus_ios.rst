@@ -81,11 +81,16 @@ can do the following::
 
 So now ``pyobjus-ios`` contains ``main.py`` file which holds python code.
 
-Above app example is borrowed from `this <http://kivy.org/docs/tutorials/firstwidget.html>`_ tutorial, and I have added some pyobjus things to it. So we are now using ``NSArray`` to store information about line color, and we are using ``NSString`` to set text of button.
+The example above is borrowed from `this <http://kivy.org/docs/tutorials/firstwidget.html>`_
+tutorial but we have added some pyobjus things to it. So we are now using a
+``NSArray`` to store information about line color, and we are using a
+``NSString`` to set the text of the button.
 
-Now you can create xcode project, which will hold our python application. kivy-ios commes with script for creating xcode projects for you. You only need to specify project name and absolute path to your app.
+Now you can create an xcode project which will hold our python application.
+kivy-ios comes with script for creating xcode projects for you. You only need
+to specify project name and the absolute path to your app.
 
-Execute following command::
+Execute the following command::
 
     tools/create-xcode-project.sh paintApp /Users/myName/development/kivy-ios/pyobjus-ios/
 
