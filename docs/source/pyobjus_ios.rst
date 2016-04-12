@@ -21,7 +21,11 @@ Let's first build kivy-ios. Execute following command::
 
 This can take some time.
 
-You can build your UI with kivy framework, and access to device hardware using pyobjus. So, let's see one simple example of this. Notice that tutorial that describes how to use kivy-ios exists on kivy-ios official documentation, but here I will make another one, with focus on pyobjus.
+You can build your UI with the kivy framework, and access device hardware
+using pyobjus. So, let's look at one simple example of this. Notice that
+a tutorial describing how to use kivy-ios exists as part of the official
+kivy-ios documentation, but here we will provide another one, with focus on
+pyobjus.
 
 Let's first make one simple example of using pyobjus with kivy.::
 
@@ -68,7 +72,9 @@ Let's first make one simple example of using pyobjus with kivy.::
     if __name__ == '__main__':
         MyPaintApp().run()
 
-Please save this code inside file with name ``main.py``. Make directory which will hold our python application code. For example you can do following::
+Please save this code inside a file with the name ``main.py``. You will need to
+make a directory which will hold your python application code. For example, you
+can do the following::
 
     mkdir pyobjus-ios
     mv main.py pyobjus-ios
