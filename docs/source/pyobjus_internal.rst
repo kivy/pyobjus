@@ -45,15 +45,19 @@ object for every method attached to the class as well as an ObjcProperty for
 every attached property. It will then return a Python representation of the
 NSString class with both ObjcMethod and ObjcProperty objects attached.
 
-So, maybe you don't want to use properties of NSString class (if they exist at all). In that case you can call ``autoclass`` function in following way::
+So, maybe you don't want to use all the properties of the NSString class. In
+that case, you can call the ``autoclass`` function in the following way::
 
     NSString = autoclass('NSString', copy_properties=False)
 
-Maybe you want to save memory, and gather some speed with autoclass method. In that case you will need 
-to specify methods which you want to load with autoclass. So if you want to load only init and alloc 
-methods of NSString, you can run following line of code::
+Perhaps you want to save memory and gather some speed with the autoclass method.
+In that case, you can specify exactly which methods you want to load. Say you
+want to load only the init and alloc methods of NSString. You can do that by
+running the following lines of code::
 
-    NSString = autoclass('NSString', load_class_methods=['alloc'], load_instance_methods=['init'])
+    NSString = autoclass('NSString',
+                         load_class_methods=['alloc'],
+                         load_instance_methods=['init'])
 
 So, as you can suppose, if you want to load only few of class methods, you need to specify it with 
 load_class_methods optional argument, and if you want to load only few of instance methods, 
