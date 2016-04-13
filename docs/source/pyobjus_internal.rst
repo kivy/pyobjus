@@ -5,19 +5,23 @@ How Pyobjus works?
 
 .. module:: pyobjus
 
-This part of the documentation introduces basic understanding of how pyobjus works
+This part of the documentation introduces a basic understanding of how pyobjus
+works.
 
 autoclass function
 ------------------
 
-So, autoclass is the heart of pyobjus. With this function you load Objective C classes into pyobjus, and pyobjus 
-internally set some things for itself.
+So, autoclass is the heart of pyobjus. With this function, you load Objective C
+classes into pyobjus which then constructs a Python wrapper around these
+objects.
 
-Let's say that we are in the situation where we need to load NSString class which belongs to Foundation framework.
+Let's say that we are in the situation where we need to load a NSString class
+belonging to the Foundation framework.
 
-You can load external code into pyobjus by using ``load_framework`` function, or by using ``load_dylib``.
-``load_framework`` function uses NSBundle for loading framework into pyobjus, and ``load_dylib`` function uses ctypes
-for loading external .dylib into pyobjus.
+You can load external code into pyobjus using the ``load_framework`` function,
+or by using ``load_dylib``. The ``load_framework`` function uses NSBundle for
+loading the framework into pyobjus, and the ``load_dylib`` function uses ctypes
+for loading external .dylib objects into pyobjus.
 
 Notice that you don't need explicitly load Foundation framework into pyobjus, because Foundation framework is loaded by default into pyobjus. But if you want AppKit for example, you can do sommething like this::
 
