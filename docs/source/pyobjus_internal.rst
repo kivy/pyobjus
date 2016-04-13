@@ -43,7 +43,7 @@ What happened here? So, pyobjus will call the ``class_copyMethodList`` function
 of the Objective C runtime. After that, it will create an ObjcMethod Python
 object for every method attached to the class as well as an ObjcProperty for
 every attached property. It will then return a Python representation of the
-NSString class with both ObjcMethod and ObjcProperty objects attached.
+NSString class with all the ObjcMethod and ObjcProperty objects attached.
 
 So, maybe you don't want to use all the properties of the NSString class. In
 that case, you can call the ``autoclass`` function in the following way::
@@ -52,23 +52,26 @@ that case, you can call the ``autoclass`` function in the following way::
 
 Perhaps you want to save memory and gather some speed with the autoclass method.
 In that case, you can specify exactly which methods you want to load. Say you
-want to load only the init and alloc methods of NSString. You can do that by
-running the following lines of code::
+want to load only the init and alloc methods of NSString. You can do that as
+follows::
 
     NSString = autoclass('NSString',
                          load_class_methods=['alloc'],
                          load_instance_methods=['init'])
 
-So, as you can suppose, if you want to load only few of class methods, you need to specify it with 
-load_class_methods optional argument, and if you want to load only few of instance methods, 
-you can specify it with load_instance_methods optional arg.
+If you want to load only a few of the class methods, you can specify these with
+the *load_class_methods* optional argument. If you want to load only a few
+instance methods, you can specify these with the *load_instance_methods*
+optional argument.
 
-So, if you want to load alloc class method and all instance methods, you can do that in this way::
+So, say you want to load only the *alloc* class method and all instance
+methods, you can do that this way::
 
     NSString = autoclass('NSString', load_class_methods=['alloc'])
 
-But, maybe in the some point you want to have all methods available again with NSString class. 
-Okey, pyobjus can do that for you. You need to call ``autoclass`` method in this way::
+But, maybe at some point you want to have all the NSString class methods
+available again. Okay, pyobjus can do that for you. You just need to call
+the ``autoclass`` method this way::
 
     NSString = autoclass('NSString', reset_autoclass=True)
 
