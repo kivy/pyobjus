@@ -3,9 +3,12 @@
 Pyobjus on iOS
 ==============
 
-You may wonder how to run pyobjus on iOS device. The solution for this problem is to use `kivy-ios <https://github.com/kivy/kivy-ios>`_.
+You may be wondering how to run pyobjus on iOS devices?
+The solution for this problem is to use `kivy-ios <https://github.com/kivy/kivy-ios>`_.
 
-As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things nedded for its running, and also provide sciprts for making xcode project from which you can run your python kivy pyobjus applications. Sounds great, and it is.
+As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things
+needed for running. It also provide scripts for making xcode projects from which you
+can run your python kivy pyobjus applications. Sounds great, and it is.
 
 Example with Kivy UI
 --------------------
@@ -14,11 +17,15 @@ Let's first build kivy-ios. Execute following command::
 
     git clone https://github.com/kivy/kivy-ios.git
     cd kivy-ios
-    tools/build-all.sh
+    ./toolchain.py build kivy pyobjus
 
 This can take some time.
 
-You can build your UI with kivy framework, and access to device hardware using pyobjus. So, let's see one simple example of this. Notice that tutorial that describes how to use kivy-ios exists on kivy-ios official documentation, but here I will make another one, with focus on pyobjus.
+You can build your UI with the kivy framework, and access device hardware
+using pyobjus. So, let's look at one simple example of this. Notice that
+a tutorial describing how to use kivy-ios exists as part of the official
+kivy-ios documentation, but here we will provide another one, with focus on
+pyobjus.
 
 Let's first make one simple example of using pyobjus with kivy.::
 
@@ -65,22 +72,32 @@ Let's first make one simple example of using pyobjus with kivy.::
     if __name__ == '__main__':
         MyPaintApp().run()
 
-Please save this code inside file with name ``main.py``. Make directory which will hold our python application code. For example you can do following::
+Please save this code inside a file with the name ``main.py``. You will need to
+make a directory which will hold your python application code. For example, you
+can do the following::
 
     mkdir pyobjus-ios
     mv main.py pyobjus-ios
 
 So now ``pyobjus-ios`` contains ``main.py`` file which holds python code.
 
-Above app example is borrowed from `this <http://kivy.org/docs/tutorials/firstwidget.html>`_ tutorial, and I have added some pyobjus things to it. So we are now using ``NSArray`` to store information about line color, and we are using ``NSString`` to set text of button.
+The example above is borrowed from `this <http://kivy.org/docs/tutorials/firstwidget.html>`_
+tutorial but we have added some pyobjus things to it. So we are now using a
+``NSArray`` to store information about line color, and we are using a
+``NSString`` to set the text of the button.
 
-Now you can create xcode project, which will hold our python application. kivy-ios commes with script for creating xcode projects for you. You only need to specify project name and absolute path to your app.
+Now you can create an xcode project which will hold our python application.
+kivy-ios comes with script for creating xcode projects for you. You only need
+to specify project name and the absolute path to your app.
 
-Execute following command::
+Execute the following command::
 
     tools/create-xcode-project.sh paintApp /Users/myName/development/kivy-ios/pyobjus-ios/
 
-Notice following. First parameter which we are passing to script is name of our app. In this case that name of iOS app will be `paintApp`. Second parameter is absolute path to our python app which we want to run on iOS.
+Notice the following. First parameter which we are passing to the script is the
+name of our app. In this case, the name of our iOS app will be `paintApp`.
+The second parameter is the absolute path to our python app which we want to
+run on iOS.
 
 After executing this command you will get output similar to this::
 
@@ -93,26 +110,31 @@ After executing this command you will get output similar to this::
 
     You can now type: open /Users/myName/development/kivy-ios/app-paintapp/paintapp.xcodeproj
 
-So, if you enter into `app-paintapp` directory you will see that there are ``main.m`` and ``bridge.m``, ``bridge.m`` and other resources.
+So, if you enter the `app-paintapp` directory you will see that there are
+``main.m``, ``bridge.m`` and other resources.
 
 You can open this project with xcode now::
 
     open /Users/myName/development/kivy-ios/app-paintapp/paintapp.xcodeproj
 
-So if you have set your developer account, you only need to click play, and app will be deployed on your iOS device.
+If you have setup your developer account, you only need to click play and the
+app will be deployed on your iOS device.
 
-This is screenshoot from my iPad
+This is screenshoot from my iPad.
 
 .. figure::  images/IMG_0322.PNG
    :align:   center
    :scale:   30%
 
-Accessing accelerometer
------------------------
+Accessing the accelerometer
+---------------------------
 
-As you know, to access accelerometer on iOS device, you use CoreMotion framework. CoreMotion framework is added to default project template which ships with kivy-ios.
+To access the accelerometer on iOS devices, you use the CoreMotion framework.
+The CoreMotion framework is added by default in the project template which
+ships with kivy-ios.
 
-Let's say that we have class interface with following properties and variable::
+Let's say that we have a class interface with the following properties and
+variables::
 
     @interface bridge : NSObject {
         NSOperationQueue *queue;
@@ -124,7 +146,9 @@ Let's say that we have class interface with following properties and variable::
     @property (nonatomic) double ac_z;
     @end
 
-Also let's say that we have init method which inits ``motionManager`` and ``queue``, and we have method for running accelerometer, and method is declared as following::
+Also, let's say that we have an init method which inits the ``motionManager``
+and the ``queue``, and we have a method for running the accelerometer, and
+that method is declared as follows::
 
     - (void)startAccelerometer {
         if ([self.motionManager isAccelerometerAvailable] == YES) {
@@ -136,12 +160,18 @@ Also let's say that we have init method which inits ``motionManager`` and ``queu
         }
     }
 
-You can see here that we are specifying handler which will be called when we get some updates from accelerometer. Currently you can't implement this handler from pyobjus, so that may be a problem.
+You can see here that we are specifying a handler which will be called when we
+get some updates from the accelerometer. Currently you can't implement this
+handler from pyobjus, so that may be a problem.
 
-But, we have also solution for this. We have added bridge class, with this purpose, to implement handlers inside pure Objective C, and then we call methods of bridge class so we can get actual data.
-In this example we are storing `x`, `y` and `z` from accelerometer to ``ac_x``, ``ac_y`` and ``ac_z`` class properties, and as you know, we can easily access to class properties.
+But, we have solution for this. We have added a bridge class for this purpose:
+to implement handlers in pure Objective C, and then call methods of the bridge
+class so we can get the actual data in Python. In this example, we are storing
+the `x`, `y` and `z` values from the accelerometer in the ``ac_x``, ``ac_y``
+and ``ac_z`` class properties. We can then easily access these class
+properties.
 
-So let's see basic example how to read accelerometer data from pyobjus::
+So let's see a basic example how to read accelerometer data from pyobjus::
 
     from pyobjus import autoclass
 
@@ -157,7 +187,8 @@ So let's see basic example how to read accelerometer data from pyobjus::
     if __name__ == "__main__":
         run()
 
-So if you run this script on ipad, in the way we have showed above, you'll outpout simmilar to this in xcode console::
+So if you run this script on an iPad, in the way we have shown above, you'll
+get output similar to this in the xcode console::
 
     x: 0.0219268798828 y: 0.111801147461 z: -0.976440429688
     x: 0.0219268798828 y: 0.111801147461 z: -0.976440429688
@@ -168,21 +199,23 @@ So if you run this script on ipad, in the way we have showed above, you'll outpo
     x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
     x: 0.145629882812 y: -0.00624084472656 z: -0.964920043945
 
-As you can see, we have data from accelerometer, so you can use it for some practical purposes if you want.
+As you can see, we have data from the accelerometer, so you can use it for some
+practical purposes if you want.
 
-Accessing gyroscope
--------------------
+Accessing the gyroscope
+-----------------------
 
-In a similar way, as the accessing accelerometer, you can access gyroscope. So let's expand our bridge class interface with properties which will hold gyro data::
+In a similar way as we accessed the accelerometer, we can access the gyroscope.
+So let's expand our bridge class interface with properties which will hold gyro
+data::
 
     @property (nonatomic) double gy_x;
     @property (nonatomic) double gy_y;
     @property (nonatomic) double gy_z;
 
-Then in bridge class implementation add following method::
+Then in the bridge class implementation, add the following method::
 
     - (void)startGyroscope {
-        
         if ([self.motionManager isGyroAvailable] == YES) {
             [self.motionManager startGyroUpdatesToQueue:queue withHandler:^(CMGyroData *gyroData, NSError *error) {
                 self.gy_x = gyroData.rotationRate.x;
@@ -207,7 +240,7 @@ I suppose that this method is known to you, because is very similar as the metho
     if __name__ == "__main__":
         run()
 
-You will output simmilar to this::
+You will get output similar to this::
 
     x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
     x: 0.019542276079 y: 0.0267431973505 z: 0.00300590992237
@@ -223,18 +256,19 @@ You will output simmilar to this::
     x: 0.0183009766949 y: 0.0170807162834 z: -0.00339499775763
     x: 0.0183009766949 y: 0.0170807162834 z: -0.00339499775763
 
-So now you can use gyro data in you python kivy application.
+So now you can use gyro data in your Python kivy application.
 
-Accessing magnetometer
-----------------------
+Accessing the magnetometer
+--------------------------
 
-I suppose that you can guess that this will be almost identical as those two previous. Let's add two new properties to interface of bridge class::
+You can probably guess that this will be almost identical to the previous two
+examples. Let's add two new properties to the interface of the bridge class::
 
     @property (nonatomic) double mg_x;
     @property (nonatomic) double mg_y;
     @property (nonatomic) double mg_z;
 
-And add following method to bridge class::
+And then add the following method to the bridge class::
 
     - (void)startMagnetometer {        
         if (self.motionManager.magnetometerAvailable) {
@@ -246,7 +280,8 @@ And add following method to bridge class::
         }
     }
 
-Now we can use the methods above from pyobjus to get data from magnetometer::
+Now we can use the methods above from pyobjus to get the data from the
+magnetometer::
 
     from pyobjus import autoclass
 
@@ -262,7 +297,7 @@ Now we can use the methods above from pyobjus to get data from magnetometer::
         run()
 
 
-You will get outpout similar to this::
+You will get output similar to this::
 
     x: 29.109375 y: -46.694519043 z: -27.4476470947
     x: 29.109375 y: -46.694519043 z: -27.4476470947
@@ -278,16 +313,22 @@ You will get outpout similar to this::
     x: 27.4921875 y: -48.3046875 z: -27.4476470947
     x: 27.4921875 y: -47.2312469482 z: -28.5679626
 
-You can add additional bridge methods to your pyobjus iOS app, just change content of `bridge.m/.h` files, or add completely new files and classes to your xcode project, and after that you can consume them with pyobjus, on the already known way.
+You can add additional bridge methods to your pyobjus iOS app by changing the
+content of the `bridge.m/.h` files, or by adding completely new files and
+classes to your xcode project. After that, you can consume them with pyobjus
+using the methods illustrated above.
 
 Pyobjus-ball example
 --------------------
 
-We made simple example of using accelerometer to control ball on screen. Also, with this example you can set you screen brightness using kivy slider.
+We've made a simple example using the accelerometer to control a ball on
+screen. In addition, with this example, you can set you screen brightness
+using a kivy slider.
 
-I won't explain details about kivy language or kivy itself, you can find excellent examples and docs on official kivy site.
+We won't go into the details of the kivy language or kivy itself as you can
+find excellent examples and docs on the official kivy site.
 
-So, here is the code of ``main.py`` file::
+So, here is the code of the ``main.py`` file::
 
     from random import random
     from kivy.app import App
@@ -355,7 +396,7 @@ So, here is the code of ``main.py`` file::
     if __name__ == '__main__':
         PyobjusBallApp().run()
 
-And contents of ``pyobjusball.kv`` is::
+And the contents of ``pyobjusball.kv`` are::
 
     <Ball>:
         size: 50, 50
@@ -388,21 +429,25 @@ And contents of ``pyobjusball.kv`` is::
             id: pyobjus_ball
             center: self.parent.center
 
-Now create directory with name ``pyobjus-ball`` and place the files above in it::
+Now create a directory with the name ``pyobjus-ball`` and place the files above
+in it::
 
     mkdir pyobjus-ball
     mv main.py pyobjus-ball
     mv pyobjusball.kv pyobjus-ball
 
-In this step, I suppose that you already have downloaded and built ``kivy-ios`` so, please navigate to directory where ``kivy-ios`` is located.
-Now execute following::
+In this step, we assume that you have already have downloaded and built
+``kivy-ios``. Navigate to the directory where ``kivy-ios`` is located,
+then execute the following commands::
 
     tools/create-xcode-project.sh pyobjusBall /path/to/pyobjus-ball
     open app-pyobjusball/pyobjusball.xcodeproj/
 
-After this step xcode will be opened, and if you have connected your iOS device on you computer, you can run project, and you will see app running on your device.
+After this step, xcode will open and, if you have connected your iOS
+device to your computer, you can run the project and will see your app
+running on your device.
 
-This is screenshoot from iPad.
+This is screenshoot from an iPad.
 
 .. figure::  images/IMG_0330.PNG
    :align:   center
