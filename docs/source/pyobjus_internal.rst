@@ -23,19 +23,27 @@ or by using ``load_dylib``. The ``load_framework`` function uses NSBundle for
 loading the framework into pyobjus, and the ``load_dylib`` function uses ctypes
 for loading external .dylib objects into pyobjus.
 
-Notice that you don't need explicitly load Foundation framework into pyobjus, because Foundation framework is loaded by default into pyobjus. But if you want AppKit for example, you can do sommething like this::
+Notice that you don't need to explicitly load the Foundation framework into
+pyobjus because the Foundation framework is loaded by default. But if you want
+AppKit, for example, you can do something like this::
 
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
 
-This will load code from AppKit framework into pyobjus, so now we can use these classes. 
+This will load code from the AppKit framework into pyobjus, so now we can use
+these classes.
 
-But let's return to our NSString class of Foundation framework. To load this class, type the following::
+But let's return to our NSString class from the Foundation framework. To load
+this class, type the following::
 
     from pyobjus import autoclass
     NSString = autoclass('NSString')
 
-What happened here? So, pyobjus will call ``class_copyMethodList`` function of objective c runtime, and after that it will create ObjcMethod Python object for every class returned with mentioned function, and after that it will return Python representation of NSString, which also contains ObjcMethod, and ObjcProperties objects.
+What happened here? So, pyobjus will call the ``class_copyMethodList`` function
+of the Objective C runtime. After that, it will create an ObjcMethod Python
+object for every method attached to the class as well as an ObjcProperty for
+every attached property. It will then return a Python representation of the
+NSString class with both ObjcMethod and ObjcProperty objects attached.
 
 So, maybe you don't want to use properties of NSString class (if they exist at all). In that case you can call ``autoclass`` function in following way::
 
