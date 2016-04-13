@@ -78,19 +78,21 @@ the ``autoclass`` method this way::
 Calling Objective C methods
 ---------------------------
 
-So, I suppose that you find appropriate way to load Objective C class with autoclass function.
-After that you need to consider this.
-
-In native Objective C you can do this::
+So, suppose that you find an appropriate way to load an Objective C
+class via the autoclass function. After that, you need to consider the
+following. In Objective C, you can do this::
 
     NSString *string = [[NSString alloc] init];
 
-In pyobjus is simmilar situation. Let's say that we loaded NSString in following way::
+In pyobjus, we have a similar scenario. Say that we loaded a ``NSString``
+in the following way::
 
     NSString = autoclass('NSString')
 
-Now ``NSString`` object contains all `class` methods of NSString Objective C class.
-Are you wondering how to get `instance` methods? I can answer you that question...In the same way like in the native Objective C.
+Now the ``NSString`` object contains all the `class` methods of the
+``NSString`` Objective C class. Are you wondering how to get the `instance`
+methods? We can answer that question. In the same way as the native Objective
+C class.
 
 So let's do this:::
 
