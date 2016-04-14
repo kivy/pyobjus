@@ -81,7 +81,7 @@ can do the following::
     mkdir pyobjus-ios
     mv main.py pyobjus-ios
 
-So now ``pyobjus-ios`` contains ``main.py`` file which holds python code.
+So now ``pyobjus-ios`` contains ``main.py`` file which holds your python code.
 
 The example above is borrowed from
 `this tutorial<http://kivy.org/docs/tutorials/firstwidget.html>`_
@@ -91,13 +91,13 @@ but we have added some pyobjus things to it. So we are now using a
 
 Now you can create an xcode project which will hold our python application.
 kivy-ios comes with script for creating xcode projects for you. You only need
-to specify project name and the absolute path to your app.
+to specify the project name and the absolute path to your app.
 
 Execute the following command::
 
     tools/create-xcode-project.sh paintApp /Users/myName/development/kivy-ios/pyobjus-ios/
 
-Notice the following. First parameter which we are passing to the script is the
+Notice the following. The first parameter which we are passing to the script is the
 name of our app. In this case, the name of our iOS app will be `paintApp`.
 The second parameter is the absolute path to our python app which we want to
 run on iOS.
@@ -116,7 +116,7 @@ After executing this command you will get output similar to this::
 So, if you enter the `app-paintapp` directory you will see that there are
 ``main.m``, ``bridge.m`` and other resources.
 
-You can open this project with xcode now::
+You can open this project with xcode as follows::
 
     open /Users/myName/development/kivy-ios/app-paintapp/paintapp.xcodeproj
 
@@ -228,7 +228,9 @@ Then in the bridge class implementation, add the following method::
         }
     }
 
-I suppose that this method is known to you, because is very similar as the method for getting accelerometer data. Let's write some python code to read data from python::
+This method is probably familiar to you because it is very similar to the
+method used for getting accelerometer data. Let's write some python code
+to read this data from python::
 
     from pyobjus import autoclass
 
