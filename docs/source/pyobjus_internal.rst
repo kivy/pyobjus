@@ -128,11 +128,16 @@ With Objective C, you can declare a function as follows::
 
     - (void) sumNumber:(int)a and:(int)b { ... }
 
-Internally this method will be translated into ``sumNumber:and:``, because that's actual method name.
-Okey, now things are little clearer. 
+Internally, this method will be translated to ``sumNumber:and:`` because that's
+the actual method name. Okay, now things are little clearer.
 
-So, if you remember, pyobjus will call ``class_copyMethodList`` which will return this method too, 
-and it will make ObjcMethod object for it. So if you want to call this method from Python you will maybe suppose to call it in this way sumNumber:and:(3, 5), but that's wrong way to call Objective C method with pyobjus.
+So, if you remember, pyobjus calls the ``class_copyMethodList`` and will
+provide an ObjcMethod object for it. So, if you want to call this method from
+Python, you might suppose you can call it in this way::
+
+    sumNumber:and:(3, 5)
+
+but that's wrong way to call Objective C methods using pyobjus.
 Pyobjus will internally convert every `:` into `_`, so now we can call 
 it with Python in this way::
 
