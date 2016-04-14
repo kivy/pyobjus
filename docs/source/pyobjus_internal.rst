@@ -102,27 +102,29 @@ This will output::
 
     >>> <__main__.NSPlaceholderString object at 0x10b372e90>
     
-So, as you can see, we have allocated object, and we can now call instance methods, like ``init``::
+We now have an allocated object and can call it's instance methods, like
+``init``::
 
     print NSString.alloc().init()
 
-This will output with::
+This will output::
 
     >>> <__main__.__NSCFConstantString object at 0x10b4827d0>
 
-You can also view list of available methods with Python ``dir`` function::
+You can also view the list of available methods with the Python ``dir``
+function::
 
     # view class methods
     print dir(NSString)
     # view instance methods
     print dir(NSString.alloc())
 
+So now we know how to use autoclass methods and how to access the class/instance
+methods of the loaded Objective C classes. In comparison to Python, Objective C
+has some additional syntax when you are passing arguments. How does pyobjus
+deal with this?
 
-For now, we know how to use autoclass method, and how to use class/instance method of loaded class.
-As far as you know, in comparison with Python, Objective C has maybe little syntax when you are passing arguments to it.
-So, how pyobjus deals with this?
-
-With Objective C you can declare following function::
+With Objective C, you can declare a function as follows::
 
     - (void) sumNumber:(int)a and:(int)b { ... }
 
