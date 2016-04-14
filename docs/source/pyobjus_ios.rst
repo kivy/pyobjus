@@ -4,11 +4,13 @@ Pyobjus on iOS
 ==============
 
 You may be wondering how to run pyobjus on iOS devices?
-The solution for this problem is to use `kivy-ios <https://github.com/kivy/kivy-ios>`_.
+The solution to this problem is to use
+`kivy-ios <https://github.com/kivy/kivy-ios>`_.
 
-As you can see, kivy-ios contains scripts for building kivy, pyobjus and other things
-needed for running. It also provide scripts for making xcode projects from which you
-can run your python kivy pyobjus applications. Sounds great, and it is.
+As you can see, kivy-ios contains scripts for building kivy, pyobjus and other
+libraries needed for running your app. It also provides scripts for making
+xcode projects from which you can run your python/kivy/pyobjus applications.
+Sounds great, and it is.
 
 Example with Kivy UI
 --------------------
@@ -81,9 +83,10 @@ can do the following::
 
 So now ``pyobjus-ios`` contains ``main.py`` file which holds python code.
 
-The example above is borrowed from `this <http://kivy.org/docs/tutorials/firstwidget.html>`_
-tutorial but we have added some pyobjus things to it. So we are now using a
-``NSArray`` to store information about line color, and we are using a
+The example above is borrowed from
+`this tutorial<http://kivy.org/docs/tutorials/firstwidget.html>`_
+but we have added some pyobjus things to it. So we are now using a
+``NSArray`` to store information about the line color, and we are using a
 ``NSString`` to set the text of the button.
 
 Now you can create an xcode project which will hold our python application.
@@ -447,7 +450,7 @@ After this step, xcode will open and, if you have connected your iOS
 device to your computer, you can run the project and will see your app
 running on your device.
 
-This is screenshoot from an iPad.
+This is a screenshoot from an iPad.
 
 .. figure::  images/IMG_0330.PNG
    :align:   center
