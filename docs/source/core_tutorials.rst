@@ -219,15 +219,18 @@ via the INCLUDE enum. You could load the Framework in the following way::
 Using struct types
 ------------------
 
-Pyobjus currently support ``NSRange``, ``NSPoint``, ``NSSize`` and ``NSRect`` structures. They are defined via ``ctypes.Structure`` type.
+Pyobjus currently support ``NSRange``, ``NSPoint``, ``NSSize`` and ``NSRect``
+structures. They are defined via the ``ctypes.Structure`` type.
 
-Consider following. You have Objective C class with name ObjcClass, and useRange: method of that class which is defined in this way::
+Consider the following. You have an Objective C class with the name ObjcClass
+and a useRange: method of that class which is defined in this way::
 
     - (void) useRange:(NSRange)r {
         printf("location: %ld, length: %ld\n", r.location, r.length);
     }
 
-So, if you want to call this method from Python, you can do sommething like this::
+So, if you want to call this method from Python, you can do something like
+this::
 
     from pyobjus.objc_py_types import NSRange
     from pyobjus import autoclass
@@ -237,11 +240,13 @@ So, if you want to call this method from Python, you can do sommething like this
     range = NSRange(10, 20)
     o_cls.useRange_(range)
 
-This will output with::
+This will output::
 
     >>> location: 10, length: 20
 
-The simmilar situation is with returning and using Objective C structure types. Let's say that ObjcClass has another method, with name makeRange::
+A simmilar situation occurs when returning and using Objective C structure
+types. Let's say that our ObjcClass has another method with the name
+makeRange::
 
     - (NSRange) makeRange {
         NSRange range;
@@ -250,20 +255,21 @@ The simmilar situation is with returning and using Objective C structure types. 
         return range;
     }
 
-Using this method from Python is really simple. Let's say that we have included it from previous Python code example::
+Using this method from Python is really simple. Let's say that we have included
+it from the previous Python code example::
 
     range = o_cls.makeRange()
     print range.length
     print range.location
 
-And this will output with::
+And this will output::
 
     >>> 123
     >>> 456
 
-As you can see dealing with Objective C structs from pyobjus is simple.
+As you can see, dealing with Objective C structs from pyobjus is simple.
 
-On the end of this section let's see how to create ``NSRect`` type from example::
+Let's see how to create a ``NSRect`` type::
 
     point = NSPoint(30, 50)
     size = NSSize(60, 70)
