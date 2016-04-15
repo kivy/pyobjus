@@ -278,23 +278,28 @@ Let's see how to create a ``NSRect`` type::
 Dealing with pointers
 ---------------------
 
-As you know C has very powerful feature, with name pointers. Objective C is superset of C language, so Objective C also has this great feature.
+As you know, C has a very powerful feature with name pointers. Objective C is
+a superset of the C language, so Objective C also has this great feature.
 
-But wait, we are in Python, how we can deal with pointers from Python???
+But wait, we are using Python, so how we can deal with pointers from Python???
 
 Passing pointers
 ~~~~~~~~~~~~~~~~
 
-Relax, pyobjus is doing job for you here. I think that is the best way is to view some example of that. So, let's expand our ObjcClass class with another method::
+Relax, pyobjus is doing that job for you. I think the best way to explain is to
+show some concrete examples of that. So, let's expand our ObjcClass class with
+another method::
 
     - (void) useRangePtr:(NSRange*)r_p {
         NSRange r = r_p[0];
         printf("location: %ld, length: %ld\n", r.location, r.length);
     }
 
-In previous examples you have seen example of making ``NSRange`` from Python, and you have sent value of ``NSRange`` type. But now we have situation when method accepts pointer to some type.
+In previous examples you have seen how to create an ``NSRange`` from Python,
+and you have sent values of the ``NSRange`` type. But now we have a situation
+when the method accepts a pointer to that type.
 
-With pyobjus, you can call method in following way::
+With pyobjus, you can call a method in the following way::
 
     range = NSRange(40, 80)
     o_cls.useRangePtr_(range)
@@ -303,13 +308,17 @@ And this will output::
 
     >>> location:40, length: 80
 
-So what have happened here? We pass argument on the same way as with ``useRange:`` method.
+So what has happened here? We pass the argument in the same way as with
+the ``useRange:`` method.
 
-Pyobjus would know if method would accept pointer on type, or accept value. If method accepts pointer on type, pyobjus will make pointer of that type, 
-and put passed value to location on which previously created pointer points.
-So with this, you don't need to pay attention about argument types if they are pointers or values on some type.
+Pyobjus knows if a method accepts pointers to a type, or accepts values of that
+type. If a method accepts a pointer to a type, pyobjus will make a pointer to
+that type, point it to your type and pass that pointer to the method for you.
+So with this, you don't need to care whether argument types are pointers or
+values.
 
-You can also return pointers to types from Objective C methods. Let's add another method to ObjcClass::
+You can also return pointers to types from Objective C methods. Let's add
+another method to ObjcClass::
 
     - (NSRange*) makeRangePtr {
         NSRange *r_p = malloc(sizeof(NSRange));
