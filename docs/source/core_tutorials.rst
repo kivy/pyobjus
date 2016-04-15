@@ -81,18 +81,20 @@ This will output with::
 load_framework function
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-There often can be situations when you need to load classes into pyobjus which don't belongs to 
-Foundation framework, for example you want to load class from AppKit framework.
+There often can be situations when you need to load classes into pyobjus which
+don't belong to the Foundation framework. For example, say you want to load a
+class from the AppKit framework.
 
-In those cases you have available load_framework function of dylib_manager.
+In these cases you can use the load_framework function of dylib_manager.
 
 So let's see one simple example of using this function::
 
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
 
-You may wonder what is the INCLUDE, and can we load all Frameworks in this way?
-So INCLUDE is enum, which contains paths to Frameworks. Currently INCLUDE contains paths to following frameworks::
+You may wonder what INCLUDE is, and can we load all Frameworks in this way?
+So INCLUDE is an enum, which contains paths to various Frameworks. Currently,
+INCLUDE contains paths to the following frameworks::
 
     Accelerate = '/System/Library/Frameworks/Accelerate.framework',
     Accounts = '/System/Library/Frameworks/Accounts.framework',
@@ -207,8 +209,9 @@ So INCLUDE is enum, which contains paths to Frameworks. Currently INCLUDE contai
     XgridFoundation = '/System/Library/Frameworks/XgridFoundation.framework'
 
 
-If Framework path which you want to load isn't present in INCLUDE enum, you can specify it manualy.
-Let's say that path to AppKit isn't available via INCLUDE enum. You can load Framework on following way::
+If the Framework path which you want to load isn't present in the INCLUDE enum,
+you can specify it manually. Let's say that the path to AppKit isn't available
+via the INCLUDE enum. You could load the Framework in the following way::
 
     load_framework('/System/Library/Frameworks/AppKit.framework')
 
