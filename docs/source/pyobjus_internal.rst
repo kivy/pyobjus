@@ -151,22 +151,28 @@ You will call this method with pyobjus in the way::
 
     sumNumber_and_andAlso_(1, 2, 3)
 
-So far we know how to call Objective C methods with pyobjus, and how to pass arguments to them. 
-Let's try do that with NSString class with `stringWithUTF8String:` class method::
+So far we know how to call Objective C methods with pyobjus, and how to pass
+arguments to them. Let's try to do that with an NSString class using the
+`stringWithUTF8String:` class method::
 
     text = NSString.stringWithUTF8String_('some string')
     print text.UTF8String()
 
-This we call `stringWithUTF8String:` class method, and after that `UTF8String:` instance method. As you can see on
-output, we will get `some string`, so we can see that method is making NSString instance, and correctly calling and returning values of methods, which belongs to NSString class.
+Here we call the `stringWithUTF8String:` class method, and after that
+the `UTF8String:` instance method. As you can see from the
+output, we will get `some string`, so we can see that method is making an
+NSString instance, and correctly calling and returning values from these methods
+which belong to NSString class.
 
 
 Using Objective C properties
 ----------------------------
 
-So, you may wonder if you can use Objective C properties with pyobjus, and if you could, how?
+You may wonder if you can use Objective C properties with pyobjus, and if so,
+how?
 
-Using Objective C properties is really simple. Let's first make Objective C class::
+Using Objective C properties is really simple. Let's first make an Objective C
+class::
 
     #import <Foundation/Foundation.h>
 
@@ -179,9 +185,10 @@ Using Objective C properties is really simple. Let's first make Objective C clas
     @synthesize some_objc_prop;
     @end
 
-We can see above really simple Objective C class which Objective C property ``some_objc_prop``. 
-Save it as `test.m` for example.
-Later we will explain ``dylib_manager``, so for now, we will use its functions to load above class into pyobjus::
+This really simple Objective C class has an Objective C property
+``some_objc_prop``. Save it as `test.m` for this example.
+Later we will explain ``dylib_manager``, but for now, we will use its functions
+to load the above class into pyobjus::
 
     from pyobjus.dylib_manager import load_dylib, make_dylib
     from pyobjus import autoclass
@@ -199,17 +206,20 @@ Later we will explain ``dylib_manager``, so for now, we will use its functions t
     # or retrieve value of that property
     print o_cls.some_objc_prop
 
-Here you can see that setting Objective C property is very similar as we set it in native Objective C code.
+Here you can see that setting an Objective C property is very similar to how we
+set it in native Objective C code.
 
-You may be wondering how pyobjus deal with Objective C properties.
-Pyobjus is calling getters and setters of property, because in Objective C there are default names 
-for getters/setters. 
+You may be wondering how pyobjus deals with Objective C properties?
+Pyobjus is calling getters and setters for that property because in Objective C,
+there are default names for getters/setters.
     
-So for the mentioned property, getter will be `some_objc_prop`, and setter
-`setSome_objc_prop`. I suppose that you can figure out in which way Objective C generate names 
-for getters and setters for properties. So getter will have the same name as property has, and setter will be constructed in a following way: on the property name will be added prefix set, 
-and first letter of property will be capitalized, and we add rest of letters, and result of that is the name of
-property setter.
+So for the mentioned property, the getter will be `some_objc_prop`, and the
+setter `setSome_objc_prop`. I suppose that you can figure out how Objective C
+generate names for getters and setters for properties. The getter will have the
+same name as the property, and the setter will be constructed in the following
+way: 'set' will be added as a prefix to the property name, the first letter of
+property will be capitalized and the rest of letters added. The result of that
+is the name of property setter.
 
-Basically, that's about how pyobjus manage, and how to use pyobjus properties. 
+Basically, that's how pyobjus manages things, and how to use pyobjus properties.
 It is really simple and intuitive.
