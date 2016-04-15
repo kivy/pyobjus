@@ -1,15 +1,15 @@
 .. _pyobjus_internal:
 
-How Pyobjus works?
-==================
+How does Pyobjus work?
+======================
 
 .. module:: pyobjus
 
 This part of the documentation introduces a basic understanding of how pyobjus
 works.
 
-autoclass function
-------------------
+The autoclass function
+----------------------
 
 So, autoclass is the heart of pyobjus. With this function, you load Objective C
 classes into pyobjus which then constructs a Python wrapper around these
