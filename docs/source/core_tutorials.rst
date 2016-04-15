@@ -8,19 +8,21 @@ This part of documentation covers tutorials related to API of pyobjus
 Using dylib_manager
 -------------------
 
-As you now, you need to load code into pyobjus so it can actually find appropriate class with autoclass function.
+You need to load code into pyobjus so it can actually find the appropriate
+class with the autoclass function.
 
-Maybe you want to write some Objective C code, and you want to load it into pyobjus, or you want
-to use some exising `.dylib` or sommething similar. 
+Maybe you want to write some Objective C code, and you want to load it into
+pyobjus, or you want to use some exising `.dylib` or sommething similar. 
 
-Those problems will solve pyobjus dylib_manager. Currently it has few functions, so let's see what we can do with 
-them.
+These problems can be solved using the pyobjus dylib_manager. Currently it has
+a few functions, so let's see what we can do with them.
 
 make_dylib and load_dylib functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For the first example, let's say that we want to write our class in Objective C, and after that we want
-to load that class into pyobjus. Okey, let's write class::
+For the first example, let's say that we want to write our class in Objective
+C, and after that we want to load that class into pyobjus. Okay, let's write
+a class::
 
     #import <Foundation/Foundation.h>
 
@@ -37,30 +39,36 @@ to load that class into pyobjus. Okey, let's write class::
 
     @end
 
-Next step is to make .dylib for this class, and load that .dylib into pyobjus. Suppose that we have saved previous code 
-into `objc_lib.m` file.
+The next step is to make a .dylib for this class, and load that .dylib into
+pyobjus. Suppose that we have previously saved this code into an `objc_lib.m`
+file.
 
-With pyobjus you can compile `objc_lib.m` into `objc_lib.dylib` in the following way::
+With pyobjus you can compile `objc_lib.m` into `objc_lib.dylib` in the
+following way::
 
     make_dylib('objc_lib.m', frameworks=['Foundation'], options=['-current_version', '1.0'])
 
-With this we say to pyobjus to link `objc_lib.m` with Foundation framework, and we also say that we want to set
-`-current_version` option to `1.0`. You can also specify others frameworks and options if you want, 
-just add elements to array.
+Here, we are asking pyobjus to link `objc_lib.m` with the Foundation framework,
+and that we want to set the `-current_version` option to `1.0`. You can also
+specify others frameworks and options if you want by just adding these
+elements to array.
 
-Previous command will result with `objc_lib.dylib` file in the same directory as the `objc_lib.m` file.
-If you want to save it to another dir, and with different name, you can call `make_dylib` on this way::
+The previous command will create an `objc_lib.dylib` file in the same directory
+as the `objc_lib.m` file. If you want to save it to another directory
+or with a different name, you can call `make_dylib` in this way::
 
     make_dylib('objc_lib.m', frameworks=['Foundation'], out='/path/to/dylib/dylib_name.dylib')
 
-After you make .dylib with make_dylib function, you can load code from .dylib into pyobjus on following way::
+After you make a .dylib with make_dylib function, you can load the code from
+the .dylib into pyobjus on following way::
 
     load_dylib('objc_lib.dylib')
 
     # or if you specified anothed loation and name for .dylib
     # load_dylib('/path/to/dylib/dylib_name.dylib')
 
-Great, we have .dylib create, loaded into pyobjus, we can use ObjcClass from our `objc_lib.m` file::
+Great, we have created a .dylib, loaded it into pyobjus and can now use the
+ObjcClass from our `objc_lib.m` file::
 
     ObjcClass = autoclass('ObjcClass')
     o_instance = ObjcClass.alloc().init()
