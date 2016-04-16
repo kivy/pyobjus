@@ -84,7 +84,7 @@ can do the following::
 So now ``pyobjus-ios`` contains ``main.py`` file which holds your python code.
 
 The example above is borrowed from
-`this tutorial<http://kivy.org/docs/tutorials/firstwidget.html>`_
+`this tutorial <http://kivy.org/docs/tutorials/firstwidget.html>`_
 but we have added some pyobjus things to it. So we are now using a
 ``NSArray`` to store information about the line color, and we are using a
 ``NSString`` to set the text of the button.
