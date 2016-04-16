@@ -418,11 +418,13 @@ Here is the list of possible types::
     'ObjcSelector', 
     'ObjcMethod'
 
-Those already listed types are placed inside pyobjus module, so you can import them in following way::
+Those already listed types are defined inside the pyobjus module, so you can
+import them in the following way::
 
     from pyobjus import ObjcChar, ObjcInt # etc...
 
-Inside ``pyobjus.objc_py_types`` module are placed structs and unions types. This is list of them::
+Inside the ``pyobjus.objc_py_types`` module we define the struct and union
+types. Here is a list of them::
 
     'NSRange',
     'NSPoint',
@@ -436,14 +438,16 @@ You can import them with::
 Objective C <-> pyobjus literals
 --------------------------------
 
-If you are fammiliar with Objective C literals, then you know that is great feature, because literals reduces amount of code to write.
+If you are familiar with Objective C literals, then you know that they
+are a great feature, because literals reduce the amount of code you write.
 You may wonder is there some equvivalent with pyobjus. The answer is YES.
 
-I think that next example will illustrate how to use pyobjus literals, and what are the Objective C equvivalents::
+The next example illustrates how to use pyobjus literals, and what their
+Objective C equivalents are::
 
     from pyobjus import *
 
-    # In following examples will be demonstrated pyobjus literals feature
+    # The following examples demonstrate the pyobjus literals feature
     # First line will denote native objective c literals, and second pyobjus literls
     # SOURCE: http://clang.llvm.org/docs/ObjectiveCLiterals.html
 
