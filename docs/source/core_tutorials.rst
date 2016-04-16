@@ -329,8 +329,9 @@ another method to ObjcClass::
         return r_p;
     }
 
-As you can see, this method makes ``NSRange`` pointer, assigning value to it, and at the end, it returns pointer to user.
-From Python you can consume this method in this way::
+As you can see, this method creates a ``NSRange`` pointer, assigns a value to
+it, and at the end, it returns a pointer to the user. From Python, you can
+consume this method in this way::
 
     range_ptr = o_cls.makeRangePtr()
     # let we see actual type of returned object
@@ -340,17 +341,19 @@ This will output following::
 
     >>> <pyobjus.ObjcReferenceToType object at 0x10f34bcb0>
 
-So here we can see another type -> ObjcReferenceToType. When we have method which returns pointer to some type, pyobjus will wrap that pointer with ObjcReferenceToType object,
-so object now contains actual address of C pointer. We can pass that type to function which accepts pointer to type.
+So here we can see another type -> ObjcReferenceToType. When we have a method
+which returns a pointer to some type, pyobjus will wrap that pointer with an
+ObjcReferenceToType object. This object contains the actual address of the C
+pointer. We can now pass that type to a function which accepts pointers.
 
 Example::
 
     # note that range_ptr is of ObjcReferenceToType type
     o_cls.useRangePtr_(range_ptr)
 
-But you may wonder now how to dereference pointer to get actual value?
+But you may now wonder how to dereference the pointer to get the actual value?
 
-Answer is....use dereference function
+The answer is....by using a dereference function.
 
 Dereferencing pointers
 ~~~~~~~~~~~~~~~~~~~~~~
