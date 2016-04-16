@@ -556,12 +556,14 @@ and the third the name ``CGRect``. ``CGRect`` is used because it can help the
 user as an indicator of actual type if it is missing. The last one is another
 unknown type, so pyobjus will generate the name 'c'.
 
-Notice that in case of ``CGRect``, memeber will have ``origin`` and ``size`` members, because it is already defined, 
-and we know info about its members. But for last member, pyobjus will continue recursive generating names 
-for its members.
+Notice that in the case of the ``CGRect``, it will have ``origin`` and ``size``
+members because it is already defined so we know about these. This is not true
+for the last member, and pyobjus will thus choose the next alphabetical name
+for this member.
 
-Maybe you are asking yourself now, how will you know actual generated name, so pyobjus will help you with this.
-There is ``getMembers`` function, which returns name and type of some field in struct::
+Perhaps you are asking yourself how you would know what the actual generated
+name is? Pyobjus will help you with this. There is a ``getMembers`` function
+which returns the name and types of some of the fields in the struct::
 
     print ret_type.getMembers()
 
