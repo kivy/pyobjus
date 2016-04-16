@@ -108,7 +108,8 @@ This will output::
     >>> <__main__.__NSCFString object at 0x101025d10>
     >>> <__main__.__NSArrayI object at 0x101169290>
 
-So, if you want to call for eg. UTF8String method of NSString object, which resides in 'first_key', you simply can call::
+So, say you want to call the UTF8String method of the NSString object that
+resides in the 'first_key', you can simply call::
 
     str_val = first_key_value.UTF8String()
     print 'String value is: {0}'.format(str_val)
@@ -120,7 +121,8 @@ This will output::
 NSMutableArray example
 ----------------------
 
-This class is often usefull if you need to add elements after you create array. So let's see example of using this class with pyobjus::
+This class is often useful if you need to add elements after you have created an
+array. So let's look at an example of using this class with pyobjus::
 
     from pyobjus import autoclass
 
@@ -166,7 +168,8 @@ This will output::
 NSMutableDictionary example
 ---------------------------
 
-As with this class above, you can also with this class add and delete elements and after you've created object.::
+As with the class above, you can also add and delete elements from the
+NSMutableDictionary after you've created it.::
 
     from pyobjus import autoclass
 
@@ -210,4 +213,4 @@ So this will output::
 Other
 -----
 
-Other examples are located on this `link <https://github.com/kivy/pyobjus/tree/master/examples>`_.
+Other examples can be found `here <https://github.com/kivy/pyobjus/tree/master/examples>`_.
