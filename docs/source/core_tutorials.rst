@@ -448,7 +448,7 @@ Objective C equivalents are::
     from pyobjus import *
 
     # The following examples demonstrate the pyobjus literals feature
-    # First line will denote native objective c literals, and second pyobjus literls
+    # The first line denotes native objective c literals, and the second pyobjus literals
     # SOURCE: http://clang.llvm.org/docs/ObjectiveCLiterals.html
 
     # NSNumber *theLetterZ = @'Z';          // equivalent to [NSNumber numberWithChar:'Z']
@@ -495,8 +495,10 @@ Objective C equivalents are::
     # NSString *string = @"some string";
     objc_str('some string')
 
-I think that you unserstand on which rules are build names for these literals. So we add prefix ``objc_``,
-followed with letter/letters which denotes Objective C type, for examples i for ``int``, f for ``float``, arr for ``NSArray``, dict for ``NSDictionary``, etc...
+We have tried to make the build names for these literals clear and intuitive.
+We start with the prefix ``objc_`` followed by the letter/letters which denote
+the Objective C type.  For example, i for ``int``, f for ``float``, arr for
+``NSArray``, dict for ``NSDictionary``, etc...
 
 
 Unknown types
