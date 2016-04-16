@@ -353,24 +353,27 @@ Example::
 
 But you may now wonder how to dereference the pointer to get the actual value?
 
-The answer is....by using a dereference function.
+The answer is....by using the dereference function.
 
 Dereferencing pointers
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To dereference pointer use dereference function::
+To dereference a pointer we use the dereference function::
 
     from pyobjus import dereference
 
-If function returns pointer to some known type, with other words, type isn't void*, you can use dereference function in this way::
+If a function returns a pointer to some known type, in other words, the return
+type isn't void*, you can use the dereference function in this way::
 
     range_ptr = o_cls.makeRangePtr()
     range = dereference(range_ptr)
 
-Pyobjus will parse returned signature from method signature, so it will know in which type to convert pointer value.
-If you return void pointer, you will need to specify type in which you want to pyobjus convert actual value on which pointer points.
+Pyobjus will extract the return type from the method signature, and will thus
+know which type to convert the pointer value to. If it returns a void pointer,
+you will need to specify the type which you want pyobjus to convert the actual
+value to.
 
-Now we can add method::
+Consider adding this method::
 
     - (void*) makeIntVoidPtr {
         int *a = malloc(sizeof(int));
@@ -378,7 +381,7 @@ Now we can add method::
         return (void*)a;
     }
 
-Now we can retrieve value, and dereference it::
+Now we can retrieve the value and dereference it::
 
     int_ptr = o_cls.makeIntVoidPtr()
     int_val = dereference(int_ptr, of_type=ObjcInt)
@@ -388,8 +391,9 @@ This will output with::
 
     >>> 12345
 
-Notice that you can specify ``of_type`` optional argument although methods returns ``NSRange`` pointer. 
-With this you will be sure that pyobjus will convert value to that type.
+Notice that you can specify the ``of_type`` optional argument even though
+the method returns a ``NSRange`` pointer. With this, you can be sure that
+pyobjus will convert the value to that type.
 
 Here is the list of possible types::
 
