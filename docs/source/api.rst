@@ -264,27 +264,27 @@ Structure types
 
 .. class:: NSRange
 
-    .. cmember:: unsigned long long location
+    .. c:member:: unsigned long long location
 
-    .. cmember:: unsigned long long length
+    .. c:member:: unsigned long long length
 
 .. class:: NSPoint
 
-    .. cmember:: double x
+    .. c:member:: double x
 
-    .. cmember:: double y
+    .. c:member:: double y
 
 .. class:: NSSize
 
-    .. cmember:: double width
+    .. c:member:: double width
 
-    .. cmember:: double height
+    .. c:member:: double height
 
 .. class:: NSRect
 
-    .. cmember:: NSPoint origin
+    .. c:member:: NSPoint origin
 
-    .. cmember:: NSSize size
+    .. c:member:: NSSize size
 
 Enumeration types
 -----------------
