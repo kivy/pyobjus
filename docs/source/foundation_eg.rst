@@ -5,12 +5,14 @@ Foundation framework examples
 
 .. module:: pyobjus
 
-This part of the documentation covers examples of using classes from foundation framework.
+This part of the documentation covers examples of using classes from the
+`Foundation framework
+<https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/ObjC_classic/>`_.
 
 NSArray example
 ---------------
 
-Here is an example of using NSArray class::
+Here is an example of using the NSArray class::
 
     from pyobjus import autoclass
 
@@ -38,22 +40,23 @@ This will output::
 NSArray with pyobjus literals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you want, you can use sommething like Objective C literals to create NSArray::
+If you want, you can use something like an Objective C literal to create an
+NSArray::
 
     from pyobjus import objc_arr, objc_str
 
     array = objc_arr(objc_str('some string'), objc_str('some other string'))
     print array
 
-As you can see here, ``objc_arr(...)`` is equvivalent to ``autoclass('NSArray').arrayWithObjects_(...)``, 
-and this will output::
+As you can see here, ``objc_arr(...)`` is equivalent to
+``autoclass('NSArray').arrayWithObjects_(...)``, and will output::
 
     >>> <__main__.__NSArrayI object at 0x10a22d350>
 
 NSDictionary example
 --------------------
 
-Here is an example of using NSDictoinary class::
+Here is an example of using a NSDictionary class::
 
     from pyobjus import autoclass
 
@@ -81,9 +84,11 @@ This will output::
 NSDictionary with pyobjus literals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We can use pyobjus `literals` also with NSDictionary class.
+We can also use pyobjus `literals` with the NSDictionary class.
 
-So let's add two elements to dictionary. The first one has key 'first_key', and value @'string value of first key', and the second one has key 'second_key', with value NSArray::
+So let's add two elements to the dictionary. The first one has the key
+'first_key' and the value @'string value of first key', and the second one has
+the key 'second_key' with the value NSArray::
 
     from pyobjus import objc_dict, objc_str, objc_arr
 
