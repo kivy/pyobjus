@@ -504,9 +504,10 @@ the Objective C type.  For example, i for ``int``, f for ``float``, arr for
 Unknown types
 -------------
 
-Let's say that we have defined following structures in our ObjcClass.
+Let's say that we have defined the following structures in our ObjcClass.
 
-Note that we haven't specify type of structs, so their types will be missing in method signatures::
+Note that we haven't specified a type name for the structs, so their types
+will be missing from any method signatures which use them::
 
     typedef struct {
         float a;
@@ -521,7 +522,7 @@ Note that we haven't specify type of structs, so their types will be missing in 
         unknown_str_new u_str;
     } unknown_str;
 
-Let's play. Suppose that we have defined following objective c method::
+Let's play. Suppose that we have defined the following Objective C methods::
 
     - (unknown_str) makeUnknownStr {
         unknown_str str;
@@ -532,23 +533,28 @@ Let's play. Suppose that we have defined following objective c method::
         return str;
     }
 
-Purpose of this method is to make unknown type struct, and adding some values to it's members
-If you see debug logs of pyobjus, you will notice that method returns following type::
+The purpose of this method is to create an unknown type struct and add some
+values to it's members. If you look at the debug logs from pyobjus, you will
+notice that the method returns the following type::
 
     {?=ii{CGRect={CGPoint=dd}{CGSize=dd}}{?=fi{CGRect={CGPoint=dd}{CGSize=dd}}}}
 
-From this we can see that method returns some type, which contains two integers, and two structs. One struct
-is ``CGRect``, and another is some unknown type, which contains float, integer and ``CGRect`` struct
-So, if user haven't defined this struct, pyobjus can generate this type for him. Let's call this function::
+From this we can see that method returns some type which contains two
+integers and two structs. One struct is a ``CGRect``, and another is some
+unknown type which contains a float, an integer and a ``CGRect`` struct.
+So, if the user hasn't defined this struct, pyobjus can generate the type for
+them. Let's call this function::
 
     ret_type = o_cls.makeUnknownStr()
 
-But wait, how will pyobjus know about field names in struct, because from method signature we know 
-only types, not actual names? Well, pyobjus will generate some 'random' names in alphabetical order.
+But wait, how will pyobjus know about the field names in the struct, because
+from the method signature we see only types, not actual names? Well, pyobjus
+will generate some 'random' names in alphabetical order.
 
-In our case, first member will have name 'a', second will have name 'b', and third name ``CGRect``,
-which is used because can help user as indicator of type if actual type is missing. Last one is another 
-unknown type, so pyobjus will generate name for him and it will have name 'c'. 
+In our case, the first member will have the name 'a', the second the name 'b'
+and the third the name ``CGRect``. ``CGRect`` is used because it can help the
+user as an indicator of actual type if it is missing. The last one is another
+unknown type, so pyobjus will generate the name 'c'.
 
 Notice that in case of ``CGRect``, memeber will have ``origin`` and ``size`` members, because it is already defined, 
 and we know info about its members. But for last member, pyobjus will continue recursive generating names 
