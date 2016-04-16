@@ -715,9 +715,11 @@ these changes in your Python environment.
 Using vararg methods
 --------------------
 
-As you know, Objective C support vararg (Variable Arguments) methods, so it will be great if you can use vararg methods from pyobjus. Fortunately you can.
+Objective C supports vararg (Variable Arguments) methods, so it would be great
+if you could use vararg methods from pyobjus. Fortunately, you can.
 
-Let's we say that we want to use ``arrayWithObjects:`` method, which is one of varargs methods::
+Let's we say that we want to use the ``arrayWithObjects:`` method, which is a
+varargs method::
 
     from pyobjus import autoclass, objc_str
 
@@ -727,14 +729,15 @@ Let's we say that we want to use ``arrayWithObjects:`` method, which is one of v
     text = array.objectAtIndex_(1)
     print text.UTF8String()
 
-As you can see, last argument of varargs methods must be ``None``.
+Note that the last argument of a varargs methods must be ``None``.
 
 Using C array
 -------------
 
-In this section we will explain how to use C array from pyobjus.
+In this section we will explain how to use a C array from pyobjus.
 
-Let's say that we made library ``CArrayTestlib.dylib``, which contains test functions for C array. Let's load it::
+Let's say that we made a library ``CArrayTestlib.dylib`` which contains test
+functions for a C array. Let's load it::
 
     import ctypes
     from pyobjus import autoclass, selector, dereference, CArray, CArrayCount
@@ -744,7 +747,7 @@ Let's say that we made library ``CArrayTestlib.dylib``, which contains test func
     CArrayTestlib = autoclass("CArrayTestlib")
     _instance = CArrayTestlib.alloc()
 
-Now we can call ``setIntValues:`` method::
+Now we can call the ``setIntValues:`` method::
 
     - (void) setIntValues:(int[10])val_arr
     {
@@ -753,13 +756,13 @@ Now we can call ``setIntValues:`` method::
         NSLog(@"Values copied...");
     }
 
-on this way::
+in this way::
 
-    nums = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9] 
-    array = (ctypes.c_int * 10)(*nums)  
+    nums = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9]
+    array = (ctypes.c_int * 10)(*nums)
     _instance.setIntValues_(array)
 
-We can also return array values of this function::
+We can also return array values from this function::
 
     - (int*) getIntValues
     {
@@ -772,14 +775,16 @@ We can also return array values of this function::
             return self->values;
     }
 
-on this way::
+and consume them this way::
 
     returned_PyList = dereference(_instance.getIntValues(), of_type=CArray, return_count=10)
     print returned_PyList
 
-Note that here we passing ``return_count`` optional argument, which holds number of array items which are retured from ``getIntValues`` method.
+Note that here we passing a ``return_count`` optional argument, which holds the
+number of array items which are returned from the ``getIntValues`` method.
 
-But what if we don't know array count? In that case we need to have some argument in which method will put array count value.
+But what if we don't know the array count? In that case we need to have some
+argument in which the method will put the array count value.
 
 Consider following method::
 
@@ -801,18 +806,22 @@ Consider following method::
         }
     }
 
-First argument of this function will contain array count when return statement is reached. So let's call it::
+The first argument of this function will contain the array count when the return
+statement is reached. So let's call it::
 
     returned_PyList_withCount = dereference(_instance.getIntValuesWithCount_(CArrayCount), of_type=CArray)
     print returned_PyList_withCount
 
-Pyobjus will internally read from that argument and convert returned C array to python array.
+Pyobjus will internally read from that argument and convert the returned C array
+into a python list.
 
-If method returns values/ArrayCount over reference and you don't provide ``CArrayCount``
-on the right position in the method signature, you will get ``IndexError: tuple index out of range``
-or segmentation fault, so don't forget to provide ``CArrayCount`` on the right position.
+If the method returns values/an array count over reference or you don't provide
+``CArrayCount`` in the right position in the method signature, you will get an
+``IndexError: tuple index out of range`` or segmentation fault, so don't forget
+to provide ``CArrayCount`` in the right position.
 
-You may wonder, can you use multidimensional arrays from pyobjus? Yes, you can. Consider following method::
+You may wonder, can you use multidimensional arrays from pyobjus? Yes, you can.
+Consider following method::
 
     - (void) set2DIntValues: (int[10][10]) val_arr
     {
@@ -833,7 +842,8 @@ You may wonder, can you use multidimensional arrays from pyobjus? Yes, you can. 
         }
     }
 
-To call this method first we need to make multidimensional array from python in this way::
+To call this method first we need to make a multidimensional array from python
+using nested lists::
 
     twoD_array = [
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -848,12 +858,13 @@ To call this method first we need to make multidimensional array from python in 
         [91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
     ]
 
-This will be representation of ``int[10][10]``, so let's call above method::
+This represents an ``int[10][10]`` array, so let's call the above method::
 
     _instance.set2DIntValues_(twoD_array)
     returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,10])
     print returned_2d_list
 
-You can see optional ``partition`` argument of dereference function. Arguments contains format of C array. In this case it is ``[10, 10]``.
+Note the optional ``partition`` argument of the dereference function.
+This argument contains the format of the C array, in this case ``[10, 10]``.
 
 You can find additional examples on this `link <https://github.com/ivpusic/pyobjus/blob/master/examples/using_carray.py>`_.
