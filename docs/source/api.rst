@@ -382,7 +382,7 @@ All the types for any part of the signature can be one of:
 * d = represent a double
 * b = represent a c++ bool or a c99 _bool
 * v = represent a void
-* `*` = represent a character string (char *)
+* `*` = represent a character string (char \*)
 * @ = represent an object (whether statically typed or typed id)
 * # = represent a class object (class)
 * : = represent a method selector (sel)
