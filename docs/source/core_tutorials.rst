@@ -567,15 +567,15 @@ which returns the name and types of some of the fields in the struct::
 
     print ret_type.getMembers()
 
-Python will output with::
+Python will output::
 
     >>> [('a', <class 'ctypes.c_int'>), ('b', <class 'ctypes.c_int'>), ('CGRect', <class 'pyobjus.objc_py_types.NSRect'>), ('c', <class 'pyobjus.objc_py_types.UnknownType'>)]
 
-If you want to provide your name fields, you can do in this way::
+If you want to provide your field names, you can do it this way::
 
     ret_type = o_cls.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_field'])
 
-And if we now run ``getMembers`` command, it will result with::
+And if we now run the ``getMembers`` command, it will return this::
 
     [('first', <class 'ctypes.c_int'>), ('second', <class 'ctypes.c_int'>), ('struct_field', <class 'pyobjus.objc_py_types.NSRect'>), ('tmp_field', <class 'pyobjus.objc_py_types.UnknownType'>)]
 
@@ -583,24 +583,28 @@ If you don't need types, only names, you can call method in following way::
 
     print ret_type.getMembers(only_fields=True)
 
-Python will output with::
+Python will output::
 
     >>> ['a', 'b', 'CGRect', 'c']
 
-Also, if you want to know only names, you can get it on following way::
+Also, if you want to know only names, you can do that the following way::
 
     print ret_type.getMembers(only_types=True)
 
-Python will output with::
+Python will output::
 
     >>> [<class 'ctypes.c_int'>, <class 'ctypes.c_int'>, <class 'pyobjus.objc_py_types.NSRect'>, <class 'pyobjus.objc_py_types.UnknownType'>]
 
-If you want to use returned type to pass it as argument to some function there will be some problems. 
-Pyobjus uses ctypes structures, so we can get actual pointer to C structure from Python object,
-but if we want to get correct values of passed arg, we need to cast pointer to appropriate type.
+If you want to use the returned type to pass it as an argument to some function,
+there might be some problems. Pyobjus uses ctypes structures, so we can get the
+actual pointer to the C structure from Python objects, but if we want to get
+the correct values of the passed arg, we need to cast the pointer to the
+appropriate type.
 
-If type is defined in ``pyobjus/objc_cy_types.pxi`` pyobjus will convert it for us, but if it isn't, we will need to convert
-it by ourselfs. For example internally in Objective C method where we are passing struct value. Lets see example of this::
+If the type is defined in ``pyobjus/objc_cy_types.pxi``, pyobjus will convert it
+for us, but if it isn't, we will need to convert it manually. For example,
+inside any Objective C methods where we are passing the struct value. Lets see
+an example of this::
 
     - (void) useUnknownStr:(void*)str_vp {
         unknown_str *str_p = (unknown_str*)str_vp;
@@ -619,9 +623,9 @@ And Python will output with::
 Using class
 -----------
 
-As you know, ``class`` is Python keyword, so that might be a problem.
+As you know, ``class`` is a Python keyword, so that might be a problem.
 
-Let's say that we want to get Class type for ``NSString`` instance...
+Let's say that we want to get the Class type for an ``NSString`` instance...
 
 We can use following::
 
@@ -633,7 +637,7 @@ This will return::
 
     <pyobjus.ObjcClass object at 0x1057361b0>
 
-So, now we can use isKindOfClass: method::
+So, now we can use the isKindOfClass: method::
 
     text.isKindOfClass_(NSString)
 
@@ -644,23 +648,28 @@ This will output ``True``. Let's see another example::
 
 And this will output ``False``.
 
-So, as you can see, if you want to use ``class`` with pyobjus, you will need to use ``some_object.oclass()`` method.
+So, as you can see, if you want to use ``class`` with pyobjus, you will need to
+use the ``some_object.oclass()`` method.
 
 Using @selector
 ---------------
 
-There may be situations when you need to use ``@selector``, which is Objective C feature. With pyobjus you can also get SEL type for method. Let's say that we want to get SEL for init method::
+There may be situations when you need to use ``@selector``, which is an
+Objective C feature. With pyobjus you can also get the SEL type for a method.
+Let's say that we want to get the SEL for the init method::
 
     from pyobjus import selector
     selector('init')
 
-This will output with::
+This will output::
 
     <pyobjus.ObjcSelector object at 0x1057361c8>
 
-So, as you can see, instead of using this ``@selector(init)`` with Objective C, you will use ``selector('init')`` with pyobjus and Python to get SEL type for some method.
+So, instead of using ``@selector(init)`` with Objective C, you can use
+``selector('init')`` with pyobjus and Python to get the SEL type for that
+method (in this case the 'init' method).
 
-If you want get SEL for ``initWithUTF8String:`` you can use::
+If you want get the SEL for ``initWithUTF8String:`` you can use::
 
     selector('initWithUTF8String:')
 
@@ -669,9 +678,12 @@ Other cases are the same for all methods.
 Using enum types
 ----------------
 
-Pyobjus currently support ``NSComparisonResult`` and ``NSStringEncoding`` enums. If you want to use some others, you need to expand pyobjus with additional types by adding then into ``pyobjus/objc_py_types.py`` file.
+Pyobjus currently supports ``NSComparisonResult`` and ``NSStringEncoding``
+enums. If you want to use any others, you need to expand pyobjus with additional
+types by adding then to the ``pyobjus/objc_py_types.py`` file.
 
-But, let we see how to use supported enum types with pyobjus. Consider following example::
+But, let's first see how to use the supported enum types with pyobjus. Consider
+the following example::
 
     from pyobjus import autoclass, objc_str
     from pyobjus.objc_py_types import NSComparisonResult
@@ -689,11 +701,16 @@ But, let we see how to use supported enum types with pyobjus. Consider following
     if __name__ == '__main__':
         enum_example()
 
-You can see that we use ``NSComparisonResult`` enum in above example to compare two strings. Enum is defined in this way::
+You can see that we use the ``NSComparisonResult`` enum in the above example to
+compare two strings. The Enum is defined in this way::
 
     NSComparisonResult = enum("NSComparisonResult", NSOrderedAscending=-1, NSOrderedSame=0, NSOrderedDescending=1)
 
-The first argument of ``enum`` function is name of new enum type, and rest of arguments are fields declarations of that enum. As you can see it is preety simple to declare enum with pyobjus, so you can add new enum types to pyobjus.
+The first argument of the ``enum`` function is the name of new enum type, and
+the rest of the arguments are the field declarations of that enum. As you can
+see it is pretty simple to declare enum's with pyobjus, so you can add new enum
+types to pyobjus. Keep in mind you will bo re-compile pyobjus is order to see
+these changes in your Python environment.
 
 Using vararg methods
 --------------------
