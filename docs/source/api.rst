@@ -47,15 +47,15 @@ Utility functions
     Dereference the C pointer to get the actual values
 
     :param objc_reference: `ObjcReferenceToType` Python representation of the C pointer.
-    :param of_type: If the function which you call returns a value, for example, an int, float, etc., pyobjus can determine the type which to convert it to. But if you return a void pointer for eg. then you need to specify the type to which you want to convert it. An example of this is: `dereference(someObjcReferenceToType, of_type=ObjcInt)`
-    :param return_count: When you are returning C array, you can/need specify number of returned values with this argument.
+    :param of_type: If the function which you call returns a value, for example an int, float, etc., pyobjus can determine the type which to convert it to. But if you return a void pointer for eg. then you need to specify the type to which you want to convert it. An example of this is: `dereference(someObjcReferenceToType, of_type=ObjcInt)`.
+    :param return_count: When you are returning a C array, you can/need specify number of returned values with this argument.
     :type return_count: Integer
-    :param partition: when you want to dereference multidimentional array, you need to spcify dimentions. Provide list with numbers which denotes dimensions. For `int array[10][10]`, you need to specify `partition=[10, 10]`
-    :rtype: Actual value for some `ObjcReferenceToType` type
+    :param partition: When you want to dereference a multidimensional array, you need to specify it's dimensions. Provide a list with numbers which denote it's dimensions. For example, with `int array[10][10]`, you need to specify `partition=[10, 10]`.
+    :rtype: Actual value for some `ObjcReferenceToType` type.
 
 .. function:: objc_c(some_char)
 
-    Initialize `NSNumber` with `Char` type.
+    Initialize `NSNumber` with a `Char` type.
 
     :param some_char: Char parameter
     :rtype: NSNumber.numberWithChar: Python representation
@@ -63,7 +63,7 @@ Utility functions
 
 .. function:: objc_i(some_int)
 
-    Initialize `NSNumber` with `Int` type.
+    Initialize `NSNumber` with an `Int` type.
 
     :param some_int: Int parameter
     :rtype: NSNumber.numberWithInt: Python representation
@@ -71,7 +71,7 @@ Utility functions
 
 .. function:: objc_ui(some_unsigned_int)
 
-    Initialize `NSNumber` with `Unsigned Int` type.
+    Initialize `NSNumber` with an `Unsigned Int` type.
 
     :param some_unsigned_int: Unsigned Int parameter
     :rtype: NSNumber.numberWithUnsignedInt: Python representation
@@ -79,7 +79,7 @@ Utility functions
 
 .. function:: objc_l(some_long)
 
-    Initialize `NSNumber` with `Long` type.
+    Initialize `NSNumber` with a `Long` type.
 
     :param some_char: Long parameter
     :rtype: NSNumber.numberWithLong: Python representation
@@ -87,7 +87,7 @@ Utility functions
 
 .. function:: objc_ll(some_long_long)
 
-    Initialize `NSNumber` with `Long Long` type.
+    Initialize `NSNumber` with a `Long Long` type.
 
     :param some_long_long: Long Long parameter
     :rtype: NSNumber.numberWithLongLong: Python representation
@@ -95,7 +95,7 @@ Utility functions
 
 .. function:: objc_f(some_float)
 
-    Initialize `NSNumber` with `Float` type.
+    Initialize `NSNumber` with a `Float` type.
 
     :param some_float: Float parameter
     :rtype: NSNumber.numberWithFloat: Python representation
@@ -103,7 +103,7 @@ Utility functions
 
 .. function:: objc_d(some_double)
 
-    Initialize `NSNumber` with `Double` type.
+    Initialize `NSNumber` with a `Double` type.
 
     :param some_double: Double parameter
     :rtype: NSNumber.numberWithDouble: Python representation
@@ -111,7 +111,7 @@ Utility functions
 
 .. function:: objc_b(some_bool)
 
-    Initialize `NSNumber` with `Bool` type.
+    Initialize `NSNumber` with a `Bool` type.
 
     :param some_char: Bool parameter
     :rtype: NSNumber.numberWithBool: Python representation
@@ -119,7 +119,7 @@ Utility functions
 
 .. function:: objc_str(some_string)
 
-    Initialize `NSNumber` with `NSString` type.
+    Initialize `NSNumber` with a `NSString` type.
 
     :param some_float: String parameter
     :rtype: NSString.stringWithUTF8String: Python representation
