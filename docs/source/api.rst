@@ -127,10 +127,10 @@ Utility functions
 
 .. function:: objc_arr(some_array)
 
-    Initialize `NSArray` type
+    Initialize a `NSArray` type
 
-    :param some_array: List of parameters. For eg: 
-    
+    :param some_array: List of parameters. For eg:
+
     .. code-block:: python
 
         objc_arr(objc_str('Hello'), objc_str('some str'), objc_i(42))
@@ -141,10 +141,10 @@ Utility functions
 
 .. function:: objc_dict(some_dict)
 
-    Initialize `NSDictionary` type 
+    Initialize a `NSDictionary` type
 
     :param some_dict: Dict parameter. For eg:
-    
+
     .. code-block:: python
 
         objc_dict({
@@ -163,7 +163,7 @@ Global variables
     Platform for which pyobjus is compiled
 
 Pyobjus Objective C types
--------------
+-------------------------
 
 .. class:: ObjcChar
 
@@ -231,27 +231,27 @@ Pyobjus Objective C types
 
 .. class:: ObjcClassInstance
 
-    Representation of Objective C class instance
+    Representation of an Objective C class instance
 
 .. class:: ObjcClass
 
-    Representation of Objective C ``Class``
+    Representation of an Objective C ``Class``
 
 .. class:: ObjcSelector
 
-    Representation of Objective C ``SEL``
+    Representation of an Objective C ``SEL``
 
 .. class:: ObjcMethod
 
-    Representation of Objective C method
+    Representation of an Objective C method
 
 .. class:: CArray
 
-    Representation of Objective C (C) array
+    Representation of an Objective C (C) array
 
 .. class:: CArrayCount
 
-    Representation of type, which holds ``outCount*`` for some C array -> number of received array elements
+    Representation of a type which holds ``outCount*`` for some C array -> number of received array elements
 
 .. exception:: ObjcException
 
@@ -332,38 +332,39 @@ Dynamic library manager
 
 .. function:: load_dylib(path)
 
-    Function for loading user defined dylib
+    Function for loading a user defined dylib.
 
-    :param path: Path to some dylib
+    :param path: Path to some dylib.
 
 .. function:: make_dylib(path [, frameworks=None, out=None, options=None])
 
-    Function for making dylib from Python
+    Function for making a dylib from Python.
 
-    :param path: Path to files 
+    :param path: Path to the file.
     :param frameworks: List of frameworks to link with.
     :type frameworks: List
-    :param options: List of options for compiler
+    :param options: List of options for the compiler
     :type options: List
-    :param out: Out location. Default is to write on location specified by path arg
+    :param out: Out location. The default is to write to the location specified by the path argument.
 
 .. function:: load_framework(framework)
 
-    Function loads Objective C framework via NSBundle
+    Function that loads an Objective C framework via NSBundle.
 
-    :param framework: Path to framework
+    :param framework: Path to the framework.
     :type framework: String
-    :raises: ``ObjcException`` if framework can't be found
+    :raises: ``ObjcException`` if the framework can't be found.
 
 Objective-C signature format
 ----------------------------
 
-Objective C signatures have a special format that could be difficult to
-understand at first. Let's see in details. A signature is in the format::
+Objective C signatures have a special format that can be difficult to
+understand at first. Let's look into the details. A signature is in the format::
 
     <return type><offset0><argument1><offset1><argument2><offset2><...>
 
-The offset represent how much byte the previous argument is from the start of the memory.
+The offset represents how many bytes the previous argument is from the start of
+the allocated memory.
 
 All the types for any part of the signature can be one of:
 
@@ -391,4 +392,3 @@ All the types for any part of the signature can be one of:
 * bnum = represent a bit field of num bits
 * ^ = represent type a pointer to type
 * ? = represent an unknown type (among other things, this code is used for function pointers)
-
