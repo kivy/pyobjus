@@ -12,18 +12,18 @@ Reflection functions
 
 .. function:: autoclass(name[, copy_properties=None, load_class_methods=None, load_instance_methods=None, reset_autoclass=None])
 
-    Get and load Objective C class
-    
-    :param name: Name of Objective C class which you want to load
-    :param copy_properties: Denotes if user want to copy properties of some Objective C class. Default is to copy all properties of some class.
+    Get and load an Objective C class
+
+    :param name: Name of the Objective C class which you want to load.
+    :param copy_properties: Denotes whether to copy the properties of the Objective C class or not. The default is to copy all properties.
     :type copy_properties: None or Boolean
-    :param load_class_methods: If this argument is set to `None`, all class methods will be loaded. But user can also specify class methods which he want to load, for eg. `load_class_methods=['alloc']`.
+    :param load_class_methods: If this argument is omitted or `None`, all class methods will be loaded. You can use it to force only certain class methods to be loaded eg. `load_class_methods=['alloc']`.
     :type load_class_methods: None or List
-    :param load_instance_methods: If this argument is set to `None`, all instance methods will be loaded. You can also specify which instance methods to load, eg. `load_instance_methods=['init']`.
+    :param load_instance_methods: If this argument is omitted or set to `None`, all instance methods will be loaded. You can use it force only instance methods to be loaded, eg. `load_instance_methods=['init']`.
     :type load_instance_methods: None or List
-    :param reset_autoclass: If this argument is set to True, and previously you restricted loading of some methods, when you call autoclass function with this argument for some class, all methods will be loaded again.
+    :param reset_autoclass: If this argument is set to True and the class was previously loaded with a restricted subset of methods, when you call the autoclass function again with this argument for the same class, all the methods will be loaded.
     :type reset_autoclass: None or Boolean
-    :rtype: Return a :class:`ObjClass` that represent the class passed from `name`.
+    :rtype: Return a :class:`ObjClass` that represents the class passed from `name`.
 
     >>> from pyobjus import autoclass
     >>> autoclass('NSString')
@@ -35,19 +35,19 @@ Utility functions
 
 .. function:: selector(objc_method)
 
-    Get the selector for method spcified with objc_method parameter
+    Get the selector for the method specified by the objc_method parameter
 
-    :param objc_method: Name of Objective C method for which we want to get SEL
+    :param objc_method: Name of the Objective C method for which we want to get the SEL.
     :type objc_method: String
-    :rtype: ObjcSelector, which is Python representation for Objective C SEL type
+    :rtype: ObjcSelector, which is a Python representation for the Objective C SEL type.
 
 
 .. function:: dereference(objc_reference[, of_type=None, return_count=None, partition=None])
 
-    Dereference C pointer to get actual values
+    Dereference the C pointer to get the actual values
 
-    :param objc_reference: `ObjcReferenceToType` Python representation of C pointer
-    :param of_type: If function which you call returns value, for example, int, float, etc., in that case pyobjus can figure out type in which to convert. But if you returnes void pointer for eg. then you need to specify type in which you want to convert. Example of this is: `dereference(someObjcReferenceToType, of_type=ObjcInt)`
+    :param objc_reference: `ObjcReferenceToType` Python representation of the C pointer.
+    :param of_type: If the function which you call returns a value, for example, an int, float, etc., pyobjus can determine the type which to convert it to. But if you return a void pointer for eg. then you need to specify the type to which you want to convert it. An example of this is: `dereference(someObjcReferenceToType, of_type=ObjcInt)`
     :param return_count: When you are returning C array, you can/need specify number of returned values with this argument.
     :type return_count: Integer
     :param partition: when you want to dereference multidimentional array, you need to spcify dimentions. Provide list with numbers which denotes dimensions. For `int array[10][10]`, you need to specify `partition=[10, 10]`
