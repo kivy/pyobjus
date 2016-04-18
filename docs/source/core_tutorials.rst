@@ -675,6 +675,24 @@ If you want get the SEL for ``initWithUTF8String:`` you can use::
 
 Other cases are the same for all methods.
 
+Using @protocol
+---------------
+
+Objective C protocols provide what other languages call interfaces. They specify
+a list of methods with should be implemented in order to support that protocol.
+
+Protocols specify the interface which is then usually implemented by a delegate.
+Pyobjus provide us with the protocol decorator to handle this for us::
+
+    @protocol('<protocol_name>')
+
+The list of protocols supported by pyobjus is contained in the
+`pyobjus/protocols.py` file in your pyobjus checkout folder. Of course, many
+libraries define their own protocols, so cannot be included by default. For
+a complete list of protocols available on you system, run the
+`tools/build_protocols.py` file and then rebuild pyobjus (as per the install).
+
+
 Using enum types
 ----------------
 
