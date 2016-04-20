@@ -679,10 +679,10 @@ Using @protocol
 ---------------
 
 Objective C protocols provide what other languages call interfaces. They specify
-a list of methods with should be implemented in order to support that protocol.
+a list of methods which should be implemented in order to support that protocol.
 
-Protocols specify the interface which is then usually implemented by a delegate.
-Pyobjus provides us with the protocol decorator to handle this for us, enabling
+Protocols define the interface which is then usually implemented by a delegate.
+Pyobjus provides us with the protocol decorator to handle this, enabling
 us to use Python objects as delegates::
 
     @protocol('<protocol_name>')
@@ -693,16 +693,18 @@ libraries define their own protocols, so cannot be included by default. For
 a complete list of protocols available on you system, run the
 `tools/build_protocols.py` file and then rebuild pyobjus (as per the install).
 
-So, how do we use this decorator? We add names that correspond to the protocol
-method names, then decorate these functions with the required protocol::
+So, how do we use this decorator? We add functions with names that correspond
+to the protocol method names, then decorate these functions with the required
+protocol::
 
     @protocol('NSURLConnectionDelegate')
     def connection_didFailWithError_(self, connection, error):
 
 Here, we specify that our object method `connection_didFailWithError_` handles
 the `connection:didFailWithError:` delegation  of the `NSURLConnectionDelegate`
-protocol. Pyobjust then redirects this Objective-C event to out method.
+protocol. Pyobjus then redirects this Objective-C messaage to our method.
 
+For a complete example, please see the `examples/delegate.py` file.
 
 Using enum types
 ----------------
