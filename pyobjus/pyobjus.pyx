@@ -918,7 +918,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
             dprint('-- list of available selector for {} --'.format(protocol_name))
             for val in d:
                 dprint('  * {}'.format(val))
-            raise ObjcException('Protocol {} dont have any selector named {}'.format(
+            raise ObjcException('Protocol {} does not have any selector named {}'.format(
                 protocol_name, selector_name))
 
     if protocol_found == 0:
