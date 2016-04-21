@@ -904,8 +904,6 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         dprint('  - found a @protocol {} for {}'.format(
             protocol_name, funcname))
 
-        if protocol_name in delegates:
-            d = delegates[protocol_name]
         delegates[protocol_name] = d = objc_protocol_get_delegates(protocol_name)
         if d is None:
             raise ObjcException('Undeclared protocol {}'.format(protocol_name)) 
