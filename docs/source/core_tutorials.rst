@@ -702,7 +702,7 @@ protocol::
 
 Here, we specify that our object method `connection_didFailWithError_` handles
 the `connection:didFailWithError:` delegation  of the `NSURLConnectionDelegate`
-protocol. Pyobjus then redirects this Objective-C messaage to our method.
+protocol. Pyobjus then redirects this Objective-C message to our method.
 
 For a complete example, please see the `examples/delegate.py` file.
 
