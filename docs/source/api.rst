@@ -257,10 +257,11 @@ Pyobjus Objective C types
 
     Representation of some Objective C exception
 
+    
+.. module:: pyobjus.objc_py_types
+
 Structure types
 ---------------
-
-.. module:: pyobjus.objc_py_types
 
 .. class:: NSRange
 
@@ -288,8 +289,6 @@ Structure types
 
 Enumeration types
 -----------------
-
-.. module:: pyobjus.objc_py_types
 
 .. class:: NSComparisonResult
 
