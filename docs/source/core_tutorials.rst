@@ -687,10 +687,11 @@ us to use Python objects as delegates::
 
     @protocol('<protocol_name>')
 
-The list of protocols supported by pyobjus is contained in the
-`pyobjus/protocols.py` file in your pyobjus checkout folder. Of course, many
-libraries define their own protocols, so cannot be included by default. For
-a complete list of protocols available on you system, run the
+Pyobjus will firstly try to use runtime introspection to determine the protocol
+methods. If this fails, it will revert to the list of protocols contained in
+the `pyobjus/protocols.py` file in your pyobjus checkout folder. Of course,
+many libraries define their own protocols, so cannot be included by default.
+For a complete list of protocols available on you system, run the
 `tools/build_protocols.py` file and then rebuild pyobjus (as per the install).
 
 So, how do we use this decorator? We add functions with names that correspond
