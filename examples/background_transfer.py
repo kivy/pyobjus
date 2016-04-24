@@ -64,14 +64,14 @@ class BackgroundTransfer(object):
     @protocol('NSURLSessionDownloadDelegate')
     def URLSession_downloadTask_didWriteData_totalBytesWritten_totalBytesExpectedToWrite_(self, *args):
         Logger.info(
-            "main.y: Protocol method "
+            "background_transfer.py: Protocol method "
             "URLSession_downloadTask_didWriteData_totalBytesWritten_"
             "totalBytesExpectedToWrite_ with {0}".format(args))
 
     @protocol('NSURLSessionDownloadDelegate')
     def URLSession_downloadTask_didFinishDownloadingToURL_(self, *args):
         Logger.info(
-            "main.py: Protocol method "
+            "background_transfer.py: Protocol method "
             "URLSession_downloadTask_didFinishDownloadingToURL_ "
             "with {0}".format(args))
         if len(args) > 2:
@@ -84,7 +84,7 @@ class BackgroundTransfer(object):
     def URLSession_downloadTask_didResumeAtOffset_expectedTotalBytes_(self,
                                                                       *args):
         Logger.info(
-            "main.py: Protocol method "
+            "background_transfer.py: Protocol method "
             "URLSession_downloadTask_didResumeAtOffset_expectedTotalBytes_"
             " with {0}".format(args))
 
@@ -95,13 +95,16 @@ class BackgroundTransfer(object):
         delegate catches errors preventing the main delegate from functioning.
         """
         Logger.info(
-            "main.py: Protocol method URLSession_task_didCompleteWithError_"
+            "background_transfer.py: Protocol method "
+            "URLSession_task_didCompleteWithError_"
             "with {0}".format(args))
 
         if len(args) > 2:
             ns_err = args[2]
             if ns_err is not None:
-                Logger.info('Error {}'.format(ns_err.description().cString()))
+                Logger.info('background_transfer: Error {}'.format(
+                     ns_err.description().cString()))
 
 if __name__ == '__main__':
     TestApp(bg_transfer=BackgroundTransfer()).run()
+
