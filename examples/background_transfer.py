@@ -61,6 +61,14 @@ class BackgroundTransfer(object):
         self.task = self.session.downloadTaskWithURL_(oc_url)
         self.task.resume()
 
+    def close_session(self):
+        """ Close the session. This is required to prevent memory leaks after
+        all the downloads have completed.
+
+        https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/#//apple_ref/occ/instm/NSURLSession/downloadTaskWithURL:
+        """
+        self.session.finishTasksAndInvalidate()
+
     @protocol('NSURLSessionDownloadDelegate')
     def URLSession_downloadTask_didWriteData_totalBytesWritten_totalBytesExpectedToWrite_(self, *args):
         Logger.info(
@@ -79,6 +87,7 @@ class BackgroundTransfer(object):
             Logger.info(
                 'Downloaded file is {0}.\nYou need to move this before the '
                 'function returns.'.format(ns_url.fileSystemRepresentation))
+        self.close_session()
 
     @protocol('NSURLSessionDownloadDelegate')
     def URLSession_downloadTask_didResumeAtOffset_expectedTotalBytes_(self,
