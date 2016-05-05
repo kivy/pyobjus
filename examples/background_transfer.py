@@ -8,6 +8,8 @@ file.
 
 http://stackoverflow.com/questions/32631184/the-resource-could-not-be-loaded-because-the-app-transport-security-policy-requi
 
+Note that on iOS 9 and above, the 'NSExceptionAllowsInsecureHTTPLoads' key
+also seems to be required and set to true to allow HTTP downloads.
 """
 from pyobjus import autoclass, protocol, objc_str, selector, objc_b
 from pyobjus.dylib_manager import make_dylib, load_dylib
