@@ -78,10 +78,10 @@ Please save this code inside a file with the name ``main.py``. You will need to
 make a directory which will hold your python application code. For example, you
 can do the following::
 
-    mkdir pyobjus-ios
-    mv main.py pyobjus-ios
+    mkdir ~/paint
+    mv main.py ~/paint
 
-So now ``pyobjus-ios`` contains ``main.py`` file which holds your python code.
+So now ``paint`` contains ``main.py`` file which holds your python code.
 
 The example above is borrowed from
 `this tutorial <http://kivy.org/docs/tutorials/firstwidget.html>`_
@@ -95,30 +95,31 @@ to specify the project name and the absolute path to your app.
 
 Execute the following command::
 
-    tools/create-xcode-project.sh paintApp /Users/myName/development/kivy-ios/pyobjus-ios/
+    ./toolchain.py create paintApp ~/paint/
 
-Notice the following. The first parameter which we are passing to the script is the
-name of our app. In this case, the name of our iOS app will be `paintApp`.
-The second parameter is the absolute path to our python app which we want to
+Notice the following. The second parameter which we are passing to the script is
+the name of our app. In this case, the name of our iOS app will be `paintApp`.
+The third parameter is the absolute path to our python app which we want to
 run on iOS.
 
 After executing this command you will get output similar to this::
 
-    -> Create /Users/myName/development/kivy-ios/app-paintapp directory
+    -> Create /Users/myName/kivy-ios/paintApp-ios directory
     -> Copy templates
     -> Customize templates
     -> Done !
 
-    Your project is available at /Users/myName/development/kivy-ios/app-paintapp
+    Your project is available at /Users/myName/kivy-ios/paintapp-ios
 
-    You can now type: open /Users/myName/development/kivy-ios/app-paintapp/paintapp.xcodeproj
+    You can now type: open /Users/myName/kivy-ios/paintapp-ios/paintapp.xcodeproj
 
-So, if you enter the `app-paintapp` directory you will see that there are
-``main.m``, ``bridge.m`` and other resources.
+Note that the name is converted to lower case. If you enter the `paintapp-ios`
+directory you will see that there are ``main.m``, ``bridge.m`` and other
+resources.
 
 You can open this project with xcode as follows::
 
-    open /Users/myName/development/kivy-ios/app-paintapp/paintapp.xcodeproj
+    open /Users/myName/kivy-ios/paintapp-ios/paintapp.xcodeproj
 
 If you have setup your developer account, you only need to click play and the
 app will be deployed on your iOS device.
