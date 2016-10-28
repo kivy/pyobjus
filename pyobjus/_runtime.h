@@ -9,10 +9,14 @@ static void pyobjc_internal_init() {
     static void *foundation = NULL;
     if ( foundation == NULL ) {
         foundation = dlopen(
-        "/Groups/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
+        "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
         if ( foundation == NULL ) {
-            printf("Got dlopen error on Foundation\n");
-            return;
+            foundation = dlopen(
+            "/Groups/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
+            if ( foundation == NULL ) {
+                printf("Got dlopen error on Foundation\n");
+                return;
+            }
         }
     }
 }
