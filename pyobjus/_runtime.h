@@ -11,10 +11,16 @@ static void pyobjc_internal_init() {
         foundation = dlopen(
         "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
         if ( foundation == NULL ) {
+           // Load from the most likely path fails. Log and try alternative
+            char *msg = dlerror();
+            printf("Got dlopen error on Foundation: %s\n", msg);
+
             foundation = dlopen(
             "/Groups/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
             if ( foundation == NULL ) {
-                printf("Got dlopen error on Foundation\n");
+                // 2nd fail
+                msg = dlerror();
+                printf("Got fallback dlopen error on Foundation: %s\n", msg);
                 return;
             }
         }
