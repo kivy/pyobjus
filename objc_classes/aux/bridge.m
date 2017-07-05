@@ -43,6 +43,17 @@
     }
 }
 
+- (void)startDeviceMotion {
+    
+    if (self.motionManager.deviceMotionAvailable) {
+        [self.motionManager startDeviceMotionUpdatesToQueue:queue withHandler:^(CMDeviceMotion *deviceMotion, NSError *error) {
+            self.sp_roll = deviceMotion.attitude.roll;
+            self.sp_pitch = deviceMotion.attitude.pitch;
+            self.sp_yaw = deviceMotion.attitude.yaw;
+        }];
+    }
+}
+
 - (void) stopAccelerometer {
     [self.motionManager stopAccelerometerUpdates];
 }
@@ -53,6 +64,10 @@
 
 - (void) stopMagnetometer {
     [self.motionManager stopMagnetometerUpdates];
+}
+
+- (void) stopDeviceMotion {
+    [self.motionManager stopDeviceMotionUpdates];
 }
 
 - (void) dealloc {
