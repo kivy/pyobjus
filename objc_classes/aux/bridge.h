@@ -18,4 +18,8 @@
 @property (nonatomic) double mg_y;
 @property (nonatomic) double mg_z;
 
+@property (nonatomic) double sp_yaw;
+@property (nonatomic) double sp_pitch;
+@property (nonatomic) double sp_roll;
+
 @end
