@@ -50,6 +50,10 @@
             self.sp_roll = deviceMotion.attitude.roll;
             self.sp_pitch = deviceMotion.attitude.pitch;
             self.sp_yaw = deviceMotion.attitude.yaw;
+
+            self.g_x = deviceMotion.gravity.x;
+            self.g_y = deviceMotion.gravity.y;
+            self.g_z = deviceMotion.gravity.z;
         }];
     }
 }

@@ -22,4 +22,8 @@
 @property (nonatomic) double sp_pitch;
 @property (nonatomic) double sp_roll;
 
+@property (nonatomic) double g_x;
+@property (nonatomic) double g_y;
+@property (nonatomic) double g_z;
+
 @end
