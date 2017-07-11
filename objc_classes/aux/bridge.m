@@ -54,6 +54,18 @@
             self.g_x = deviceMotion.gravity.x;
             self.g_y = deviceMotion.gravity.y;
             self.g_z = deviceMotion.gravity.z;
+
+            self.rotation_rate_x = deviceMotion.rotationRate.x;
+            self.rotation_rate_y = deviceMotion.rotationRate.y;
+            self.rotation_rate_z = deviceMotion.rotationRate.z;
+
+            self.user_acc_x = deviceMotion.userAcceleration.x;
+            self.user_acc_y = deviceMotion.userAcceleration.y;
+            self.user_acc_z = deviceMotion.userAcceleration.z;
+
+            self.mf_x = deviceMotion.magneticField.field.x;
+            self.mf_y = deviceMotion.magneticField.field.y;
+            self.mf_z = deviceMotion.magneticField.field.z;
         }];
     }
 }

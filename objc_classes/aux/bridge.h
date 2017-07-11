@@ -26,4 +26,16 @@
 @property (nonatomic) double g_y;
 @property (nonatomic) double g_z;
 
+@property (nonatomic) double rotation_rate_x;
+@property (nonatomic) double rotation_rate_y;
+@property (nonatomic) double rotation_rate_z;
+
+@property (nonatomic) double user_acc_x;
+@property (nonatomic) double user_acc_y;
+@property (nonatomic) double user_acc_z;
+
+@property (nonatomic) double mf_x;
+@property (nonatomic) double mf_y;
+@property (nonatomic) double mf_z;
+
 @end
