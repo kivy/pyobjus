@@ -62,7 +62,14 @@
             self.user_acc_x = deviceMotion.userAcceleration.x;
             self.user_acc_y = deviceMotion.userAcceleration.y;
             self.user_acc_z = deviceMotion.userAcceleration.z;
+        }];
+    }
+}
 
+- (void)startDeviceMotionWithReferenceFrame {
+
+    if (self.motionManager.deviceMotionAvailable) {
+        [self.motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryCorrectedZVertical toQueue:queue withHandler:^(CMDeviceMotion *deviceMotion, NSError *error) {
             self.mf_x = deviceMotion.magneticField.field.x;
             self.mf_y = deviceMotion.magneticField.field.y;
             self.mf_z = deviceMotion.magneticField.field.z;
