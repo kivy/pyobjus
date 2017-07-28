@@ -2,6 +2,8 @@
 
 @implementation bridge
 
+CMAltimeter *altimeterManager;
+
 - (id) init {
     if(self = [super init]) {
         self.motionManager = [[CMMotionManager alloc] init];
@@ -77,6 +79,17 @@
     }
 }
 
+- (void)startRelativeAltitude {
+    
+    if ([CMAltimeter isRelativeAltitudeAvailable]) {
+        altimeterManager = [[CMAltimeter alloc] init];
+        [altimeterManager startRelativeAltitudeUpdatesToQueue:queue withHandler:^(CMAltitudeData *altitudeData, NSError *error) {
+            self.relative_altitude = altitudeData.relativeAltitude.floatValue;
+            self.pressure = altitudeData.pressure.floatValue;
+        }];
+    }
+}
+
 - (void) stopAccelerometer {
     [self.motionManager stopAccelerometerUpdates];
 }
@@ -91,6 +104,10 @@
 
 - (void) stopDeviceMotion {
     [self.motionManager stopDeviceMotionUpdates];
+}
+
+- (void) stopRelativeAltitude {
+    [altimeterManager stopRelativeAltitudeUpdates];
 }
 
 - (void) dealloc {

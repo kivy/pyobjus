@@ -38,4 +38,7 @@
 @property (nonatomic) double mf_y;
 @property (nonatomic) double mf_z;
 
+@property (nonatomic) double relative_altitude;
+@property (nonatomic) double pressure;
+
 @end
