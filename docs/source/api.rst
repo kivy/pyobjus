@@ -121,7 +121,7 @@ Utility functions
 
     Initialize `NSNumber` with a `NSString` type.
 
-    :param some_float: String parameter
+    :param some_string: String parameter
     :rtype: NSString.stringWithUTF8String: Python representation
 
 
