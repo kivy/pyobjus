@@ -53,14 +53,14 @@ Then we can use the NSAlert object::
 
     from pyobjus import autoclass
 
+    # mimic the constant string operator (@"hello") in objective C
+    from pyobjus import objc_str
+
     # get both nsalert and nsstring class
     NSAlert = autoclass('NSAlert')
     NSString = autoclass('NSString')
-     
-    # shortcut to mimic the @"hello" in objective C
-    ns = lambda x: NSString.alloc().initWithUTF8String_(x)
-     
+
     # create an NSAlert object, and show it.
     alert = NSAlert.alloc().init()
-    alert.setMessageText_(ns('Hello world!'))
+    alert.setMessageText_(objc_str('Hello world!'))
     alert.runModal()
