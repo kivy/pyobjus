@@ -478,6 +478,9 @@ Objective C equivalents are::
     # NSNumber *noNumber = @NO;             // equivalent to [NSNumber numberWithBool:NO]
     objc_b(False)
 
+    # NSString *string = @"some string";
+    objc_str('some string')
+
     # NSArray *array = @[ @"Hello", NSApp, [NSNumber numberWithInt:42] ];
     objc_arr(objc_str('Hello'), objc_str('some str'), objc_i(42))
 
@@ -491,9 +494,6 @@ Objective C equivalents are::
         'date': autoclass('NSDate').date(),
         'processInfo': autoclass('NSProcessInfo').processInfo()
     })
-
-    # NSString *string = @"some string";
-    objc_str('some string')
 
 We have tried to make the build names for these literals clear and intuitive.
 We start with the prefix ``objc_`` followed by the letter/letters which denote
