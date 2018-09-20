@@ -179,7 +179,7 @@ Pyobjus Objective C types
 
 .. class:: ObjcLong
 
-    Objective C ``long`` representation 
+    Objective C ``long`` representation
 
 .. class:: ObjcLongLong
 
@@ -257,7 +257,7 @@ Pyobjus Objective C types
 
     Representation of some Objective C exception
 
-    
+
 .. module:: pyobjus.objc_py_types
 
 Structure types
