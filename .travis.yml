@@ -1,0 +1,65 @@
+sudo: required
+
+matrix:
+    fast_finish: true
+    include:
+        - language: generic
+          env: RUN=unit PY=2 HOMEBREW_NO_AUTO_UPDATE=1
+          os: osx
+
+        - language: generic
+          env: RUN=unit PY=3 HOMEBREW_NO_AUTO_UPDATE=1
+          os: osx
+
+before_install:
+    - echo PATH=$PATH;
+
+    # uninstall old GNUpg, install new one and add Brew
+    # 'Cellar' folder to the path (contains binaries)
+    - brew uninstall gnupg
+    - brew install gnupg2
+    - sudo ln -sv /usr/local/Cellar/gnupg /usr/local/Cellar/gpg || true
+    - sudo ln -sv /usr/local/Cellar/gnupg /usr/local/Cellar/gpg2 || true
+    - export PATH=$PATH:/usr/local/Cellar
+
+    # https://github.com/travis-ci/travis-ci/issues/6307
+    - curl -sSL https://rvm.io/mpapis.asc | gpg --import -
+    - rvm get head
+
+    # use real branch name instead of detached HEAD unless PR
+    - if [ "$TRAVIS_PULL_REQUEST_BRANCH" == "" ]; then
+          git checkout $TRAVIS_BRANCH;
+      fi;
+
+install:
+    # get Py3 because it's not present in any OSX image on Travis
+    - if [ "${PY}" == "3" ]; then
+          curl -O -L https://www.python.org/ftp/python/3.5.4/python-3.5.4rc1-macosx10.6.pkg;
+          sudo installer -package $py3pkg -target /;
+      fi;
+
+    # manual get-pip.py on OSX because TLS1.2+ required
+    # pyfound.blogspot.com/2017/01/time-to-upgrade-your-python-tls-v12.html
+    # and install to virtualenv
+    - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+    - if [ "${PY}" == "3" ]; then
+          sudo python3 get-pip.py;
+      else
+          sudo python get-pip.py;
+      fi;
+
+    - if [ "${PY}" == "3" ]; then
+          pip3 install --user virtualenv;
+          python3 -m virtualenv env;
+      else
+          pip install --user virtualenv;
+          python -m virtualenv env;
+      fi;
+
+    - source env/bin/activate;
+    - pip install --upgrade cython
+    - make test_lib
+
+script:
+    # by default creates extension + runs tests
+    - make
