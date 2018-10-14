@@ -61,5 +61,5 @@ install:
     - make test_lib
 
 script:
-    # by default creates extension + runs tests
     - make
+    - make test
