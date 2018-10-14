@@ -62,4 +62,4 @@ install:
 
 script:
     - make
-    - make test
+    - make tests
