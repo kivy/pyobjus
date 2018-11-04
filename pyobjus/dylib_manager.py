@@ -1,9 +1,12 @@
 import os
 import ctypes
 import pyobjus
-from subprocess import call
-from objc_py_types import enum
-from debug import dprint
+try:
+    from subprocess import call
+except:
+    call = None
+from .objc_py_types import enum
+from .debug import dprint
 
 def load_dylib(path, **kwargs):
     ''' Function for loading dynamic library with ctypes

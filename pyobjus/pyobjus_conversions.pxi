@@ -1,4 +1,4 @@
-from objc_py_types import Factory, NSRect, NSSize, NSPoint
+from .objc_py_types import Factory, NSRect, NSSize, NSPoint
 from libc.stdio cimport printf
 
 factory = Factory()

@@ -45,11 +45,11 @@ include "objc_cy_types.pxi"
 include "pyobjus_types.pxi"
 include "pyobjus_conversions.pxi"
 
-from debug import dprint
+from .debug import dprint
 import ctypes
-import objc_py_types
-from objc_py_types import Factory
-import dylib_manager
+import pyobjus.objc_py_types as objc_py_types
+from .objc_py_types import Factory
+import pyobjus.dylib_manager as dylib_manager
 
 # do the initialization!
 pyobjc_internal_init()

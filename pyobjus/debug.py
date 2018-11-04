@@ -14,7 +14,6 @@ def dprint(*args, **kwargs):
 
     of_type = kwargs.get('of_type', 'd')
 
-    print "[{0}]".format(debug_types[of_type]),
-    for argument in args:
-        print "{0}".format(argument),
-    print ''
+    print("[{}] {}".format(
+        debug_types[of_type],
+        " ".join([repr(arg) for arg in args])))
