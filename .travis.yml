@@ -34,7 +34,8 @@ before_install:
 install:
     # get Py3 because it's not present in any OSX image on Travis
     - if [ "${PY}" == "3" ]; then
-          curl -O -L https://www.python.org/ftp/python/3.5.4/python-3.5.4rc1-macosx10.6.pkg;
+          py3pkg=python-3.5.4rc1-macosx10.6.pkg;
+          curl -O -L https://www.python.org/ftp/python/3.5.4/$py3pkg;
           sudo installer -package $py3pkg -target /;
       fi;
 
@@ -62,4 +63,4 @@ install:
 
 script:
     - make
-    - make tests
+    - NOSE_VERBOSE=3 make tests
