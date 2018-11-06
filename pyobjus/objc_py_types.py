@@ -130,7 +130,7 @@ class Factory(object):
                 type_obj = _type[1:-1].split('=', 1)
                 if type_obj[0] is '?':
                     if not field_name:
-                        # TODO: This is temporary solution. Find more efficient solution for this! 
+                        # TODO: This is temporary solution. Find more efficient solution for this!
                         while True:
                             field_name, letter, perm_n, perms = self._generate_variable_name(letter, perm_n, perms)
                             if field_name not in [x for x, y in field_list]:
@@ -166,8 +166,11 @@ class Factory(object):
         Returns:
             Requested type
         '''
-        if obj_type[0] in globals():
-            return globals()[obj_type[0]]
+        obj_name = obj_type[0]
+        if isinstance(obj_name, bytes):
+            obj_name = obj_name.decode("utf-8")
+        if obj_name in globals():
+            return globals()[obj_name]
         elif obj_type in types.keys():
             return types[obj_type]
         else:

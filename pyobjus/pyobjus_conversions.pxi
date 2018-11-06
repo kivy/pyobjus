@@ -99,26 +99,28 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value
     cdef CGRect *rect_ptr
     cdef CGSize sz
     cdef CGPoint point
+    cdef bytes b_of_type = <bytes>of_type
 
-    if str(of_type) == '_NSRange':
+    dprint("of_type={!r} {!r}".format(str(of_type), of_type))
+    if b_of_type == b'_NSRange':
         if by_value:
             (<CFRange*>val_ptr)[0] = (<CFRange*>py_obj)[0]
         else:
             (<CFRange**>val_ptr)[0] = <CFRange*>py_obj
 
-    elif str(of_type) == 'CGPoint':
+    elif b_of_type == b'CGPoint':
         if by_value:
             (<CGPoint*>val_ptr)[0] = (<CGPoint*>py_obj)[0]
         else:
             (<CGPoint**>val_ptr)[0] = <CGPoint*>py_obj
 
-    elif str(of_type) == 'CGSize':
+    elif b_of_type == b'CGSize':
         if by_value:
             (<CGSize*>val_ptr)[0] = (<CGSize*>py_obj)[0]
         else:
             (<CGSize**>val_ptr)[0] = <CGSize*>py_obj
 
-    elif str(of_type) == 'CGRect':
+    elif b_of_type == b'CGRect':
         IF PLATFORM == 'darwin':
             if by_value:
                 (<CGRect*>val_ptr)[0] = (<CGRect*>py_obj)[0]
@@ -641,7 +643,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
                 (<SEL*>arg_val_ptr)[0] = <SEL>osel.selector
             (<SEL**>val_ptr)[0] = <SEL*>arg_val_ptr
     # TODO: array
-    elif sig[0] == b'[':
+    elif sig.startswith(b'['):
         dprint("==> Array signature for: {0}".format(list(arg)))
         val_ptr = parse_array(sig, arg, size)
 
@@ -652,7 +654,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
     # Return types for union are working (both, returned union is value, or returned union is pointer)
     # NOTE: There are no problems with structs, only unions, reason -> libffi
     # TODO: ADD SUPPORT FOR PASSING UNIONS AS ARGUMENTS BY VALUE
-    elif sig[0] in [b'(', b'{']:
+    elif sig.startswith((b'(', b'{')):
         dprint("==> Structure arg", arg, sig)
         arg_type = sig[1:-1].split(b'=', 1)[0]
         if arg is None:
@@ -669,7 +671,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
                 val_ptr = cast_to_cy_data_type(<id*>arg_val_ptr, size, arg_type, by_value=False)
 
     # method is accepting void pointer (void*)
-    elif sig[0] == b'v':
+    elif sig.startswith(b'v'):
         if isinstance(arg, ctypes.Structure) or isinstance(arg, ctypes.Union):
             (<void**>val_ptr)[0] = <void*><unsigned long long>ctypes.addressof(arg)
         elif isinstance(arg, ObjcReferenceToType):
@@ -703,11 +705,11 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
                 (<void**>val_ptr)[0] = <void*>arg_val_ptr
 
     # TODO: method is accepting bit field
-    elif sig[0] == b'b':
+    elif sig.startswith(b'b'):
         raise ObjcException("Bit fields aren't supported in pyobjus!")
 
     # method is accepting unknown type (^?)
-    elif sig[0] == b'?':
+    elif sig.startswith(b'?'):
         if by_value:
             assert(0)
         else:

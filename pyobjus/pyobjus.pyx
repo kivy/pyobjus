@@ -210,9 +210,9 @@ cdef class ObjcMethod(object):
         if name == "oclass":
             self.name = name.replace(b"oclass", b"class")
 
-        if self.signature_return[0][0] in ['(', '{']:
+        if self.signature_return[0].startswith((b'(', b'{')):
             sig = self.signature_return[0]
-            self.return_type = sig[1:-1].split('=', 1)
+            self.return_type = sig[1:-1].split(b'=', 1)
 
         self.name = self.objc_name
         self.selector = sel_registerName(<bytes>self.name)
@@ -245,7 +245,7 @@ cdef class ObjcMethod(object):
         #self.signature_args = tmp_sig
 
         # resolve f_result_type
-        if self.signature_return[0][0] == b'(':
+        if self.signature_return[0].startswith(b'('):
             self.f_result_type = type_encoding_to_ffitype(
                     self.signature_return[0], str_in_union=True)
         else:
@@ -267,7 +267,7 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in signature_args:
-            if arg[0][0] == b'(':
+            if arg[0].startswith(b'('):
                 raise ObjcException(
                     'Currently passing unions as arguments by '
                     'value is not supported in pyobjus!')

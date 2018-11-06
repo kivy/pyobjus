@@ -540,12 +540,12 @@ cdef class ObjcProperty:
         dprint('Parsing property attributes --> {0}'.format(attrs))
 
         for attr in attrs.split(b','):
-            if attr[0] is b'T':
+            if attr.startswith(b'T'):
                 attr_splt_res = attr.split(b'T')[1]
-                if attr_splt_res[0] is b'@':
+                if attr_splt_res.startswith(b'@'):
                     self.prop_type = attr_splt_res.split(b'@')[1]
-                    self.prop_enc = attr_splt_res[0]
-                elif attr_splt_res[0] is b'^':
+                    self.prop_enc = attr_splt_res[:1]
+                elif attr_splt_res.startswith(b'^'):
                     self.by_value = False
                     self.prop_enc = attr_splt_res
                     self.prop_type = attr_splt_res.split(b'^')[1]
@@ -553,28 +553,28 @@ cdef class ObjcProperty:
                         self.prop_type = self.prop_type[1:-1].split(b'=', 1)
                 else:
                     self.prop_enc = attr_splt_res
-            elif attr[0] is b'V':
+            elif attr.startswith(b'V'):
                 self.prop_name = attr.split(b'V')[1]
-            elif attr is b'R':
+            elif attr == b'R':
                 self.prop_attrs_dict['readonly'] = True
-            elif attr is b'N':
+            elif attr == b'N':
                 self.prop_attrs_dict['nonatomic'] = True
-            elif attr is b'&':
+            elif attr ==  b'&':
                 self.prop_attrs_dict['retain'] = True
-            elif attr is b'C':
+            elif attr == b'C':
                 self.prop_attrs_dict['copy'] = True
-            elif attr is b'D':
+            elif attr == b'D':
                 self.prop_attrs_dict['dynamic'] = True
-            elif attr is b'W':
+            elif attr == b'W':
                 self.prop_attrs_dict['weak'] = True
-            elif attr is b'P':
+            elif attr == b'P':
                 self.prop_attrs_dict['eligibleForGC'] = True
-            elif attr[0] is b'G':
+            elif attr.startswith(b'G'):
                 self.getter_func = attr.split(b'G', 1)[1]
                 self.prop_attrs_dict['customGetter'] = True
-            elif attr[0] is b'S':
+            elif attr.startswith(b'S'):
                 self.setter_func = attr.split(b'S', 1)[1][0:-1]
-                self.setter_func += '_'
+                self.setter_func += b'_'
                 self.prop_attrs_dict['customSetter'] = True
             # TODO: t<encoding>
 

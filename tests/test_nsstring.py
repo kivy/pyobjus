@@ -18,7 +18,7 @@ class NSObject(unittest.TestCase):
     def test_lengthEncoding(self):
         #s = u'\xe9cole'
         s = u"šome_str"
-        # I tested this in native objective c, and methods for this argument and 
+        # I tested this in native objective c, and methods for this argument and
         # encoding are returning correct vales in pyobjus
         self.assertEquals(N(s.encode('utf8')).lengthOfBytesUsingEncoding_(1), 0)
         self.assertEquals(N(s.encode('utf8')).lengthOfBytesUsingEncoding_(4), 9)
