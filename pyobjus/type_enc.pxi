@@ -3,7 +3,7 @@ import re
 def seperate_encoding(sig):
     c = sig[0][0]
 
-    if c in 'rnNoORV':
+    if c in b'rnNoORV':
         sig = (sig[0][1:], sig[1], c)
     else:
         sig = (sig[0], sig[1], None)
@@ -11,7 +11,7 @@ def seperate_encoding(sig):
 
 
 def parse_signature(bytes signature):
-    parts = re.split('(\d+)', signature)[:-1]
+    parts = re.split(b'(\d+)', signature)[:-1]
     signature_return = seperate_encoding(parts[0:2])
     parts = parts[2:]
     signature_args = [seperate_encoding(x) for x in zip(parts[0::2], parts[1::2])]
@@ -19,7 +19,6 @@ def parse_signature(bytes signature):
 
 
 def signature_types_to_list(type_encoding):
-
     type_enc_list = []
     curvy_brace_count = 0
     begin_ind = 0
@@ -27,18 +26,20 @@ def signature_types_to_list(type_encoding):
     started_complex_elem = False
     types_str = ""
 
-    if type_encoding.find('=') == -1:
-        return [ret_type for ret_type in type_encoding]
+    if type_encoding.find(b'=') == -1:
+        return [bytes([ret_type]) for ret_type in type_encoding]
 
     for letter in type_encoding:
-        if letter in ['(', '{']:
+        letter = bytes([letter])
+        dprint("type_encoding={!r} letter={!r}".format(type_encoding, letter))
+        if letter in [b'(', b'{']:
             if types_str:
                 begin_ind = end_ind
                 types_str = ""
             started_complex_elem = True
             curvy_brace_count += 1
             end_ind += 1
-        elif letter in [')', '}']:
+        elif letter in [b')', b'}']:
             curvy_brace_count -= 1
             if curvy_brace_count == 0:
                 end_ind += 1
@@ -58,55 +59,55 @@ def signature_types_to_list(type_encoding):
 
 cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
     dprint("input for type_encoding_to_ffitype(type_encoding={0}, str_in_union={1})".format(type_encoding, str_in_union))
-	
+
     cdef ffi_type** ffi_complex_type_elements
     cdef ffi_type* ffi_complex_type
 
     enc = type_encoding
-    if enc == 'c':
+    if enc == b'c':
         return &ffi_type_uint8
-    elif enc == 'i':
+    elif enc == b'i':
         return &ffi_type_sint32
-    elif enc == 's':
+    elif enc == b's':
         return &ffi_type_sint16
-    elif enc == 'l':
+    elif enc == b'l':
         return &ffi_type_sint32
-    elif enc == 'q':
+    elif enc == b'q':
         return &ffi_type_sint64
-    elif enc == 'C':
+    elif enc == b'C':
         return &ffi_type_uint8
-    elif enc == 'I':
+    elif enc == b'I':
         return &ffi_type_uint32
-    elif enc == 'S':
+    elif enc == b'S':
         return &ffi_type_uint16
-    elif enc == 'L':
+    elif enc == b'L':
         return &ffi_type_uint32
-    elif enc == 'Q':
+    elif enc == b'Q':
         return &ffi_type_uint64
-    elif enc == 'f':
+    elif enc == b'f':
         return &ffi_type_float
-    elif enc == 'd':
+    elif enc == b'd':
         return &ffi_type_double
-    elif enc == 'B':
+    elif enc == b'B':
         return &ffi_type_sint8
-    elif enc == '*':
+    elif enc == b'*':
         return &ffi_type_pointer
-    elif enc == '@':
+    elif enc == b'@':
         return &ffi_type_pointer
-    elif enc == '#':
+    elif enc == b'#':
         return &ffi_type_pointer
-    elif enc == ':':
+    elif enc == b':':
         return &ffi_type_pointer
-    elif enc == 'v':
+    elif enc == b'v':
         return &ffi_type_void
-    elif enc[0] == '^':
+    elif enc.startswith(b'^'):
         return &ffi_type_pointer
     # return type is struct or union
-    elif enc[0] in ['(', '{']:
+    elif enc.startswith((b'(', b'{')):
         # NOTE: Tested with this nested input, and it works!
         #signature_types_to_list('{CGPoint=dd{CGPoint={CGPoint=d{CGPoint=dd}}}{CGSize=dd}dd{CSize=aa}dd}')
         types_list = []
-        obj_type = enc[1:-1].split('=', 1)
+        obj_type = enc[1:-1].split(b'=', 1)
         types_list = signature_types_to_list(obj_type[1])
         dprint("rest list -->", types_list, type='i')
 
@@ -114,17 +115,17 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
         ffi_complex_type = <ffi_type*>malloc(sizeof(ffi_type))
         ffi_complex_type_elements = <ffi_type**>malloc(sizeof(ffi_type)*int(types_count+1))
 
-        if enc[0] == '(' or (str_in_union and enc[0] == '{'):
+        if enc.startswith(b'(') or (str_in_union and enc.startswith(b'{')):
             ffi_complex_type.size = ctypes.sizeof(factory.find_object(obj_type))
         else:
             ffi_complex_type.size = 0
         ffi_complex_type.alignment = 0
         ffi_complex_type.type = FFI_TYPE_STRUCT
         ffi_complex_type.elements = ffi_complex_type_elements
-       
+
         for i in range(types_count):
-            if types_list[i].find('=') != -1:
-                if types_list[i].split('=', 1)[0][0] == '(':
+            if types_list[i].find(b'=') != -1:
+                if types_list[i].split(b'=', 1)[0].startswith(b'('):
                     str_in_union = True
                 ffi_complex_type_elements[i] = type_encoding_to_ffitype(types_list[i], str_in_union=str_in_union)
             else:
@@ -132,17 +133,16 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
 
         ffi_complex_type_elements[types_count] = NULL
         return ffi_complex_type
-    elif enc == 'b':
+    elif enc == b'b':
         raise ObjcException("Bit fields aren't supported in pyobjus!")
 
     # TODO: Check is this solution in all cases?
-    elif enc == '?':
+    elif enc == b'?':
         return &ffi_type_pointer;
 
-    elif enc[0] == '[': #[array type]    An array
+    elif enc.startswith(b'['): #[array type]    An array
         return &ffi_type_pointer
 
-    
+
     raise Exception('Missing encoding for {0!r}'.format(enc))
     #TODO: missing encodings:
-    
