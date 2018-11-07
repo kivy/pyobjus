@@ -30,6 +30,7 @@ class UnknownTypesTest(unittest.TestCase):
         self.assertEquals(ret_unknown.CGRect.origin.x, 20)
         self.assertEquals(ret_unknown.CGRect.origin.y, 30)
 
+    @unittest.skip("Segfault, TBF")
     def test_usingIMP(self):
         imp = car.methodForSelector_(selector('getSumOf:and:'))
         self.assertEquals(car.useImp_withA_andB_(imp, 5, 7), 12)

@@ -127,8 +127,13 @@ def selector(name):
     Returns:
         ObjcSelector instance, which contains SEL pointer
     """
+    cdef bytes c_name
+    if isinstance(name, bytes):
+        c_name = name
+    else:
+        c_name = name.encode("utf8")
     osel = ObjcSelector()
-    osel.selector = sel_registerName(name)
+    osel.selector = sel_registerName(c_name)
     dprint(pr(osel.selector), of_type="i")
     return osel
 
@@ -140,13 +145,16 @@ def _to_unicode_string(retval, **kwargs):
 
 
 RETURN_CONVERSIONS = {
-    (b'__NSCFString', b'UTF8String'): _to_unicode_string
+    (b'NSString', b'UTF8String'): _to_unicode_string,
+    (b'__NSCFString', b'UTF8String'): _to_unicode_string,
+    (b'__NSCFConstantString', b'UTF8String'): _to_unicode_string,
 }
 
 
 def convert_return_value(retval, clsname, methodname):
     key = (clsname, methodname)
     func = RETURN_CONVERSIONS.get(key)
+    dprint("Check for return value conversion: {}".format(key, func))
     if func:
         return func(retval, clsname=clsname, methodname=methodname)
     return retval
@@ -606,7 +614,7 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
 
     return super_cls_methods_dict
 
-cdef get_class_proerties(Class cls):
+cdef get_class_properties(Class cls):
     ''' Function for getting a list of properties of some objective c class
 
     Args:
@@ -688,7 +696,7 @@ def autoclass(py_cls_name, **kwargs):
 
     properties_dict = {}
     if copy_properties:
-        properties_dict = get_class_proerties(cls)
+        properties_dict = get_class_properties(cls)
         global tmp_properties_keys
         tmp_properties_keys[:] = properties_dict.keys()
 
