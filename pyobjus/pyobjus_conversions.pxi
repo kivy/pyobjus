@@ -676,7 +676,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
                 val_ptr = cast_to_cy_data_type(<id*>arg_val_ptr, size, arg_type, by_value=False)
 
     # method is accepting void pointer (void*)
-    elif sig.startswith(b'v'):
+    # XXX is the signature changed or never works?
+    elif sig.startswith(b'v') or sig == b'^v':
         if isinstance(arg, ctypes.Structure) or isinstance(arg, ctypes.Union):
             (<void**>val_ptr)[0] = <void*><unsigned long long>ctypes.addressof(arg)
         elif isinstance(arg, ObjcReferenceToType):

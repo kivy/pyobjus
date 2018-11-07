@@ -1,7 +1,7 @@
 import re
 
 def seperate_encoding(sig):
-    c = sig[0][0]
+    c = sig[0][:1]
 
     if c in b'rnNoORV':
         sig = (sig[0][1:], sig[1], c)
@@ -31,7 +31,7 @@ def signature_types_to_list(type_encoding):
 
     for letter in type_encoding:
         letter = bytes([letter])
-        dprint("type_encoding={!r} letter={!r}".format(type_encoding, letter))
+        # dprint("type_encoding={!r} letter={!r}".format(type_encoding, letter))
         if letter in [b'(', b'{']:
             if types_str:
                 begin_ind = end_ind
@@ -58,7 +58,7 @@ def signature_types_to_list(type_encoding):
     return type_enc_list
 
 cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
-    dprint("input for type_encoding_to_ffitype(type_encoding={0}, str_in_union={1})".format(type_encoding, str_in_union))
+    dprint("input for type_encoding_to_ffitype(type_encoding={}, str_in_union={})".format(type_encoding, str_in_union))
 
     cdef ffi_type** ffi_complex_type_elements
     cdef ffi_type* ffi_complex_type
