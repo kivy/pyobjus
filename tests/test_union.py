@@ -18,7 +18,6 @@ class Union(unittest.TestCase):
         self.assertEqual(union.rect.origin.x, 10)
         self.assertEqual(union.rect.origin.y, 30)
 
-    @unittest.skip("segfault")
     def test_returning_values(self):
         car = Car.alloc().init()
         union_ptr = car.makeUnionPtr()
@@ -30,7 +29,6 @@ class Union(unittest.TestCase):
         self.assertEqual(union.rect.origin.x, 20)
         self.assertEqual(union.rect.origin.y, 40)
 
-    @unittest.skip("segfault")
     def test_passing_values(self):
         car = Car.alloc().init()
         union_arg = opy.test_un_()
