@@ -133,6 +133,25 @@ def selector(name):
     return osel
 
 
+def _to_unicode_string(retval, **kwargs):
+    if retval is None:
+        return None
+    return retval.decode("utf8")
+
+
+RETURN_CONVERSIONS = {
+    (b'__NSCFString', b'UTF8String'): _to_unicode_string
+}
+
+
+def convert_return_value(retval, clsname, methodname):
+    key = (clsname, methodname)
+    func = RETURN_CONVERSIONS.get(key)
+    if func:
+        return func(retval, clsname=clsname, methodname=methodname)
+    return retval
+
+
 cdef class ObjcMethod(object):
     cdef bytes name
     cdef bytes signature
@@ -447,6 +466,9 @@ cdef class ObjcMethod(object):
             if ret_id == self.o_instance:
                 return self.p_class
 
+        dprint("ret_py_val res_ptr={!r} sig={!r} members={!r} main_cls_name={!r}".format(
+            pr(res_ptr), sig, kwargs.get('members'), self.main_cls_name
+        ))
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size,
                 members=kwargs.get('members'), objc_prop=False,
                 main_cls_name=self.main_cls_name)
@@ -461,7 +483,8 @@ cdef class ObjcMethod(object):
             free(f_args[index + 2])
         free(f_args)
 
-        return ret_py_val
+        return convert_return_value(
+            ret_py_val, self.main_cls_name, self.name)
 
 registers = []
 tmp_properties_keys = []

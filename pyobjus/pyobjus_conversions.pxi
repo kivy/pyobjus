@@ -608,7 +608,10 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
 
     # method is accepting character string (char *)
     elif sig == b'*':
-        b_arg = <bytes>arg.encode("utf8")
+        if isinstance(arg, bytes):
+            b_arg = arg
+        else:
+            b_arg = <bytes>arg.encode("utf8")
         (<char **>val_ptr)[0] = <char *>b_arg
     # method is accepting an object
     elif sig == b'@':
