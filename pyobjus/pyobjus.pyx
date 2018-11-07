@@ -77,6 +77,7 @@ class MetaObjcClass(type):
         meta.resolve_class(classDict)
         if PY_MAJOR_VERSION == 2:
             classname = classname.encode("utf-8")
+        # dprint("MetaObjcClass", meta, classname, bases, classDict)
         tp = type.__new__(meta, classname, bases, classDict)
 
         if classDict['__objcclass__'] not in oclass_register:
@@ -633,7 +634,7 @@ cdef get_class_properties(Class cls):
         prop_attrs = property_getAttributes(properties[i])
         name = property_getName(properties[i])
         ivar = class_getInstanceVariable(cls, <char*>name)
-        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name)
+        props_dict[name.decode("utf8")] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name)
     return props_dict
 
 def check_copy_properties(cls_name):
@@ -682,6 +683,7 @@ def autoclass(py_cls_name, **kwargs):
 
     # Resolving does user want to copy properties of class, or it doesn't
     # TODO:  This need to be tested more!
+    dprint("autoclass: {}".format(cls_name))
     if cls_name in oclass_register.keys():
         copy_properties = check_copy_properties(cls_name)
         if copy_properties is None:
@@ -691,6 +693,7 @@ def autoclass(py_cls_name, **kwargs):
     else:
         copy_properties = kwargs.get('copy_properties', True)
 
+    dprint("autoclass: copy_properties={}".format(copy_properties))
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
 

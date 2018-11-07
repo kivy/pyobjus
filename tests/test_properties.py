@@ -19,8 +19,8 @@ class ObjcPropertyTest(unittest.TestCase):
         car.propDouble = 3456.2345
         self.assertEqual(car.propDouble, 3456.2345)
 
-        car.prop_double_ptr = 333.444
-        self.assertEqual(dereference(car.prop_double_ptr), 333.444)
+        # car.prop_double_ptr = 333.444
+        # self.assertEqual(dereference(car.prop_double_ptr), 333.444)
 
         car.propNSString = autoclass('NSString').stringWithUTF8String_('string for test')
         self.assertEqual(car.propNSString.UTF8String(), 'string for test')
@@ -40,8 +40,8 @@ class ObjcPropertyTest(unittest.TestCase):
         self.assertEqual(car.propIntCst, 5678)
 
         # this is int*
-        car.propCstInt = 3456
-        self.assertEqual(dereference(car.propCstInt), 3456)
+        # car.propCstInt = 3456
+        # self.assertEqual(dereference(car.propCstInt), 3456)
 
     def test_readonly_properties(self):
         self.assertRaises(Exception, car.propIntRO)

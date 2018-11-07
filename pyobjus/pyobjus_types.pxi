@@ -616,6 +616,8 @@ cdef class ObjcClassInstance:
         return <unsigned long><void *>self.o_instance
 
     def __getattribute__(self, name):
+        if isinstance(name, bytes):
+            name = name.decode("utf8")
         if isinstance(object.__getattribute__(self, name), ObjcProperty):
             property = object.__getattribute__(self, name)
             # if we have custom getter for property, call custom getter
@@ -630,7 +632,6 @@ cdef class ObjcClassInstance:
         return string[0].upper() + string[1:]
 
     def __setattr__(self, name, value):
-        print('__setattr__', name, value)
         if isinstance(object.__getattribute__(self, name), ObjcProperty):
             property = object.__getattribute__(self, name)
 

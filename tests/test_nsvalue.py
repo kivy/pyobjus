@@ -15,7 +15,7 @@ class NSString(unittest.TestCase):
         ret_point = value_point.pointValue()
         self.assertEqual(ret_point.x, 10)
         self.assertEqual(ret_point.y, 20)
-        self.assertNotEquals(ret_point.x, 100)
+        self.assertNotEqual(ret_point.x, 100)
 
     def test_valueWithSize(self):
         size = opy.NSSize(320, 480)
