@@ -13,7 +13,7 @@ class NSObject(unittest.TestCase):
 
     def test_hash(self):
         a = NSObject.alloc().init()
-        self.assertIsInstance(a.hash, long)
+        self.assertIsInstance(a.hash(), int)
 
     def test_isequal(self):
         a = NSObject.alloc().init()
@@ -32,11 +32,10 @@ class NSObject(unittest.TestCase):
 
     def test_debugDescription(self):
         a = NSObject.alloc()
-        text = a.debugDescription
-        text = a.description
+        text = a.description()
         self.assertIsNotNone(text)
         self.assertIsNotNone(text.cString())
-        self.assertTrue(text.cString().startswith('<NSObject:'))
+        self.assertTrue(text.cString().startswith(b'<NSObject:'))
 
     def test_isproxy(self):
         self.assertFalse(NSObject.isProxy())

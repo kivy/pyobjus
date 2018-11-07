@@ -376,67 +376,67 @@ cdef class ObjcClassStorage:
 
 
 cdef class ObjcChar:
-    enc = 'c'
+    enc = b'c'
 
 
 cdef class ObjcInt:
-    enc = 'i'
+    enc = b'i'
 
 
 cdef class ObjcShort:
-    enc = 's'
+    enc = b's'
 
 
 cdef class ObjcLong:
-    enc = 'l'
+    enc = b'l'
 
 
 cdef class ObjcLongLong:
-    enc = 'q'
+    enc = b'q'
 
 
 cdef class ObjcUChar:
-    enc = 'C'
+    enc = b'C'
 
 
 cdef class ObjcUInt:
-    enc = 'I'
+    enc = b'I'
 
 
 cdef class ObjcUShort:
-    enc = 'S'
+    enc = b'S'
 
 
 cdef class ObjcULong:
-    enc = 'L'
+    enc = b'L'
 
 
 cdef class ObjcULongLong:
-    enc = 'Q'
+    enc = b'Q'
 
 
 cdef class ObjcFloat:
-    enc = 'f'
+    enc = b'f'
 
 
 cdef class ObjcDouble:
-    enc = 'd'
+    enc = b'd'
 
 
 cdef class ObjcBool:
-    enc = 'B'
+    enc = b'B'
 
 
 cdef class ObjcBOOL:
-    enc = 'c'
+    enc = b'c'
 
 
 cdef class ObjcVoid:
-    enc = 'v'
+    enc = b'v'
 
 
 cdef class ObjcString:
-    enc = '*'
+    enc = b'*'
 
 
 cdef class ObjcSelector(object):

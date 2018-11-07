@@ -24,7 +24,7 @@ def signature_types_to_list(type_encoding):
     begin_ind = 0
     end_ind = 0
     started_complex_elem = False
-    types_str = ""
+    types_str = b""
 
     if type_encoding.find(b'=') == -1:
         return [bytes([ret_type]) for ret_type in type_encoding]
