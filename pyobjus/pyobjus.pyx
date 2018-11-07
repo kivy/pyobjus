@@ -254,23 +254,7 @@ cdef class ObjcMethod(object):
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
-
-        ## signature tuple compression for carray
-        # FIXME: might be broken, need to be tested again.
-        tmp_sig = []
-        arr_sig = b''
-
-        for item in signature_args:
-            if item[0].startswith(b'['):
-                arr_sig += item[0] + item[1]
-            elif item[0].endswith(b']'):
-                arr_sig += item[0]
-                tmp_sig.append((arr_sig, item[1], item[2]))
-            else:
-                tmp_sig.append(item)
-        dprint('pre-zip signature: {}'.format(signature_args))
-        dprint('array signature zip: {}'.format(tmp_sig))
-        #self.signature_args = tmp_sig
+        dprint('signature: {}'.format(signature_args))
 
         # resolve f_result_type
         if self.signature_return[0].startswith(b'('):
@@ -363,17 +347,12 @@ cdef class ObjcMethod(object):
         dprint(' - selector is', pr(self.selector))
 
         cdef ObjcClassInstance ocl
-        carray = False
 
         # populate the rest of f_args based on method signature
         signature_args = self.signature_args[:]
         for index, arg in enumerate(args):
 
             dprint("==", index, arg)
-
-            if arg == CArrayCount:
-                arg = 0
-                carray = True
 
             # automatically expand the signature args based on the last
             # signature argument, to cover variables arguments (va_args)
@@ -386,14 +365,14 @@ cdef class ObjcMethod(object):
             arg_size = type_encoding_to_ffitype(sig).size
 
             # we already know the ffitype/size being used
-            dprint("index {}: allocating {} bytes for arg: {!r}".format(
-                    index, arg_size, arg))
+            dprint("index {}: allocating {} bytes for arg {!r} with sig {}".format(
+                    index, arg_size, arg, sig))
 
             # cast the argument type based on method sig and store at val_ptr
             by_value = True
-            if sig[0] == b'^':
+            if sig.startswith(b'^'):
                 by_value = False
-                sig = sig.split(b'^')[1]
+                sig = sig[1:]
 
             dprint('fargs[{}] = {}, {!r}'.format(index + 2, sig, arg))
             f_args[index + 2] = convert_py_arg_to_cy(
@@ -412,7 +391,7 @@ cdef class ObjcMethod(object):
         if res_ptr == NULL:
             raise MemoryError('Unable to allocate res_ptr')
 
-        if self.signature_return[0][0] not in [b'(', b'{']:
+        if not self.signature_return[0].startswith((b'(', b'{')):
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
 
         else:
@@ -438,7 +417,7 @@ cdef class ObjcMethod(object):
                 size_ret = ctypes.sizeof(obj_ret)
 
                 stret = False
-                if self.signature_return[0][0] in [b'{', b'('] and size_ret > 16:
+                if self.signature_return[0].startswith((b'{', b'(')) and size_ret > 16:
                     stret = True
 
                 if stret:
@@ -481,11 +460,6 @@ cdef class ObjcMethod(object):
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size,
                 members=kwargs.get('members'), objc_prop=False,
                 main_cls_name=self.main_cls_name)
-
-        if type(ret_py_val) == ObjcReferenceToType and carray == True:
-            f_index = len(signature_args) - 1
-            mm = ctypes.cast((<unsigned long *>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
-            ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
 
         # free f_args
         for index, arg in enumerate(args):

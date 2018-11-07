@@ -4,6 +4,7 @@ else:
     from .objc_py_types import Factory, NSRect, NSSize, NSPoint
 from libc.stdio cimport printf
 from cpython.ref cimport Py_INCREF, Py_DECREF
+import ctypes
 
 factory = Factory()
 ctypes_struct_cache = []
@@ -27,6 +28,7 @@ def dereference(py_ptr, **kwargs):
     Args:
         obj_to_cast: Python object which will be casted into some other type
         type: type in which object will be casted
+        return_count: if it's a pointer with multiple values, indicate the size of the array
 
     Returns:
         Casted Python object
@@ -56,7 +58,10 @@ def dereference(py_ptr, **kwargs):
         elif issubclass(of_type, CArray) and "return_count" in kwargs:
             dprint("Returning CArray from c_addr, size={0}, type={1}".format(kwargs['return_count'], py_ptr.of_type))
             dprint("{}".format(str(py_ptr.of_type)))
-            return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, kwargs['return_count'])
+            return_count = kwargs["return_count"]
+            if isinstance(return_count, ctypes._SimpleCData):
+                return_count = return_count.value
+            return CArray().get_from_ptr(py_ptr.arg_ref, py_ptr.of_type, return_count)
 
         elif issubclass(of_type, CArray) and "partition" in kwargs:
             partitions = kwargs["partition"]
@@ -287,7 +292,7 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
             c_addr = <unsigned long long>f_result
         else:
             c_addr = <unsigned long long>f_result[0]
-        return ObjcReferenceToType(c_addr, sig.split(b'^', 1)[1], size)
+        return ObjcReferenceToType(c_addr, sig[1:], size)
 
     # return type --> unknown type
     elif sig == b'?':
@@ -325,105 +330,104 @@ def remove_dimensions(array):
 
 
 cdef void *parse_array(sig, arg, size, multidimension=False):
-
     cdef void *val_ptr = malloc(size)
-
     sig = sig[1:len(sig) - 1]
-    sig_split = re.split('(\d+)', sig)
+    sig_split = re.split(b'(\d+)', sig)
     array_size = int(sig_split[1])
     array_type = sig_split[2]
-    dprint(" ..[+] parse_array({}, {}, {})".format(sig, arg, size))
+    dprint(" ..[+] parse_array(array_type={}, array_size={}, {}, {})".format(
+      array_type, array_size, arg, size))
 
     if array_size != len(arg) and not multidimension:
         dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
             array_size, len(arg)))
         raise TypeError()
 
-    if array_type[0] == "i":
+    elif array_type == b"i":
         dprint("  [+] ...array is integer!")
         (<int **>val_ptr)[0] = CArray(arg).as_int()
 
-    if array_type[0] == "c":
+    elif array_type == b"c":
         dprint("  [+] ...array is char!")
         (<char **>val_ptr)[0] = CArray(arg).as_char()
 
-    if array_type[0] == "s":
+    elif array_type == b"s":
         dprint("  [+] ...array is short")
         (<short **>val_ptr)[0] = CArray(arg).as_short()
 
-    if array_type[0] == "l":
+    elif array_type == b"l":
         dprint("  [+] ...array is long")
         (<long **>val_ptr)[0] = CArray(arg).as_long()
 
-    if array_type[0] == "q":
+    elif array_type == b"q":
         dprint("  [+] ...array is long long")
         (<long long**>val_ptr)[0] = CArray(arg).as_longlong()
 
-    if array_type[0] == "f":
+    elif array_type == b"f":
         dprint("  [+] ...array is float")
         (<float**>val_ptr)[0] = CArray(arg).as_float()
 
-    if array_type[0] == "d":
+    elif array_type == b"d":
         dprint("  [+] ...array is double")
         (<double**>val_ptr)[0] = CArray(arg).as_double()
 
-    if array_type[0] == "I":
+    elif array_type == b"I":
         dprint("  [+] ...array is unsigned int")
         (<unsigned int**>val_ptr)[0] = CArray(arg).as_uint()
 
-    if array_type[0] == "S":
+    elif array_type == b"S":
         dprint("  [+] ...array is unsigned short")
         (<unsigned short**>val_ptr)[0] = CArray(arg).as_ushort()
 
-    if array_type[0] == "L":
+    elif array_type == b"L":
         dprint("  [+] ...array is unsigned long")
         (<unsigned long**>val_ptr)[0] = CArray(arg).as_ulong()
 
-    if array_type[0] == "Q":
+    elif array_type == b"Q":
         dprint("  [+] ...array is unsigned long long")
         (<unsigned long long**>val_ptr)[0] = CArray(arg).as_ulonglong()
 
-    if array_type[0] == "C":
+    elif array_type == b"C":
         dprint("  [+] ...array is unsigned char")
         (<unsigned char**>val_ptr)[0] = CArray(arg).as_uchar()
 
-    if array_type[0] == "B":
+    elif array_type == b"B":
         dprint("  [+] ...array is bool")
         (<bool**>val_ptr)[0] = CArray(arg).as_bool()
 
-    if array_type[0] == "*":
+    elif array_type == b"*":
         dprint("  [+] ...array is char*")
         (<char***>val_ptr)[0] = CArray(arg).as_char_ptr()
 
-    if array_type[0] == "@":
+    elif array_type == b"@":
         dprint("  [+] ...array is object(@)")
         (<id**>val_ptr)[0] = CArray(arg).as_object_array()
 
-    if array_type[0] == "#":
+    elif array_type == b"#":
         dprint("  [+] ...array is class(#)")
         (<Class**>val_ptr)[0] = CArray(arg).as_class_array()
 
-    if array_type[0] == ":":
+    elif array_type == b":":
         dprint("  [+] ...array is sel(:)")
         (<SEL**>val_ptr)[0] = CArray(arg).as_sel_array()
 
-    if array_type[0] == "[":
+    elif array_type.startswith(b"["):
         dprint("  [+] ...array is array({})".format(sig))
-        parse_position = sig.find("[")
+        parse_position = sig.find(b"[")
         depth = int(sig[0:parse_position])
         sig = sig[parse_position:]
         dprint("Entering recursion for signature {}".format(sig))
         return parse_array(sig, remove_dimensions(arg), size, multidimension=True)
 
-    if array_type[0] in ["{", "("]:
-        arg_type = array_type[1:-1].split('=', 1)
+    elif array_type.startswith((b"{", b"(")):
+        arg_type = array_type[1:-1].split(b'=', 1)
         dprint("  [+] ...array is struct: {}".format(arg_type))
         (<id**>val_ptr)[0] = CArray(arg).as_struct_array(size, arg_type)
-    if array_type[0] == "b":
+    elif array_type == b"b":
         pass
-    if array_type[0] == "^":
+    elif array_type == b"^":
         pass
-    if array_type[0] == "?":
+    elif array_type == b"?":
         pass
 
     return val_ptr
@@ -487,6 +491,10 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
     else:
         if type(arg) is ObjcReferenceToType:
             arg_val_ptr = <unsigned long long*><unsigned long long>arg.arg_ref
+            objc_ref = True
+        elif isinstance(arg, ctypes._SimpleCData):
+            arg_val_ptr = <unsigned long long*><unsigned long long>(
+                ctypes.addressof(arg))
             objc_ref = True
         elif not isinstance(arg, ctypes.Structure):
             arg_val_ptr = malloc(size)
@@ -677,7 +685,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
 
     # method is accepting void pointer (void*)
     # XXX is the signature changed or never works?
-    elif sig.startswith(b'v') or sig == b'^v':
+    elif sig == b'v':
         if isinstance(arg, ctypes.Structure) or isinstance(arg, ctypes.Union):
             (<void**>val_ptr)[0] = <void*><unsigned long long>ctypes.addressof(arg)
         elif isinstance(arg, ObjcReferenceToType):
@@ -726,8 +734,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
         (<int*>val_ptr)[0] = 0
 
     # TODO: Find best time to dealloc memory used by this pointer
-    if arg_val_ptr != NULL and del_arg_val_ptr:
-        free(arg_val_ptr)
-        arg_val_ptr = NULL
+    # if arg_val_ptr != NULL and del_arg_val_ptr:
+    #     free(arg_val_ptr)
+    #     arg_val_ptr = NULL
 
     return val_ptr

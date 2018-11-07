@@ -15,6 +15,21 @@ def parse_signature(bytes signature):
     signature_return = seperate_encoding(parts[0:2])
     parts = parts[2:]
     signature_args = [seperate_encoding(x) for x in zip(parts[0::2], parts[1::2])]
+
+    # reassembly for array
+    if b'[' in signature:
+        tmp_sig = []
+        arr_sig = b''
+        for item in signature_args:
+            if item[0].startswith(b'['):
+                arr_sig += item[0] + item[1]
+            elif item[0].endswith(b']'):
+                arr_sig += item[0]
+                tmp_sig.append((arr_sig, item[1], item[2]))
+            else:
+                tmp_sig.append(item)
+        signature_args = tmp_sig
+
     return signature_return, signature_args
 
 

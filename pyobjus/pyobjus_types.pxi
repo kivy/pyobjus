@@ -22,63 +22,62 @@ cdef class CArray:
         else:
             dprint("CArray(arr=None)")
 
-
     def fix_args(self, arr):
         if type(arr) == list:
             return arr
         else:
             return list(arr)
 
-
     def get_from_ptr(self, unsigned long long ptr, char *of_type, unsigned long long arr_size):
-        dprint("CArray().get_from_ptr({0}, {1}, {2})".format(ptr, str(of_type), arr_size))
+        cdef bytes b_of_type = of_type
+        dprint("CArray().get_from_ptr({}, {}, {!r})".format(ptr, b_of_type, arr_size))
         ret = list()
-        if str(of_type) == "i":  # int
+        if b_of_type == b"i":  # int
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_int))
-        elif str(of_type) == "c":  # char
+        elif b_of_type == b"c":  # char
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char))  # or c_wchar
-        elif str(of_type) == "s":  # short
+        elif b_of_type == b"s":  # short
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_short))
-        if str(of_type) == "l":  # long
+        elif b_of_type == b"l":  # long
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_long))
-        if str(of_type) == "q":  # long long
+        elif b_of_type == b"q":  # long long
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_longlong))
-        if str(of_type) == "f":  # float
+        elif b_of_type == b"f":  # float
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_float))
             ## Fix test for edge case of rounding decimal
             #for i in xrange(arr_size):
             #    #arr_cast[i] = math.ceil(float(arr_cast[i]) * 100) / 100.0
             #    dprint("{}".format(float(arr_cast[i])))
             #    dprint("{}".format(math.ceil(float(arr_cast[i]) * 100) / 100.0))
-        if str(of_type) == "d":  # double
+        elif b_of_type == b"d":  # double
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_double))
-        if str(of_type) == "I":  # uint
+        elif b_of_type == b"I":  # uint
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_uint))
-        if str(of_type) == "S":  # ushort
+        elif b_of_type == b"S":  # ushort
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ushort))
-        if str(of_type) == "L":  # ulong
+        elif b_of_type == b"L":  # ulong
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulong))
-        if str(of_type) == "Q":  # ulonglong
+        elif b_of_type == b"Q":  # ulonglong
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulonglong))
-        if str(of_type) == "C":  # ubyte (uchar)
+        elif b_of_type == b"C":  # ubyte (uchar)
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ubyte))
-        if str(of_type) == "B":  # bool
+        elif b_of_type == b"B":  # bool
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_bool))
-        if str(of_type) == "v":  # void
+        elif b_of_type == b"v":  # void
             pass
-        if str(of_type) == "*":  # (char*)
+        elif b_of_type == b"*":  # (char*)
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char_p))
-        if str(of_type) == "@":  # an object
+        elif b_of_type == b"@":  # an object
             return self.get_object_list(ptr, arr_size)
-        if str(of_type) == "#":  # class
+        elif b_of_type == b"#":  # class
             return self.get_class_list(ptr, arr_size)
-        if str(of_type) == ":":
+        elif b_of_type == b":":
             return self.get_sel_list(ptr, arr_size)
-        if str(of_type)[0] in ["(", "{"]:
-            arg_type = str(of_type)[1:-1].split('=', 1)
+        elif b_of_type.startswith((b"(", b"{")):
+            arg_type = b_of_type[1:-1].split(b'=', 1)
             return self.get_struct_list(ptr, arr_size, arg_type)
 
-        for i in xrange(arr_size):
+        for i in range(arr_size):
             ret.append(arr_cast[i])
 
         return ret
@@ -548,7 +547,7 @@ cdef class ObjcProperty:
                 elif attr_splt_res.startswith(b'^'):
                     self.by_value = False
                     self.prop_enc = attr_splt_res
-                    self.prop_type = attr_splt_res.split(b'^')[1]
+                    self.prop_type = attr_splt_res[1:]
                     if self.prop_type.find(b'=') is not -1:
                         self.prop_type = self.prop_type[1:-1].split(b'=', 1)
                 else:
@@ -717,6 +716,7 @@ cdef class ObjcReferenceToType(object):
         self.reference_return_values = list()
 
     def add_reference_return_value(self, value, of_type):
+        dprint("add_reference_return_value", value, of_type)
         if issubclass(of_type, CArrayCount):
             value = CArrayCount(value)
 
