@@ -722,6 +722,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
             (<void**>val_ptr)[0] = arg_val_ptr
 
     else:
+        dprint("WARNING: Unknown signature component, passing nil")
         (<int*>val_ptr)[0] = 0
 
     # TODO: Find best time to dealloc memory used by this pointer
