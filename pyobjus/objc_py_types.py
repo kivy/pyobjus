@@ -126,9 +126,9 @@ class Factory(object):
             if members_cpy is not None and len(members_cpy) > self.field_name_ind:
                 field_name = members_keys[self.field_name_ind]
 
-            if _type.find('=') is not -1:
+            if _type.find(b'=') >= 0:
                 type_obj = _type[1:-1].split('=', 1)
-                if type_obj[0] is '?':
+                if type_obj[0] == b'?':
                     if not field_name:
                         # TODO: This is temporary solution. Find more efficient solution for this!
                         while True:
@@ -171,12 +171,14 @@ class Factory(object):
             obj_name = obj_name.decode("utf-8")
         if obj_name in globals():
             return globals()[obj_name]
-        elif obj_type in types.keys():
-            return types[obj_type]
-        else:
-            #if len(cached_unknown_type):
-            #    return cached_unknown_type[0]
-            return self.make_type(obj_type, members=members)
+        try:
+            if obj_type in types.keys():
+                return types[obj_type]
+        except TypeError:
+            pass
+        #if len(cached_unknown_type):
+        #    return cached_unknown_type[0]
+        return self.make_type(obj_type, members=members)
 
     def empty_cache(self):
         pass
