@@ -705,13 +705,13 @@ cdef class ObjcReferenceToType(object):
     '''
 
     cdef public unsigned long long arg_ref
-    cdef public char *of_type
+    cdef public bytes of_type
     cdef public size_t size
     cdef public list reference_return_values
 
     def __cinit__(self, unsigned long long arg, char *_type, size_t _size):
         self.arg_ref = arg
-        self.of_type = _type
+        self.of_type = <bytes>_type
         self.size = _size
         self.reference_return_values = list()
 
