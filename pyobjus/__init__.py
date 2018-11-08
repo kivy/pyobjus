@@ -1,1 +1,1 @@
-from pyobjus import *
+from .pyobjus import *

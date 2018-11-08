@@ -1,5 +1,8 @@
 import unittest
 from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass
+import sys
+
+PY2 = sys.version_info.major == 2
 
 NSObject = None
 NSString = None
@@ -13,7 +16,10 @@ class NSObject(unittest.TestCase):
 
     def test_hash(self):
         a = NSObject.alloc().init()
-        self.assertIsInstance(a.hash, long)
+        if PY2:
+            self.assertIsInstance(a.hash, long)
+        else:
+            self.assertIsInstance(a.hash, int)
 
     def test_isequal(self):
         a = NSObject.alloc().init()
@@ -32,11 +38,10 @@ class NSObject(unittest.TestCase):
 
     def test_debugDescription(self):
         a = NSObject.alloc()
-        text = a.debugDescription
         text = a.description
         self.assertIsNotNone(text)
         self.assertIsNotNone(text.cString())
-        self.assertTrue(text.cString().startswith('<NSObject:'))
+        self.assertTrue(text.cString().startswith(b'<NSObject:'))
 
     def test_isproxy(self):
         self.assertFalse(NSObject.isProxy())

@@ -16,10 +16,10 @@ class DereferenceTest(unittest.TestCase):
     def test_dereference_basic(self):
         rng_ptr = car.makeRangePtr()
         rng = dereference(rng_ptr)
-        self.assertEquals(rng.location, 567)
-        self.assertEquals(rng.length, 123)
+        self.assertEqual(rng.location, 567)
+        self.assertEqual(rng.length, 123)
 
     def test_dereference_with_type(self):
         int_ptr = car.makeIntVoidPtr()
         int_val = dereference(int_ptr, of_type=ObjcInt)
-        self.assertEquals(int_val, 12345)
+        self.assertEqual(int_val, 12345)

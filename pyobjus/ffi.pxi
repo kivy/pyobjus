@@ -23,7 +23,6 @@ cdef extern from "ffi/ffi.h":
         unsigned short alignment
         unsigned short type
         ffi_type **elements
-    ctypedef ffi_type ffi_type
 
     cdef ffi_type ffi_type_void
     cdef ffi_type ffi_type_uint8

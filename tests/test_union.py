@@ -15,19 +15,19 @@ class Union(unittest.TestCase):
         car = Car.alloc().init()
         union_ptr = car.makeUnionPtr()
         union = dereference(union_ptr)
-        self.assertEquals(union.rect.origin.x, 10)
-        self.assertEquals(union.rect.origin.y, 30)
+        self.assertEqual(union.rect.origin.x, 10)
+        self.assertEqual(union.rect.origin.y, 30)
 
     def test_returning_values(self):
         car = Car.alloc().init()
         union_ptr = car.makeUnionPtr()
         union = dereference(union_ptr)
-        self.assertEquals(union.rect.origin.x, 10)
-        self.assertEquals(union.rect.origin.y, 30)
+        self.assertEqual(union.rect.origin.x, 10)
+        self.assertEqual(union.rect.origin.y, 30)
 
         union = car.makeUnion()
-        self.assertEquals(union.rect.origin.x, 20)
-        self.assertEquals(union.rect.origin.y, 40)
+        self.assertEqual(union.rect.origin.x, 20)
+        self.assertEqual(union.rect.origin.y, 40)
 
     def test_passing_values(self):
         car = Car.alloc().init()

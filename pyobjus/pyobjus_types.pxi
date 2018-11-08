@@ -1,9 +1,9 @@
 ######################################### CArray #############################################
 import math
 cdef class CArrayCount:
-    
+
     cdef public unsigned int value
-    
+
     def __init__(self, set_value):  # unsigned int set_value
         self.value = set_value.value
 
@@ -13,7 +13,7 @@ cdef class CArray:
 
     cdef public list PyList
     cdef public unsigned int PyListSize
-        
+
     def __init__(self, arr=None):
         if arr is not None:
             self.PyList = self.fix_args(arr)
@@ -22,65 +22,64 @@ cdef class CArray:
         else:
             dprint("CArray(arr=None)")
 
-
     def fix_args(self, arr):
         if type(arr) == list:
             return arr
         else:
             return list(arr)
 
-
     def get_from_ptr(self, unsigned long long ptr, char *of_type, unsigned long long arr_size):
-        dprint("CArray().get_from_ptr({0}, {1}, {2})".format(ptr, str(of_type), arr_size))
+        cdef bytes b_of_type = of_type
+        dprint("CArray().get_from_ptr({}, {}, {!r})".format(ptr, b_of_type, arr_size))
         ret = list()
-        if str(of_type) == "i":  # int
+        if b_of_type == b"i":  # int
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_int))
-        elif str(of_type) == "c":  # char
+        elif b_of_type == b"c":  # char
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char))  # or c_wchar
-        elif str(of_type) == "s":  # short
+        elif b_of_type == b"s":  # short
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_short))
-        if str(of_type) == "l":  # long
+        elif b_of_type == b"l":  # long
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_long))
-        if str(of_type) == "q":  # long long 
+        elif b_of_type == b"q":  # long long
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_longlong))
-        if str(of_type) == "f":  # float
+        elif b_of_type == b"f":  # float
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_float))
             ## Fix test for edge case of rounding decimal
             #for i in xrange(arr_size):
             #    #arr_cast[i] = math.ceil(float(arr_cast[i]) * 100) / 100.0
             #    dprint("{}".format(float(arr_cast[i])))
             #    dprint("{}".format(math.ceil(float(arr_cast[i]) * 100) / 100.0))
-        if str(of_type) == "d":  # double
+        elif b_of_type == b"d":  # double
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_double))
-        if str(of_type) == "I":  # uint
+        elif b_of_type == b"I":  # uint
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_uint))
-        if str(of_type) == "S":  # ushort
+        elif b_of_type == b"S":  # ushort
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ushort))
-        if str(of_type) == "L":  # ulong
+        elif b_of_type == b"L":  # ulong
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulong))
-        if str(of_type) == "Q":  # ulonglong
+        elif b_of_type == b"Q":  # ulonglong
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ulonglong))
-        if str(of_type) == "C":  # ubyte (uchar)
+        elif b_of_type == b"C":  # ubyte (uchar)
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_ubyte))
-        if str(of_type) == "B":  # bool
+        elif b_of_type == b"B":  # bool
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_bool))
-        if str(of_type) == "v":  # void
+        elif b_of_type == b"v":  # void
             pass
-        if str(of_type) == "*":  # (char*)
+        elif b_of_type == b"*":  # (char*)
             arr_cast = ctypes.cast(ptr, ctypes.POINTER(ctypes.c_char_p))
-        if str(of_type) == "@":  # an object
+        elif b_of_type == b"@":  # an object
             return self.get_object_list(ptr, arr_size)
-        if str(of_type) == "#":  # class
+        elif b_of_type == b"#":  # class
             return self.get_class_list(ptr, arr_size)
-        if str(of_type) == ":":
+        elif b_of_type == b":":
             return self.get_sel_list(ptr, arr_size)
-        if str(of_type)[0] in ["(", "{"]:
-            arg_type = str(of_type)[1:-1].split('=', 1)
+        elif b_of_type.startswith((b"(", b"{")):
+            arg_type = b_of_type[1:-1].split(b'=', 1)
             return self.get_struct_list(ptr, arr_size, arg_type)
-        
-        for i in xrange(arr_size):
+
+        for i in range(arr_size):
             ret.append(arr_cast[i])
-            
+
         return ret
 
 
@@ -149,7 +148,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             short_t[i] = self.PyList[i]
         return short_t
-        
+
     cdef long *as_long(self):
         cdef long* long_t = <long*> malloc(sizeof(long) * self.PyListSize)
         if long_t is NULL:
@@ -174,7 +173,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             float_t[i] = self.PyList[i]
         return float_t
-        
+
     cdef double *as_double(self):
         cdef double *double_t = <double*> malloc(sizeof(double) * self.PyListSize)
         if double_t is NULL:
@@ -182,7 +181,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             double_t[i] = self.PyList[i]
         return double_t
-        
+
     cdef unsigned int *as_uint(self):
         cdef unsigned int *uint_t = <unsigned int*> malloc(sizeof(unsigned int) * self.PyListSize)
         if uint_t is NULL:
@@ -190,7 +189,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             uint_t[i] = self.PyList[i]
         return uint_t
-        
+
     cdef unsigned short *as_ushort(self):
         cdef unsigned short *ushort_t = <unsigned short*> malloc(sizeof(unsigned short) * self.PyListSize)
         if ushort_t is NULL:
@@ -206,7 +205,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             ulong_t[i] = self.PyList[i]
         return ulong_t
-        
+
     cdef unsigned long long *as_ulonglong(self):
         cdef unsigned long long *ulonglong = <unsigned long long*> malloc(sizeof(unsigned long long) * self.PyListSize)
         if ulonglong is NULL:
@@ -214,7 +213,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             ulonglong[i] = self.PyList[i]
         return ulonglong
-        
+
     cdef unsigned char *as_uchar(self):
         cdef unsigned char *uchar_t = <unsigned char*> malloc(sizeof(unsigned char) * self.PyListSize)
         if uchar_t is NULL:
@@ -222,7 +221,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             uchar_t[i] = ord(self.PyList[i])
         return uchar_t
-    
+
     cdef bool *as_bool(self):
         cdef bool *bool_t = <bool*> malloc(sizeof(bool) * self.PyListSize)
         if bool_t is NULL:
@@ -230,7 +229,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             bool_t[i] = self.PyList[i]
         return bool_t
-        
+
     cdef char **as_char_ptr(self): ## not tested
         cdef char **char_ptr_t = <char**> malloc(sizeof(char*) * self.PyListSize)
         if char_ptr_t is NULL:
@@ -238,7 +237,7 @@ cdef class CArray:
         for i in xrange(self.PyListSize):
             char_ptr_t[i] = <char*><bytes>self.PyList[i]
         return char_ptr_t
-        
+
     cdef id *as_object_array(self):
         cdef id *object_array = <id*> malloc(sizeof(id) * self.PyListSize)
         cdef ObjcClassInstance ocl
@@ -246,7 +245,7 @@ cdef class CArray:
             raise MemoryError()
         for i in xrange(self.PyListSize):
             ocl = <ObjcClassInstance>self.PyList[i]
-            object_array[i] = <id>ocl.o_instance  
+            object_array[i] = <id>ocl.o_instance
         return object_array
 
     cdef Class *as_class_array(self):
@@ -277,10 +276,10 @@ cdef class CArray:
         cdef CGPoint *cgpoint_array
         cdef CFRange *cfrange_array
         cdef id *id_array
-        
+
         #
         ##### object checksum error ##########
-        #  python(20253,0x7fff7bf59180) malloc: *** error for object 0x10240c3e8: incorrect checksum for freed object 
+        #  python(20253,0x7fff7bf59180) malloc: *** error for object 0x10240c3e8: incorrect checksum for freed object
         #    - object was probably modified after being freed.
         #  *** set a breakpoint in malloc_error_break to debug
         #  Abort trap: 6
@@ -296,7 +295,7 @@ cdef class CArray:
             if cgrect_array is NULL:
                 raise MemoryError()
             for i in xrange(self.PyListSize):
-                cgrect_array[i] = (<CGRect*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]  
+                cgrect_array[i] = (<CGRect*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return <id*>cgrect_array
 
         elif arg_type[0] == "CGSize":
@@ -304,7 +303,7 @@ cdef class CArray:
             if cgsize_array is NULL:
                 raise MemoryError()
             for i in xrange(self.PyListSize):
-                cgsize_array[i] = (<CGSize*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]  
+                cgsize_array[i] = (<CGSize*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return <id*>cgsize_array
 
         elif arg_type[0] == "CGPoint":
@@ -352,7 +351,7 @@ objc_str = lambda x: NSString().stringWithUTF8String_(x)
 def objc_arr(*args):
     if args[-1] is not None:
         args = args + (None,)
-    return NSArray().arrayWithObjects_(*args) 
+    return NSArray().arrayWithObjects_(*args)
 
 def objc_dict(arg_dict):
     keys_tuple = tuple([objc_str(x) for x in arg_dict.keys()]) + (None,)
@@ -376,74 +375,74 @@ cdef class ObjcClassStorage:
 
 
 cdef class ObjcChar:
-    enc = 'c'
+    enc = b'c'
 
 
 cdef class ObjcInt:
-    enc = 'i'
+    enc = b'i'
 
 
 cdef class ObjcShort:
-    enc = 's'
+    enc = b's'
 
 
 cdef class ObjcLong:
-    enc = 'l'
+    enc = b'l'
 
 
 cdef class ObjcLongLong:
-    enc = 'q'
+    enc = b'q'
 
 
 cdef class ObjcUChar:
-    enc = 'C'
+    enc = b'C'
 
 
 cdef class ObjcUInt:
-    enc = 'I'
+    enc = b'I'
 
 
 cdef class ObjcUShort:
-    enc = 'S'
+    enc = b'S'
 
 
 cdef class ObjcULong:
-    enc = 'L'
+    enc = b'L'
 
 
 cdef class ObjcULongLong:
-    enc = 'Q'
+    enc = b'Q'
 
 
 cdef class ObjcFloat:
-    enc = 'f'
+    enc = b'f'
 
 
 cdef class ObjcDouble:
-    enc = 'd'
+    enc = b'd'
 
 
 cdef class ObjcBool:
-    enc = 'B'
+    enc = b'B'
 
 
 cdef class ObjcBOOL:
-    enc = 'c'
+    enc = b'c'
 
 
 cdef class ObjcVoid:
-    enc = 'v'
+    enc = b'v'
 
 
 cdef class ObjcString:
-    enc = '*'
+    enc = b'*'
 
 
 cdef class ObjcSelector(object):
-    """ Class for storing selector 
-    """    
+    """ Class for storing selector
+    """
     enc = ':'
-    cdef SEL selector 
+    cdef SEL selector
 
     def __cinit__(self, *args, **kwargs):
         self.selector = NULL
@@ -494,18 +493,18 @@ cdef class ObjcProperty:
         self.prop_name = name
 
         self.prop_attrs_dict = {
-            'readonly': False, 
+            'readonly': False,
             'copy': False,
             'retain': False,
-            # NOTE: With "atomic", the synthesized setter/getter will ensure that a whole value is always 
-            # returned from the getter or set by the setter, regardless of setter activity on any other thread. 
-            # That is, if thread A is in the middle of the getter while thread B calls the setter, 
-            # an actual viable value -- an autoreleased object, 
+            # NOTE: With "atomic", the synthesized setter/getter will ensure that a whole value is always
+            # returned from the getter or set by the setter, regardless of setter activity on any other thread.
+            # That is, if thread A is in the middle of the getter while thread B calls the setter,
+            # an actual viable value -- an autoreleased object,
             # most likely -- will be returned to the caller in A.
             # In nonatomic, no such guarantees are made. Thus, nonatomic is considerably faster than "atomic"
             'nonatomic': False,
-            # NOTE: @synthesize will generate getter and setter methods for your property. 
-            # @dynamic just tells the compiler that the getter and setter methods 
+            # NOTE: @synthesize will generate getter and setter methods for your property.
+            # @dynamic just tells the compiler that the getter and setter methods
             # are implemented not by the class itself but somewhere else
             'dynamic': False,
             'weak': False,
@@ -525,7 +524,7 @@ cdef class ObjcProperty:
 
     def _get_attributes(self):
         ''' Method for getting list of property attributes
-        
+
         Returns:
             List of attributes, eg. ['nonatomic', 'copy'] -> @property (nonatomic, copy) ...
         '''
@@ -533,48 +532,48 @@ cdef class ObjcProperty:
 
     def _parse_attributes(self, attrs):
         ''' Method for parsing property signature
-    
+
         Args:
             attrs: String containing info about property, eg. Ti,Vprop_int -> @property (assign) int prop_int
         '''
         dprint('Parsing property attributes --> {0}'.format(attrs))
 
-        for attr in attrs.split(','):
-            if attr[0] is 'T':
-                attr_splt_res = attr.split('T')[1]
-                if attr_splt_res[0] is '@':
-                    self.prop_type = attr_splt_res.split('@')[1]
-                    self.prop_enc = attr_splt_res[0]
-                elif attr_splt_res[0] is '^':
+        for attr in attrs.split(b','):
+            if attr.startswith(b'T'):
+                attr_splt_res = attr.split(b'T')[1]
+                if attr_splt_res.startswith(b'@'):
+                    self.prop_type = attr_splt_res.split(b'@')[1]
+                    self.prop_enc = attr_splt_res[:1]
+                elif attr_splt_res.startswith(b'^'):
                     self.by_value = False
                     self.prop_enc = attr_splt_res
-                    self.prop_type = attr_splt_res.split('^')[1]
-                    if self.prop_type.find('=') is not -1:
-                        self.prop_type = self.prop_type[1:-1].split('=', 1)
+                    self.prop_type = attr_splt_res[1:]
+                    if self.prop_type.find(b'=') is not -1:
+                        self.prop_type = self.prop_type[1:-1].split(b'=', 1)
                 else:
                     self.prop_enc = attr_splt_res
-            elif attr[0] is 'V':
-                self.prop_name = attr.split('V')[1]
-            elif attr is 'R':
+            elif attr.startswith(b'V'):
+                self.prop_name = attr.split(b'V')[1]
+            elif attr == b'R':
                 self.prop_attrs_dict['readonly'] = True
-            elif attr is 'N':
+            elif attr == b'N':
                 self.prop_attrs_dict['nonatomic'] = True
-            elif attr is '&':
+            elif attr ==  b'&':
                 self.prop_attrs_dict['retain'] = True
-            elif attr is 'C':
+            elif attr == b'C':
                 self.prop_attrs_dict['copy'] = True
-            elif attr is 'D':
+            elif attr == b'D':
                 self.prop_attrs_dict['dynamic'] = True
-            elif attr is 'W':
+            elif attr == b'W':
                 self.prop_attrs_dict['weak'] = True
-            elif attr is 'P':
+            elif attr == b'P':
                 self.prop_attrs_dict['eligibleForGC'] = True
-            elif attr[0] is 'G':
-                self.getter_func = attr.split('G', 1)[1]
+            elif attr.startswith(b'G'):
+                self.getter_func = attr.split(b'G', 1)[1]
                 self.prop_attrs_dict['customGetter'] = True
-            elif attr[0] is 'S':
-                self.setter_func = attr.split('S', 1)[1][0:-1]
-                self.setter_func += '_'
+            elif attr.startswith(b'S'):
+                self.setter_func = attr.split(b'S', 1)[1][0:-1]
+                self.setter_func += b'_'
                 self.prop_attrs_dict['customSetter'] = True
             # TODO: t<encoding>
 
@@ -616,7 +615,8 @@ cdef class ObjcClassInstance:
         return <unsigned long><void *>self.o_instance
 
     def __getattribute__(self, name):
-
+        if isinstance(name, bytes):
+            name = name.decode("utf8")
         if isinstance(object.__getattribute__(self, name), ObjcProperty):
             property = object.__getattribute__(self, name)
             # if we have custom getter for property, call custom getter
@@ -631,10 +631,9 @@ cdef class ObjcClassInstance:
         return string[0].upper() + string[1:]
 
     def __setattr__(self, name, value):
-
         if isinstance(object.__getattribute__(self, name), ObjcProperty):
             property = object.__getattribute__(self, name)
-            
+
             # property is using custom setter
             if property.prop_attrs_dict['customSetter']:
                 self.__getattribute__(property.setter_func)(value)
@@ -687,14 +686,14 @@ cdef class ObjcClassInstance:
 
 
     cdef void resolve_methods(self) except *:
-        
+
         cdef ObjcMethod om
-        for name, value in self.__class__.__dict__.iteritems():
+        for name, value in self.__class__.__dict__.items():
             if isinstance(value, ObjcMethod):
                 om = value
                 #if om.is_static:
                 #    continue
-                om.set_resolve_info(name, self.o_cls, self.o_instance)
+                om.set_resolve_info(<bytes>name, self.o_cls, self.o_instance)
                 om.p_class = self
 
     cdef void resolve_fields(self) except *:
@@ -706,20 +705,20 @@ cdef class ObjcReferenceToType(object):
     '''
 
     cdef public unsigned long long arg_ref
-    cdef public char *of_type
+    cdef public bytes of_type
     cdef public size_t size
     cdef public list reference_return_values
-    
+
     def __cinit__(self, unsigned long long arg, char *_type, size_t _size):
         self.arg_ref = arg
-        self.of_type = _type
+        self.of_type = <bytes>_type
         self.size = _size
         self.reference_return_values = list()
 
     def add_reference_return_value(self, value, of_type):
+        dprint("add_reference_return_value", value, of_type)
         if issubclass(of_type, CArrayCount):
             value = CArrayCount(value)
-            
+
         dprint("Adding reference return value: {0}".format(value))
         self.reference_return_values.append(value)
-

@@ -1,4 +1,4 @@
-from debug import dprint
+from .debug import dprint
 
 cdef extern from "CoreFoundation/CoreFoundation.h":
 

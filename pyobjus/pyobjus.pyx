@@ -34,6 +34,8 @@ __all__ = (
     'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
     'CArrayCount', 'protocol', 'convert_py_to_nsobject', 'symbol')
 
+from cpython.version cimport PY_MAJOR_VERSION
+
 include "config.pxi"
 dev_platform = PLATFORM
 
@@ -45,11 +47,16 @@ include "objc_cy_types.pxi"
 include "pyobjus_types.pxi"
 include "pyobjus_conversions.pxi"
 
-from debug import dprint
 import ctypes
-import objc_py_types
-from objc_py_types import Factory
-import dylib_manager
+from .debug import dprint
+if PY_MAJOR_VERSION == 2:
+    import objc_py_types
+    from objc_py_types import Factory
+    import dylib_manager
+else:
+    import pyobjus.objc_py_types as objc_py_types
+    from .objc_py_types import Factory
+    import pyobjus.dylib_manager as dylib_manager
 
 # do the initialization!
 pyobjc_internal_init()
@@ -68,6 +75,9 @@ class MetaObjcClass(type):
 
     def __new__(meta, classname, bases, classDict):
         meta.resolve_class(classDict)
+        if PY_MAJOR_VERSION == 2:
+            classname = classname.encode("utf-8")
+        # dprint("MetaObjcClass", meta, classname, bases, classDict)
         tp = type.__new__(meta, classname, bases, classDict)
 
         if classDict['__objcclass__'] not in oclass_register:
@@ -90,7 +100,7 @@ class MetaObjcClass(type):
         if '__objcclass__' not in classDict:
             return ObjcException('__objcclass__ definition missing')
 
-        cdef bytes __objcclass__ = <bytes>classDict['__objcclass__']
+        cdef bytes __objcclass__ = classDict['__objcclass__']
 
         cdef ObjcClassStorage storage = ObjcClassStorage()
         storage.o_cls = <Class>objc_getClass(__objcclass__)
@@ -105,7 +115,7 @@ class MetaObjcClass(type):
             if isinstance(value, ObjcMethod):
                 om = value
                 if om.is_static:
-                    om.set_resolve_info(name, storage.o_cls, NULL)
+                    om.set_resolve_info(<bytes>name, storage.o_cls, NULL)
 
         # FIXME do the static fields resolution
 
@@ -118,10 +128,37 @@ def selector(name):
     Returns:
         ObjcSelector instance, which contains SEL pointer
     """
+    cdef bytes c_name
+    if isinstance(name, bytes):
+        c_name = name
+    else:
+        c_name = name.encode("utf8")
     osel = ObjcSelector()
-    osel.selector = sel_registerName(name)
+    osel.selector = sel_registerName(c_name)
     dprint(pr(osel.selector), of_type="i")
     return osel
+
+
+def _to_unicode_string(retval, **kwargs):
+    if retval is None:
+        return None
+    return retval.decode("utf8")
+
+
+RETURN_CONVERSIONS = {
+    (b'NSString', b'UTF8String'): _to_unicode_string,
+    (b'__NSCFString', b'UTF8String'): _to_unicode_string,
+    (b'__NSCFConstantString', b'UTF8String'): _to_unicode_string,
+}
+
+
+def convert_return_value(retval, clsname, methodname):
+    key = (clsname, methodname)
+    func = RETURN_CONVERSIONS.get(key)
+    dprint("Check for return value conversion: {}".format(key, func))
+    if func:
+        return func(retval, clsname=clsname, methodname=methodname)
+    return retval
 
 
 cdef class ObjcMethod(object):
@@ -175,7 +212,7 @@ cdef class ObjcMethod(object):
             #self.f_result_type = NULL
         # TODO: Memory management
 
-    def __init__(self, signature, objc_name, **kwargs):
+    def __init__(self, bytes signature, bytes objc_name, **kwargs):
         super(ObjcMethod, self).__init__()
         self.signature = <bytes>signature
         self.signature_return, self.signature_args = parse_signature(signature)
@@ -199,11 +236,11 @@ cdef class ObjcMethod(object):
         # we are doing this because we can't call method with class() -> it is python keyword, so
         # we call method .oclass() and here we can set selector to be of method with name -> class
         if name == "oclass":
-            self.name = name.replace("oclass", "class")
+            self.name = name.replace(b"oclass", b"class")
 
-        if self.signature_return[0][0] in ['(', '{']:
+        if self.signature_return[0].startswith((b'(', b'{')):
             sig = self.signature_return[0]
-            self.return_type = sig[1:-1].split('=', 1)
+            self.return_type = sig[1:-1].split(b'=', 1)
 
         self.name = self.objc_name
         self.selector = sel_registerName(<bytes>self.name)
@@ -217,26 +254,10 @@ cdef class ObjcMethod(object):
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
-
-        ## signature tuple compression for carray
-        # FIXME: might be broken, need to be tested again.
-        tmp_sig = []
-        arr_sig = ''
-
-        for item in signature_args:
-            if item[0].startswith('['):
-                arr_sig += item[0] + item[1]
-            elif item[0].endswith(']'):
-                arr_sig += item[0]
-                tmp_sig.append((arr_sig, item[1], item[2]))
-            else:
-                tmp_sig.append(item)
-        dprint('pre-zip signature: {}'.format(signature_args))
-        dprint('array signature zip: {}'.format(tmp_sig))
-        #self.signature_args = tmp_sig
+        dprint('signature: {}'.format(signature_args))
 
         # resolve f_result_type
-        if self.signature_return[0][0] == '(':
+        if self.signature_return[0].startswith(b'('):
             self.f_result_type = type_encoding_to_ffitype(
                     self.signature_return[0], str_in_union=True)
         else:
@@ -258,7 +279,7 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in signature_args:
-            if arg[0][0] == '(':
+            if arg[0].startswith(b'('):
                 raise ObjcException(
                     'Currently passing unions as arguments by '
                     'value is not supported in pyobjus!')
@@ -314,27 +335,24 @@ cdef class ObjcMethod(object):
         # for class methods, we need the class itself is theinstance
         if self.is_static:
             f_args[0] = &self.o_cls
-            dprint(' - [0] static class instance', pr(self.o_cls))
+            dprint(' - [0] static class instance {!r} (&{!r})'.format(
+              pr(self.o_cls), pr(&self.o_cls)))
         else:
             f_args[0] = &self.o_instance
-            dprint(' - [0] class instance', pr(self.o_instance))
+            dprint(' - [0] class instance {!r} (&{!r})'.format(
+              pr(self.o_instance), pr(&self.o_instance)))
 
 
         f_args[1] = &self.selector
         dprint(' - selector is', pr(self.selector))
 
         cdef ObjcClassInstance ocl
-        carray = False
 
         # populate the rest of f_args based on method signature
         signature_args = self.signature_args[:]
         for index, arg in enumerate(args):
 
             dprint("==", index, arg)
-
-            if arg == CArrayCount:
-                arg = 0
-                carray = True
 
             # automatically expand the signature args based on the last
             # signature argument, to cover variables arguments (va_args)
@@ -347,14 +365,14 @@ cdef class ObjcMethod(object):
             arg_size = type_encoding_to_ffitype(sig).size
 
             # we already know the ffitype/size being used
-            dprint("index {}: allocating {} bytes for arg: {!r}".format(
-                    index, arg_size, arg))
+            dprint("index {}: allocating {} bytes for arg {!r} with sig {}".format(
+                    index, arg_size, arg, sig))
 
             # cast the argument type based on method sig and store at val_ptr
             by_value = True
-            if sig[0][0] == '^':
+            if sig.startswith(b'^'):
                 by_value = False
-                sig = sig.split('^')[1]
+                sig = sig[1:]
 
             dprint('fargs[{}] = {}, {!r}'.format(index + 2, sig, arg))
             f_args[index + 2] = convert_py_arg_to_cy(
@@ -366,14 +384,14 @@ cdef class ObjcMethod(object):
         dprint('--- really call {} with args {} (signature is {})'.format(
             self.name, args, signature_args))
         for index in range(len(signature_args)):
-            dprint('   > {}: {}'.format(index, <unsigned long>f_args[index]))
+            dprint('   > {}: 0x{:x}'.format(index, <unsigned long>f_args[index]))
 
         # allocate the memory for the return value
         res_ptr = <id *>malloc(self.f_result_type.size)
         if res_ptr == NULL:
             raise MemoryError('Unable to allocate res_ptr')
 
-        if self.signature_return[0][0] not in ['(', '{']:
+        if not self.signature_return[0].startswith((b'(', b'{')):
             ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
 
         else:
@@ -399,7 +417,7 @@ cdef class ObjcMethod(object):
                 size_ret = ctypes.sizeof(obj_ret)
 
                 stret = False
-                if self.signature_return[0][0] in ['{', '('] and size_ret > 16:
+                if self.signature_return[0].startswith((b'{', b'(')) and size_ret > 16:
                     stret = True
 
                 if stret:
@@ -431,26 +449,25 @@ cdef class ObjcMethod(object):
         sig = self.signature_return[0]
         dprint("return signature", self.signature_return[0], of_type="i")
 
-        if sig == '@':
+        if sig == b'@':
             ret_id = (<id>res_ptr[0])
             if ret_id == self.o_instance:
                 return self.p_class
 
+        dprint("ret_py_val res_ptr={!r} sig={!r} members={!r} main_cls_name={!r}".format(
+            pr(res_ptr), sig, kwargs.get('members'), self.main_cls_name
+        ))
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size,
                 members=kwargs.get('members'), objc_prop=False,
                 main_cls_name=self.main_cls_name)
-
-        if type(ret_py_val) == ObjcReferenceToType and carray == True:
-            f_index = len(signature_args) - 1
-            mm = ctypes.cast((<unsigned long *>f_args[f_index])[0], ctypes.POINTER(ctypes.c_uint32))
-            ret_py_val.add_reference_return_value(mm.contents, CArrayCount)
 
         # free f_args
         for index, arg in enumerate(args):
             free(f_args[index + 2])
         free(f_args)
 
-        return ret_py_val
+        return convert_return_value(
+            ret_py_val, self.main_cls_name, self.name)
 
 registers = []
 tmp_properties_keys = []
@@ -469,7 +486,7 @@ cdef objc_method_to_py(Method method, main_cls_name, static=True):
 
     cdef char* method_name = <char*>sel_getName(method_getName(method))
     cdef char* method_args = <char*>method_getTypeEncoding(method)
-    cdef bytes py_name = (<bytes>method_name).replace(":", "_")
+    cdef basestring py_name = (<bytes>method_name).replace(b":", b"_").decode("utf-8")
 
     return py_name, ObjcMethod(<bytes>method_args, method_name, static=static, main_cls_name=main_cls_name)
 
@@ -521,7 +538,7 @@ cdef class_get_partial_methods(Class cls, methods, class_methods=True):
             static_methods_dict['__getter__' + py_name] = converted_method
     return static_methods_dict
 
-cdef class_get_super_class_name(Class cls):
+cdef bytes class_get_super_class_name(Class cls):
     """ Get super class name of some class
 
     Args:
@@ -561,7 +578,7 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
     cdef object main_cls_name = class_getName(cls)
     super_cls_name = object_getClassName(<id>cls_super)
 
-    while str(super_cls_name) != "nil":
+    while super_cls_name != b"nil":
         if(instance_methods):
             super_cls_methods_dict.update(class_get_methods(cls_super))
         else:
@@ -572,7 +589,7 @@ cdef resolve_super_class_methods(Class cls, instance_methods=True):
 
     return super_cls_methods_dict
 
-cdef get_class_proerties(Class cls):
+cdef get_class_properties(Class cls):
     ''' Function for getting a list of properties of some objective c class
 
     Args:
@@ -591,7 +608,7 @@ cdef get_class_proerties(Class cls):
         prop_attrs = property_getAttributes(properties[i])
         name = property_getName(properties[i])
         ivar = class_getInstanceVariable(cls, <char*>name)
-        props_dict[name] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name)
+        props_dict[name.decode("utf8")] = ObjcProperty(<unsigned long long>&properties[i], prop_attrs, <unsigned long long>&ivar, name)
     return props_dict
 
 def check_copy_properties(cls_name):
@@ -606,7 +623,14 @@ def check_copy_properties(cls_name):
             return oclass_register[cls_name].get('class').__copy_properties__
     return None
 
-def autoclass(cls_name, **kwargs):
+def autoclass(py_cls_name, **kwargs):
+    cdef bytes cls_name
+    if isinstance(py_cls_name, bytes):
+      cls_name = <bytes>py_cls_name
+      py_cls_name = py_cls_name.decode("utf-8")
+    else:
+      cls_name = <bytes>py_cls_name.encode("utf-8")
+
     new_instance = kwargs.get('new_instance', False)
     load_class_methods_dict = kwargs.get('load_class_methods')
     load_instance_methods_dict = kwargs.get('load_instance_methods')
@@ -633,6 +657,7 @@ def autoclass(cls_name, **kwargs):
 
     # Resolving does user want to copy properties of class, or it doesn't
     # TODO:  This need to be tested more!
+    dprint("autoclass: {}".format(cls_name))
     if cls_name in oclass_register.keys():
         copy_properties = check_copy_properties(cls_name)
         if copy_properties is None:
@@ -642,12 +667,13 @@ def autoclass(cls_name, **kwargs):
     else:
         copy_properties = kwargs.get('copy_properties', True)
 
+    dprint("autoclass: copy_properties={}".format(copy_properties))
     cdef Class cls = <Class>objc_getClass(cls_name)
     cdef Class cls_super
 
     properties_dict = {}
     if copy_properties:
-        properties_dict = get_class_proerties(cls)
+        properties_dict = get_class_properties(cls)
         global tmp_properties_keys
         tmp_properties_keys[:] = properties_dict.keys()
 
@@ -682,9 +708,9 @@ def autoclass(cls_name, **kwargs):
     class_dict.update(properties_dict)
 
     if not new_instance:
-        return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()
+        return MetaObjcClass.__new__(MetaObjcClass, py_cls_name, (ObjcClassInstance, ObjcClassHlp), class_dict)()
 
-    return MetaObjcClass.__new__(MetaObjcClass, cls_name, (ObjcClassInstance,), class_dict)
+    return MetaObjcClass.__new__(MetaObjcClass, py_cls_name, (ObjcClassInstance,), class_dict)
 
 
 # -----------------------------------------------------------------------------
@@ -763,7 +789,7 @@ cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation) with gil:
     dprint('-' * 80)
     dprint('protocol_forwardInvocation called from Objective-C')
     dprint('pfi: id={} invocation={}'.format(pr(self), pr(invocation)))
-    
+
     # get the invocation object
     cdef ObjcClassInstance inv = convert_to_cy_cls_instance(invocation)
     cdef ObjcSelector target_selector = inv.selector
@@ -880,7 +906,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
 
     # Creates an Objective C class inherited from NSObject and added protocol
     # methods implemented in py_obj.
-    cdef Class superclass = <Class>objc_getClass('NSObject')
+    cdef Class superclass = <Class>objc_getClass(b'NSObject')
     cdef Class objc_cls = <Class>objc_allocateClassPair(
             superclass, cls_name, 0)
     cdef SEL selector
@@ -908,7 +934,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         if d is None:
             delegates[protocol_name] = d = objc_protocol_get_delegates(protocol_name)
         if d is None:
-            raise ObjcException('Undeclared protocol {}'.format(protocol_name)) 
+            raise ObjcException('Undeclared protocol {}'.format(protocol_name))
 
         selector_name = funcname.replace('_', ':')
         dprint('    search the selector {}'.format(selector_name))
@@ -970,8 +996,7 @@ def symbol(name, clsname):
     except ValueError:
         return None
 
-    cdef ObjcClassInstance cret 
+    cdef ObjcClassInstance cret
     cret = autoclass(clsname)(noinstance=True)
     cret.instanciate_from(<id>addr, retain=0)
     return cret
-
