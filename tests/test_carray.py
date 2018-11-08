@@ -3,6 +3,7 @@ from pyobjus import autoclass, dereference, CArray
 from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
 from pyobjus.dylib_manager import load_dylib
 import ctypes
+import pytest
 
 num_list = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9]
 char_list = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
@@ -89,14 +90,22 @@ class CArrayTest(unittest.TestCase):
         self.assertEqual(returned_longlongs, long_array)
         self.assertEqual(returned_longlongs_WithCount, long_array)
 
-    @unittest.skip("error with floating, need to implement almost")
+    # @unittest.skip("error with floating, need to implement almost")
     def test_carray_float(self):
-        # fix bug in number of floating points, it returns floats with to many decimal places
+        count = ctypes.c_uint32(0)
         _instance.setFloatValues_(float_array)
-        returned_floats = dereference(_instance.getFloatValues(), of_type=CArray, return_count=10)
-        returned_floats_WithCount = dereference(_instance.getFloatValuesWithCount_(count), of_type=CArray, return_count=count)
-        self.assertEqual(returned_floats, float_array)
-        self.assertEqual(returned_floats_WithCount, float_array)
+        returned_floats = dereference(
+            _instance.getFloatValues(),
+            of_type=CArray, return_count=10)
+        returned_floats_WithCount = dereference(
+            _instance.getFloatValuesWithCount_(count),
+            of_type=CArray, return_count=count)
+        for x in range(10):
+            self.assertTrue(returned_floats[x], pytest.approx(
+                float_array[x]))
+            self.assertAlmostEqual(
+                returned_floats_WithCount[x], pytest.approx(
+                float_array[x]))
 
     def test_carray_double(self):
         count = ctypes.c_uint32(0)
