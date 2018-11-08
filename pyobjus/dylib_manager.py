@@ -23,11 +23,8 @@ def load_dylib(path, **kwargs):
     # LOADING USER DEFINED CLASS (dylib) FROM /objc_classes/test/ DIR #
     usr_path = kwargs.get('usr_path', True)
     if not usr_path:
-        if os.getcwd().split('/')[-1] != 'pyobjus':
-            os.chdir('..')
-            while os.getcwd().split('/')[-1] != 'pyobjus':
-                os.chdir('..')
-        root_pyobjus = os.getcwd()
+        root_pyobjus = os.path.join(
+            os.path.dirname(__file__), "..")
         objc_test_dir = os.path.join(root_pyobjus, 'objc_classes', 'test')
         ctypes.CDLL(os.path.join(objc_test_dir, path))
     else:
