@@ -1,5 +1,8 @@
 import unittest
 from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass
+import sys
+
+PY2 = sys.version_info.major == 2
 
 NSObject = None
 NSString = None
@@ -13,7 +16,10 @@ class NSObject(unittest.TestCase):
 
     def test_hash(self):
         a = NSObject.alloc().init()
-        self.assertIsInstance(a.hash, int)
+        if PY2:
+            self.assertIsInstance(a.hash, long)
+        else:
+            self.assertIsInstance(a.hash, int)
 
     def test_isequal(self):
         a = NSObject.alloc().init()
