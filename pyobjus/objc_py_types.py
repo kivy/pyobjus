@@ -2,6 +2,7 @@ import ctypes
 import itertools
 from ctypes import Structure
 from .pyobjus import signature_types_to_list, dev_platform
+from .debug import dprint
 
 ########## NS STRUCT TYPES ##########
 

@@ -87,6 +87,7 @@ def dereference(py_ptr, **kwargs):
         #    pass
     return convert_cy_ret_to_py(<id*>c_addr, py_ptr.of_type, py_ptr.size)
 
+
 cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value=True, py_val=None):
     ''' Function for casting Python data type (struct, union) to some Cython type
 
@@ -161,6 +162,7 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value
         dprint("Possible problems with casting, in pyobjus_conversionx.pxi", of_type='w')
 
     return val_ptr
+
 
 cdef convert_to_cy_cls_instance(id ret_id, main_cls_name=None):
     ''' Function for converting C pointer into Cython ObjcClassInstance type
@@ -264,10 +266,8 @@ cdef object convert_cy_ret_to_py(id *f_result, sig, size_t size, members=None, o
 
     # return type -> struct OR union
     elif sig.startswith((b'(', b'{')):
-
         #NOTE: This need to be tested more! Does this way work in all cases? TODO: Find better solution for this!
-        if <long>f_result[0] in ctypes_struct_cache:
-            dprint("ctypes struct value found in cache", of_type='i')
+        if <unsigned long long>f_result[0] in ctypes_struct_cache:
             val = ctypes.cast(<unsigned long long>f_result[0], ctypes.POINTER(factory.find_object(return_type, members=members))).contents
         else:
             if return_type[0] != b'CGRect' or dev_platform == 'darwin':

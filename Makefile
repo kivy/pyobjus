@@ -14,6 +14,10 @@ html:
 	$(MAKE) -C docs html
 
 distclean:
+	rm -rf .pytest_cache
+	rm -rf build
+	rm -rf pyobjus/config.pxi
+	rm -rf pyobjus/pyobjus.c
 	rm -rf pyobjus/*.so
 	rm -rf pyobjus/*.pyc
 	rm -rf pyobjus/__pycache__

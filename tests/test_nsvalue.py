@@ -3,7 +3,7 @@ from pyobjus import autoclass, objc_py_types as opy, dereference
 
 NSValue = None
 
-class NSString(unittest.TestCase):
+class NSValueTest(unittest.TestCase):
 
     def setUp(self):
         global NSValue

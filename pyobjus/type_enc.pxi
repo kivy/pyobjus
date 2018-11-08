@@ -42,11 +42,14 @@ def signature_types_to_list(type_encoding):
     types_str = b""
 
     if type_encoding.find(b'=') == -1:
-        return [bytes([ret_type]) for ret_type in type_encoding]
+        if PY_MAJOR_VERSION == 2:
+            return list(type_encoding)
+        else:
+            return [bytes([ret_type]) for ret_type in type_encoding]
 
     for letter in type_encoding:
         letter = bytes([letter])
-        # dprint("type_encoding={!r} letter={!r}".format(type_encoding, letter))
+        dprint("type_encoding={!r} letter={!r}".format(type_encoding, letter))
         if letter in [b'(', b'{']:
             if types_str:
                 begin_ind = end_ind
