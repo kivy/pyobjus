@@ -123,7 +123,7 @@ class MetaObjcClass(type):
             if isinstance(value, ObjcMethod):
                 om = value
                 if om.is_static:
-                    om.set_resolve_info(<bytes>name, storage.o_cls, NULL)
+                    om.set_resolve_info(name, storage.o_cls, NULL)
 
         # FIXME do the static fields resolution
 
@@ -239,18 +239,25 @@ cdef class ObjcMethod(object):
     def set_is_static(self, value):
         self.is_static = value
 
-    cdef void set_resolve_info(self, bytes name, Class o_cls, id o_instance) except *:
+    cdef void set_resolve_info(self, py_name, Class o_cls, id o_instance) except *:
+
+        cdef bytes name
+        if isinstance(py_name, bytes):
+            name = py_name
+        else:
+            name = py_name.encode("utf8")
 
         # we are doing this because we can't call method with class() -> it is python keyword, so
         # we call method .oclass() and here we can set selector to be of method with name -> class
-        if name == "oclass":
+        if name == b"oclass":
             self.name = name.replace(b"oclass", b"class")
+        else:
+            self.name = self.objc_name
 
         if self.signature_return[0].startswith((b'(', b'{')):
             sig = self.signature_return[0]
             self.return_type = sig[1:-1].split(b'=', 1)
 
-        self.name = self.objc_name
         self.selector = sel_registerName(<bytes>self.name)
         self.o_cls = o_cls
         self.o_instance = o_instance
