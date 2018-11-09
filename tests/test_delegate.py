@@ -1,5 +1,6 @@
 import unittest
 import ctypes
+import ctypes.util
 from pyobjus import autoclass, protocol, objc_str, selector
 from pyobjus.dylib_manager import load_dylib, load_framework, INCLUDE
 from pyobjus.protocols import protocols
