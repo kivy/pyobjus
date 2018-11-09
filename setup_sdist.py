@@ -22,7 +22,7 @@ with open(join('pyobjus', '__init__.py')) as fd:
 SETUP_KWARGS = {
     'name': 'pyobjus',
     'version': VERSION,
-    'packages': ['pyobjus', pyobjus.consts],
+    'packages': ['pyobjus', 'pyobjus.consts'],
     'py_modules': ['setup'],
     'ext_package': 'pyobjus',
     'package_data': {

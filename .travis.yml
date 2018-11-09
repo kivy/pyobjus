@@ -66,6 +66,9 @@ install:
     - if [ "$RUN" == "sdist" ]; then
           if [ "$PYOBJUS_DEPLOY" == "1" ]; then
               pip3 install --user twine;
+              python3 setup_sdist.py sdist;
+              ls -lah dist;
+              tar -xvzf dist/pyobjus-1.0.0.tar.gz;
           fi;
       fi;
 
