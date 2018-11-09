@@ -19,22 +19,25 @@ with open(join('pyobjus', '__init__.py')) as fd:
         if x.startswith('__version__')
     ][0].split("'")[-2]
 
-examples = {}
-examples_allowed_ext = (
+data_allowed_ext = (
     'readme', 'py', 'wav', 'png', 'jpg', 'svg', 'json', 'avi', 'gif', 'txt',
-    'ttf', 'obj', 'mtl', 'kv', 'mpg', 'glsl', 'zip'
+    'ttf', 'obj', 'mtl', 'kv', 'mpg', 'glsl', 'zip', 'h', 'm'
 )
 
-for root, subfolders, files in walk('examples'):
-    for fn in files:
-        ext = fn.split('.')[-1].lower()
-        if ext not in examples_allowed_ext:
-            continue
-        filename = join(root, fn)
-        directory = '%s%s' % ('share/pyobjus-', dirname(filename))
-        if directory not in examples:
-            examples[directory] = []
-        examples[directory].append(filename)
+def tree(source, allowed_ext=data_allowed_ext, tree_name='share/pyobjus-'):
+    found = {}
+
+    for root, subfolders, files in walk(source):
+        for fn in files:
+            ext = fn.split('.')[-1].lower()
+            if ext not in allowed_ext:
+                continue
+            filename = join(root, fn)
+            directory = '%s%s' % (tree_name, dirname(filename))
+            if directory not in found:
+                found[directory] = []
+            found[directory].append(filename)
+    return found
 
 SETUP_KWARGS = {
     'name': 'pyobjus',
@@ -42,10 +45,14 @@ SETUP_KWARGS = {
     'packages': ['pyobjus', 'pyobjus.consts'],
     'py_modules': ['setup'],
     'ext_package': 'pyobjus',
-    'package_data': {
-        'objc_classes': ['aux/*', 'test/*'],
-    },
-    'data_files': list(examples.items()),
+    'data_files': [
+        item
+        for data in [
+            list(tree('examples').items()),
+            list(tree('objc_classes', tree_name='objc_classes/').items())
+        ]
+        for item in data
+    ],
     'classifiers': [
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
