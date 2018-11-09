@@ -63,17 +63,16 @@ install:
 
     - source env/bin/activate;
     - pip install --upgrade cython pytest
+
+script:
+    - make test_lib
+    - make
+    - make tests
     - if [ "$RUN" == "sdist" ]; then
           if [ "$PYOBJUS_DEPLOY" == "1" ]; then
-              pip install twine;
+              git clean -dxf --exclude=env;
+              pip install requests[security] twine;
               python setup_sdist.py sdist;
               python -m twine upload dist/*;
           fi;
-      fi;
-
-script:
-    - if [ "$RUN" == "unit" ]; then
-          make test_lib;
-          make;
-          NOSE_VERBOSE=3 make tests;
       fi;
