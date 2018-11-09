@@ -764,7 +764,7 @@ cdef BOOL protocol_respondsToSelector(id self, SEL _cmd, SEL selector) with gil:
     delegate = get_python_delegate_from_id(self)
     if not delegate:
         return 0
-    py_method_name = sel_getName(selector).replace(':', '_')
+    py_method_name = sel_getName(selector).replace(b':', b'_').decode("utf8")
     return hasattr(delegate, py_method_name)
 
 
@@ -777,19 +777,30 @@ cdef id protocol_methodSignatureForSelector(id self, SEL _cmd, SEL selector) wit
     if not delegate:
         return NULL
 
+    dprint("protocol_methodSignatureForSelector", delegate, sig_name)
     if not hasattr(delegate, sig_name):
+        dprint("signatureWithObjCTypes_")
         # we didn't find a cached method signature, so create a new one.
         sel_name = sel_getName(selector)
-        py_method_name = sel_name.replace(':', '_')
+        py_method_name = sel_name.replace(b':', b'_').decode("utf8")
 
+        dprint("getattr", py_method_name)
         protocol_name = getattr(delegate, py_method_name).__protocol__
+        dprint("protocol_name", protocol_name)
         d = objc_protocol_get_delegates(protocol_name)
+        dprint("d", d)
         sigs = d.get(sel_name)
+        dprint("sigs", sigs)
 
+        dprint("new NSMethodSignature")
         NSMethodSignature = autoclass("NSMethodSignature")
+        dprint("signatureWithObjCTypes_")
+        dprint("signatureWithObjCTypes_")
         sig = NSMethodSignature.signatureWithObjCTypes_(sigs[-1])
+        dprint("set")
         setattr(delegate, sig_name, sig)
     else:
+        dprint("found it, getattr!")
         sig = getattr(delegate, sig_name)
 
     return sig.o_instance
@@ -821,11 +832,11 @@ cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation) with gil:
     for i in range(2, signature.numberOfArguments):
         tp = signature.getArgumentTypeAtIndex_(i)
         dprint("pfi: argument type at {}: {}".format(i, tp))
-        arg_type = type_encoding_to_ffitype(tp[0])
-        dprint('pfi: convert arg {} with type {}'.format(i, tp[0]))
+        arg_type = type_encoding_to_ffitype(tp[:1])
+        dprint('pfi: convert arg {} with type {}'.format(i, tp[:1]))
         c_arg = NULL
         inv.getArgument_atIndex_(<unsigned long long>&c_arg, i)
-        py_arg = convert_cy_ret_to_py(&c_arg, tp[0],
+        py_arg = convert_cy_ret_to_py(&c_arg, tp[:1],
                                       <size_t>arg_type.size, members=None,
                                       objc_prop=False, main_cls_name=cls_name)
         py_method_args.append(py_arg)
@@ -834,7 +845,7 @@ cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation) with gil:
     # search the delegate object in our database
     delegate = get_python_delegate_from_id(self)
     if delegate:
-        py_method_name = sel_getName(_cmd).replace(':', '_')
+        py_method_name = sel_getName(_cmd).replace(b':', b'_').decode("utf8")
         py_method = getattr(delegate, py_method_name)
         py_method(*py_method_args)
 
@@ -860,11 +871,12 @@ def protocol(protocol_name):
     return f
 
 
-def objc_protocol_get_delegates(protocol_name):
+def objc_protocol_get_delegates(py_protocol_name):
     cdef objc_method_description* descs
     cdef Protocol *protocol
     cdef unsigned int num_descs
     cdef objc_method_description desc
+    cdef bytes protocol_name = py_protocol_name.encode("utf8")
 
     # try to find the protocol in the executable
     protocol = objc_getProtocol(protocol_name)
@@ -921,9 +933,10 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
 
     # Creates an Objective C class inherited from NSObject and added protocol
     # methods implemented in py_obj.
+    cdef bytes c_cls_name = cls_name.encode("utf8")
     cdef Class superclass = <Class>objc_getClass(b'NSObject')
     cdef Class objc_cls = <Class>objc_allocateClassPair(
-            superclass, cls_name, 0)
+            superclass, c_cls_name, 0)
     cdef SEL selector
     cdef char* method_args
     cdef dict delegates = {}
@@ -951,7 +964,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         if d is None:
             raise ObjcException('Undeclared protocol {}'.format(protocol_name))
 
-        selector_name = funcname.replace('_', ':')
+        selector_name = funcname.replace('_', ':').encode("utf8")
         dprint('    search the selector {}'.format(selector_name))
         sigs = d.get(selector_name)
         if not sigs:
@@ -983,11 +996,11 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
 
     objc_registerClassPair(objc_cls)
 
-    cdef dict class_dict = {'__objcclass__':  cls_name,
+    cdef dict class_dict = {'__objcclass__': c_cls_name,
                             '__copy_properties__': False}
     # Loads alloc and init method for instantiate the delegate class.
-    class_dict.update(class_get_partial_methods(objc_cls, ['alloc']))
-    class_dict.update(class_get_partial_methods(objc_cls, ['init'], False))
+    class_dict.update(class_get_partial_methods(objc_cls, [b'alloc']))
+    class_dict.update(class_get_partial_methods(objc_cls, [b'init'], False))
     # Loads created protocol methods.
     # XXX as a delegate, i don't think python need an access to it directly.
     #class_dict.update(class_get_methods(objc_cls))
