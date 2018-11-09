@@ -65,10 +65,9 @@ install:
     - pip install --upgrade cython pytest
     - if [ "$RUN" == "sdist" ]; then
           if [ "$PYOBJUS_DEPLOY" == "1" ]; then
-              pip3 install --user twine;
-              python3 setup_sdist.py sdist;
-              ls -lah dist;
-              tar -xvzf dist/pyobjus-1.0.0.tar.gz;
+              pip install twine;
+              python setup_sdist.py sdist;
+              python -m twine upload dist/*;
           fi;
       fi;
 
