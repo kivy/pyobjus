@@ -4,6 +4,8 @@ Pyobjus
 Python module for accessing Objective-C classes as Python classes using
 Objective-C runtime reflection.
 
+[![Build Status](https://travis-ci.org/kivy/pyobjus.svg?branch=master)](https://travis-ci.org/kivy/pyobjus)
+
 (Work in progress.)
 
 Quick overview
