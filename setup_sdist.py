@@ -9,7 +9,8 @@ meant for installing via pip.
 
 # pylint: disable=import-error,no-name-in-module
 from distutils.core import setup
-from os.path import join
+from os import walk
+from os.path import join, dirname
 
 
 with open(join('pyobjus', '__init__.py')) as fd:
@@ -18,6 +19,22 @@ with open(join('pyobjus', '__init__.py')) as fd:
         if x.startswith('__version__')
     ][0].split("'")[-2]
 
+examples = {}
+examples_allowed_ext = (
+    'readme', 'py', 'wav', 'png', 'jpg', 'svg', 'json', 'avi', 'gif', 'txt',
+    'ttf', 'obj', 'mtl', 'kv', 'mpg', 'glsl', 'zip'
+)
+
+for root, subfolders, files in walk('examples'):
+    for fn in files:
+        ext = fn.split('.')[-1].lower()
+        if ext not in examples_allowed_ext:
+            continue
+        filename = join(root, fn)
+        directory = '%s%s' % ('share/pyobjus-', dirname(filename))
+        if directory not in examples:
+            examples[directory] = []
+        examples[directory].append(filename)
 
 SETUP_KWARGS = {
     'name': 'pyobjus',
@@ -28,6 +45,7 @@ SETUP_KWARGS = {
     'package_data': {
         'objc_classes': ['aux/*', 'test/*'],
     },
+    'data_files': list(examples.items()),
     'classifiers': [
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
