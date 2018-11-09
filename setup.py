@@ -35,8 +35,8 @@ if config_pxi_need_update:
     with open(config_pxi_fn, 'w') as fd:
         fd.write(config_pxi)
 
-if dev_platform == 'ios':
-    subprocess.call(['find', '.', '-name', '*.pyx', '-exec', 'cython', '{}', ';'])
+# if dev_platform` == 'ios':
+#     subprocess.`call(['find', '.', '-name', '*.pyx', '-exec', 'cython', '{}', ';'])
 
 libraries = ['ffi']
 library_dirs = []

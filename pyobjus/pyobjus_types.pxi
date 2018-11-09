@@ -1,10 +1,30 @@
-######################################### CArray #############################################
-import math
+if PLATFORM == 'darwin':
+    ulng = ctypes.c_ulonglong
+
+elif PLATFORM == 'ios':
+    # for some reason ctypes doesn't work ok with c_ulonglong on ARM
+    ulng = ctypes.c_ulong
+
+
+class NSRange(ctypes.Structure):
+    _fields_ = [('location', ulng), ('length', ulng)]
+
+
+class NSPoint(ctypes.Structure):
+    _fields_ = [('x', ctypes.c_double), ('y', ctypes.c_double)]
+
+
+class NSSize(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_double), ('height', ctypes.c_double)]
+
+
+class NSRect(ctypes.Structure):
+    _fields_ = [('origin', NSPoint), ('size', NSSize)]
+
+
 cdef class CArrayCount:
-
     cdef public unsigned int value
-
-    def __init__(self, set_value):  # unsigned int set_value
+    def __init__(self, set_value):
         self.value = set_value.value
 
 
@@ -84,7 +104,7 @@ cdef class CArray:
 
 
     cdef list get_struct_list(self, unsigned long long ptr, unsigned long long array_size, arg_type):
-        of_type = Factory().find_object(arg_type)
+        of_type = get_factory().find_object(arg_type)
         ret_list = list()
         arr_cast = ctypes.cast(ptr, ctypes.POINTER(of_type))
         for i in xrange(array_size):
@@ -270,7 +290,7 @@ cdef class CArray:
 
 
     cdef id *as_struct_array(self, size, arg_type):
-        of_type = Factory().find_object(arg_type)
+        of_type = get_factory().find_object(arg_type)
         cdef CGRect *cgrect_array
         cdef CGSize *cgsize_array
         cdef CGPoint *cgpoint_array

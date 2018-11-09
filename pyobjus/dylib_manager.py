@@ -1,12 +1,13 @@
 import os
 import ctypes
-import pyobjus
+from pyobjus import dprint, autoclass, ObjcException
+from .objc_py_types import enum
+
 try:
     from subprocess import call
 except:
     call = None
-from .objc_py_types import enum
-from .debug import dprint
+
 
 def load_dylib(path, **kwargs):
     ''' Function for loading dynamic library with ctypes
@@ -179,11 +180,11 @@ def load_framework(framework):
     Raises:
         ObjcException if it can't load framework
     '''
-    NSBundle = pyobjus.autoclass('NSBundle')
-    ns_framework = pyobjus.autoclass('NSString').stringWithUTF8String_(framework)
+    NSBundle = autoclass('NSBundle')
+    ns_framework = autoclass('NSString').stringWithUTF8String_(framework)
     bundle = NSBundle.bundleWithPath_(ns_framework)
     try:
         if bundle.load():
             dprint("Framework {0} succesufully loaded!".format(framework))
     except:
-        raise pyobjus.ObjcException('Error while loading {0} framework'.format(framework))
+        raise ObjcException('Error while loading {0} framework'.format(framework))

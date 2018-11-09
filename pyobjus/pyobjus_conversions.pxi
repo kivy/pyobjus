@@ -1,17 +1,5 @@
-if PY_MAJOR_VERSION == 2:
-    from objc_py_types import Factory, NSRect, NSSize, NSPoint
-else:
-    from .objc_py_types import Factory, NSRect, NSSize, NSPoint
-from libc.stdio cimport printf
-from cpython.ref cimport Py_INCREF, Py_DECREF
-import ctypes
 
-factory = Factory()
 ctypes_struct_cache = []
-
-cdef extern from "string.h":
-  char *strcpy(char *dest, char *src)
-
 
 def partition_array(array, dim):
     chunks = lambda l, n: [l[i:i + n] for i in range(0, len(l), n)]

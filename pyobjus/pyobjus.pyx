@@ -23,52 +23,60 @@ Type documentation:
 
 '''
 
+__package__ = "pyobjus"
 __all__ = (
     'ObjcChar', 'ObjcInt', 'ObjcShort', 'ObjcLong', 'ObjcLongLong', 'ObjcUChar',
     'ObjcUInt', 'ObjcUShort', 'ObjcULong', 'ObjcULongLong', 'ObjcFloat',
     'ObjcDouble', 'ObjcBool', 'ObjcBOOL', 'ObjcVoid', 'ObjcString',
     'ObjcClassInstance', 'ObjcClass', 'ObjcSelector', 'ObjcMethod',
-    'MetaObjcClass', 'ObjcException', 'autoclass', 'selector', 'objc_py_types',
-    'dereference', 'signature_types_to_list', 'dylib_manager', 'objc_c',
+    'MetaObjcClass', 'ObjcException', 'autoclass', 'selector',
+    'dereference', 'signature_types_to_list', 'objc_c',
     'objc_i', 'objc_ui', 'objc_l', 'objc_ll', 'objc_f', 'objc_d', 'objc_b',
     'objc_str', 'objc_arr', 'objc_dict', 'dev_platform', 'CArray',
-    'CArrayCount', 'protocol', 'convert_py_to_nsobject', 'symbol')
+    'protocol', 'convert_py_to_nsobject', 'symbol',
+    'dprint', 'NSRect', 'NSRange', 'NSPoint', 'NSSize')
 
+# Python imports
+import ctypes
+import re
+import os
+
+# Cython import
 from cpython.version cimport PY_MAJOR_VERSION
+from cpython.ref cimport Py_INCREF, Py_DECREF
+from libc.stdlib cimport malloc, free
+from libcpp cimport bool
 
+# library files
 include "config.pxi"
-dev_platform = PLATFORM
-
+include "debug.pxi"
 include "common.pxi"
-include "runtime.pxi"
-include "ffi.pxi"
 include "type_enc.pxi"
-include "objc_cy_types.pxi"
 include "pyobjus_types.pxi"
 include "pyobjus_conversions.pxi"
 
-import ctypes
-from .debug import dprint
-if PY_MAJOR_VERSION == 2:
-    import objc_py_types
-    from objc_py_types import Factory
-    import dylib_manager
-else:
-    import pyobjus.objc_py_types as objc_py_types
-    from .objc_py_types import Factory
-    import pyobjus.dylib_manager as dylib_manager
-
-# do the initialization!
+# bootstrap
 pyobjc_internal_init()
+
 
 cdef dict oclass_register = {}
 cdef dict omethod_partial_register = {}
 delegate_register = dict()
+factory = None
+dev_platform = PLATFORM
 
 
 cdef pr(void *pointer):
     # convert a void* to a 0x... value
     return '0x%x' % <unsigned long>pointer
+
+
+def get_factory():
+    global factory
+    if factory is None:
+        from .objc_py_types import Factory
+        factory = Factory()
+    return factory
 
 
 class MetaObjcClass(type):
@@ -219,7 +227,7 @@ cdef class ObjcMethod(object):
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
         self.objc_name = objc_name
-        self.factory = Factory()
+        self.factory = get_factory()
         self.main_cls_name = kwargs.get('main_cls_name')
 
         py_selectors = kwargs.get('selectors', [])

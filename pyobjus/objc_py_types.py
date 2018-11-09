@@ -1,32 +1,9 @@
 import ctypes
 import itertools
-from ctypes import Structure
-from .pyobjus import signature_types_to_list, dev_platform
-from .debug import dprint
+from .pyobjus import (
+    signature_types_to_list, dprint, NSRect, NSPoint, NSSize, NSRange)
 
 ########## NS STRUCT TYPES ##########
-
-if dev_platform == 'darwin':
-    ulng = ctypes.c_ulonglong
-# for some reason ctypes doesn't work ok with c_ulonglong on ARM
-elif dev_platform == 'ios':
-    ulng = ctypes.c_ulong
-
-class NSRange(Structure):
-    _fields_ = [('location', ulng), ('length', ulng)]
-CFRange = _NSRange = NSRange
-
-class NSPoint(Structure):
-    _fields_ = [('x', ctypes.c_double), ('y', ctypes.c_double)]
-CGPoint = NSPoint
-
-class NSSize(Structure):
-    _fields_ = [('width', ctypes.c_double), ('height', ctypes.c_double)]
-CGSize = NSSize
-
-class NSRect(Structure):
-    _fields_ = [('origin', NSPoint), ('size', NSSize)]
-CGRect = NSRect
 
 types = {
     'c': ctypes.c_char,
@@ -51,6 +28,20 @@ class Factory(object):
     ''' Class for making and returning some of objective c types '''
 
     field_name_ind = None
+    registry = {}
+
+    def __init__(self):
+        super(Factory, self).__init__()
+        # register defaults classes
+        self.registry["NSRect"] = NSRect
+        self.registry["NSRange"] = NSRange
+        self.registry["NSPoint"] = NSPoint
+        self.registry["NSSize"] = NSSize
+        self.registry["CCFRange"] = NSRange
+        self.registry["_NSRange"] = NSRange
+        self.registry["CGPoint"] = NSPoint
+        self.registry["CGSize"] = NSSize
+        self.registry["CGRect"] = NSRect
 
     def _generate_variable_name(self, letter, perm_n, perms):
         ''' Helper private method for generating name for field
@@ -84,7 +75,7 @@ class Factory(object):
         if obj_type[0] in globals():
             return globals()[obj_type[0]]
 
-        class UnknownType(Structure):
+        class UnknownType(ctypes.Structure):
             '''
             Class for representing some unknown type instance
             '''
@@ -170,6 +161,8 @@ class Factory(object):
         obj_name = obj_type[0]
         if isinstance(obj_name, bytes):
             obj_name = obj_name.decode("utf-8")
+        if obj_name in self.registry:
+            return self.registry[obj_name]
         if obj_name in globals():
             return globals()[obj_name]
         try:
@@ -191,7 +184,11 @@ class Factory(object):
 def enum(enum_type, **enums):
     return type(enum_type, (), enums)
 
-NSComparisonResult = enum("NSComparisonResult", NSOrderedAscending=-1, NSOrderedSame=0, NSOrderedDescending=1)
+NSComparisonResult = enum(
+    "NSComparisonResult",
+    NSOrderedAscending=-1,
+    NSOrderedSame=0,
+    NSOrderedDescending=1)
 
 string_encodings = dict(
     NSASCIIStringEncoding = 1,

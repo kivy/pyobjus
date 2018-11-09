@@ -1,5 +1,3 @@
-import re
-
 def seperate_encoding(sig):
     c = sig[0][:1]
 

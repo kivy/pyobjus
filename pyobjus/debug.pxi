@@ -1,4 +1,3 @@
-import os
 DEBUG = os.environ.get('PYOBJUS_DEBUG', '') == '1'
 
 debug_types = {
@@ -6,7 +5,7 @@ debug_types = {
     "w": "WARNING",
     "e": "ERROR",
     "i": "INFO"
-    }
+}
 
 def dprint(*args, **kwargs):
     if DEBUG == False:
