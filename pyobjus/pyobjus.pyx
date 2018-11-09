@@ -772,35 +772,25 @@ cdef id protocol_methodSignatureForSelector(id self, SEL _cmd, SEL selector) wit
     # returns a method signature for a specific selector, needed for the
     # fallback forwardInvocation:
     cdef ObjcClassInstance sig
-    sig_name = "_sig_{}".format(sel_getName(selector))
+    sel_name = sel_getName(selector)
+    py_sel_name = (<bytes>sel_name).decode("utf8")
+    sig_name = "_sig_{}".format(py_sel_name)
     delegate = get_python_delegate_from_id(self)
     if not delegate:
         return NULL
 
-    dprint("protocol_methodSignatureForSelector", delegate, sig_name)
     if not hasattr(delegate, sig_name):
-        dprint("signatureWithObjCTypes_")
         # we didn't find a cached method signature, so create a new one.
-        sel_name = sel_getName(selector)
         py_method_name = sel_name.replace(b':', b'_').decode("utf8")
 
-        dprint("getattr", py_method_name)
         protocol_name = getattr(delegate, py_method_name).__protocol__
-        dprint("protocol_name", protocol_name)
         d = objc_protocol_get_delegates(protocol_name)
-        dprint("d", d)
-        sigs = d.get(sel_name)
-        dprint("sigs", sigs)
+        sigs = d.get(py_sel_name)
 
-        dprint("new NSMethodSignature")
         NSMethodSignature = autoclass("NSMethodSignature")
-        dprint("signatureWithObjCTypes_")
-        dprint("signatureWithObjCTypes_")
         sig = NSMethodSignature.signatureWithObjCTypes_(sigs[-1])
-        dprint("set")
         setattr(delegate, sig_name, sig)
     else:
-        dprint("found it, getattr!")
         sig = getattr(delegate, sig_name)
 
     return sig.o_instance
@@ -890,7 +880,10 @@ def objc_protocol_get_delegates(py_protocol_name):
             desc = descs[i]
             selector = desc.name
             selector_name = sel_getName(selector)
-            delegates_types[selector_name] = [desc.types, desc.types]
+            if selector_name == NULL:
+                continue
+            py_selector_name = (<bytes>selector_name).decode("utf8")
+            delegates_types[py_selector_name] = [desc.types, desc.types]
         free(descs)
         # get required methods
         descs = protocol_copyMethodDescriptionList(
@@ -899,14 +892,16 @@ def objc_protocol_get_delegates(py_protocol_name):
             desc = descs[i]
             selector = desc.name
             selector_name = sel_getName(selector)
-            delegates_types[selector_name] = [desc.types, desc.types]
+            if selector_name == NULL:
+                continue
+            py_selector_name = (<bytes>selector_name).decode("utf8")
+            delegates_types[py_selector_name] = [desc.types, desc.types]
         free(descs)
         return delegates_types
 
     # not found, try to search in the user-build protocols
     from .protocols import protocols
-    if protocol_name in protocols:
-        return protocols.get(protocol_name)
+    return protocols.get(py_protocol_name)
 
 
 cdef ObjcClassInstance objc_create_delegate(py_obj):
@@ -964,7 +959,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         if d is None:
             raise ObjcException('Undeclared protocol {}'.format(protocol_name))
 
-        selector_name = funcname.replace('_', ':').encode("utf8")
+        selector_name = funcname.replace('_', ':')
         dprint('    search the selector {}'.format(selector_name))
         sigs = d.get(selector_name)
         if not sigs:
@@ -983,15 +978,15 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
 
     dprint('   register methodSignatureForSelector:')
     class_addMethod(
-        objc_cls, sel_registerName("methodSignatureForSelector:"),
+        objc_cls, sel_registerName(b"methodSignatureForSelector:"),
         <IMP>&protocol_methodSignatureForSelector, "@@::")
     dprint('   register forwardInvocation:')
     class_addMethod(
-        objc_cls, sel_registerName("forwardInvocation:"),
+        objc_cls, sel_registerName(b"forwardInvocation:"),
         <IMP>&protocol_forwardInvocation, "v@:@")
     dprint('   register respondsToSelector:')
     class_addMethod(
-        objc_cls, sel_registerName("respondsToSelector:"),
+        objc_cls, sel_registerName(b"respondsToSelector:"),
         <IMP>&protocol_respondsToSelector, "v@::")
 
     objc_registerClassPair(objc_cls)

@@ -44,13 +44,11 @@ extra_compile_args = []
 extra_link_args = []
 include_dirs = []
 depends = [join('pyobjus', x) for x in (
-    'config.pxi',
     'common.pxi',
-    'ffi.pxi',
-    'objc_cy_types.pxi',
+    'config.pxi',
+    'debug.pxi',
     'pyobjus_conversions.pxi',
     'pyobjus_types.pxi',
-    'runtime.pxi',
     'type_enc.pxi',
     'pyobjus.pyx')]
 

@@ -1,7 +1,8 @@
 import unittest
 import ctypes
-from pyobjus import autoclass, protocol, objc_str
+from pyobjus import autoclass, protocol, objc_str, selector
 from pyobjus.dylib_manager import load_dylib, load_framework, INCLUDE
+from pyobjus.protocols import protocols
 
 NSURL = NSURLConnection = NSURLRequest = None
 
@@ -29,6 +30,7 @@ K_CF_RUNLOOP_DEFAULT_MODE = CF_STRING_REF.in_dll(cf, 'kCFRunLoopDefaultMode')
 
 
 class DelegateExample(object):
+    # example of a delegate required by NSURLConnection
     def request_connection(self):
         self.delegate_called = False
         # This method request connection to an invalid URL so the
@@ -47,7 +49,35 @@ class DelegateExample(object):
         cf.CFRunLoopStop(current)
 
 
-class DeleguateTest(unittest.TestCase):
+class IOSKeyboard(object):
+    # example of Keyboard user-defined delegate (aka doesn't exists
+    # in pyobjus) actually used for Kivy
+
+    def __init__(self, **kwargs):
+        super(IOSKeyboard, self).__init__()
+        self.kheight = 0
+        NSNotificationCenter = autoclass("NSNotificationCenter")
+        center = NSNotificationCenter.defaultCenter()
+        center.addObserver_selector_name_object_(
+            self, selector("keyboardWillShow"),
+            "UIKeyboardWillShowNotification",
+            None)
+        center.addObserver_selector_name_object_(
+            self, selector("keyboardDidHide"),
+            "UIKeyboardDidHideNotification",
+            None)
+
+    @protocol('KeyboardDelegates')
+    def keyboardWillShow(self, notification):
+        self.kheight = get_scale() * notification.userInfo().objectForKey_(
+            'UIKeyboardFrameEndUserInfoKey').CGRectValue().size.height
+
+    @protocol('KeyboardDelegates')
+    def keyboardDidHide(self, notification):
+        self.kheight = 0
+
+
+class DelegateTest(unittest.TestCase):
     def setUp(self):
         global NSURL, NSURLConnection, NSURLRequest
         load_framework(INCLUDE.AppKit)
@@ -56,8 +86,17 @@ class DeleguateTest(unittest.TestCase):
         NSURLConnection = autoclass('NSURLConnection')
         NSURLRequest = autoclass('NSURLRequest')
 
-    def test_delegate(self):
+    def test_existing_delegate(self):
         instance = DelegateExample()
         instance.request_connection()
         cf.CFRunLoopRunInMode(K_CF_RUNLOOP_DEFAULT_MODE, 1, False)
         self.assertTrue(instance.delegate_called)
+
+    def test_user_registration_delegate(self):
+        protocols["KeyboardDelegates"] = {
+            'keyboardWillShow': ('v16@0:4@8', "v32@0:8@16"),
+            'keyboardDidHide': ('v16@0:4@8', "v32@0:8@16")}
+
+        # if everything is find, the keyboard should instanciate
+        # without issue
+        iOSKeyboard = IOSKeyboard()
