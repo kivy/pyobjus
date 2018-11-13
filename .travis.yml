@@ -11,6 +11,10 @@ matrix:
           env: RUN=unit PY=3 HOMEBREW_NO_AUTO_UPDATE=1
           os: osx
 
+        - language: generic
+          env: RUN=sdist PY=3 HOMEBREW_NO_AUTO_UPDATE=1
+          os: osx
+
 before_install:
     - echo PATH=$PATH;
 
@@ -59,8 +63,16 @@ install:
 
     - source env/bin/activate;
     - pip install --upgrade cython pytest
-    - make test_lib
 
 script:
+    - make test_lib
     - make
-    - NOSE_VERBOSE=3 make tests
+    - make tests
+    - if [ "$RUN" == "sdist" ]; then
+          if [ "$PYOBJUS_DEPLOY" == "1" ]; then
+              git clean -dxf --exclude=env;
+              pip install requests[security] twine;
+              python setup_sdist.py sdist;
+              python -m twine upload dist/*;
+          fi;
+      fi;
