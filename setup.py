@@ -11,6 +11,8 @@ arch = environ.get('ARCH', platform.machine())
 if kivy_ios_root is not None:
     dev_platform = 'ios'
 
+print("Pyobjus platform is {}".format(dev_platform))
+
 # OSX
 if dev_platform == 'darwin':
     try:
