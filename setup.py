@@ -4,6 +4,7 @@ from os.path import dirname, join, exists
 import sys
 import subprocess
 import platform
+from setup_sdist import SETUP_KWARGS
 
 dev_platform = sys.platform
 kivy_ios_root = environ.get('KIVYIOSROOT', None)
@@ -55,18 +56,17 @@ depends = [join('pyobjus', x) for x in (
     'pyobjus.pyx')]
 
 # create the extension
-setup(name='pyobjus',
-      version='1.0',
-      cmdclass={'build_ext': build_ext},
-      packages=['pyobjus', 'pyobjus.consts'],
-      ext_package='pyobjus',
-      ext_modules=[
-          Extension(
-              'pyobjus', [join('pyobjus', x) for x in files],
-              depends=depends,
-              libraries=libraries,
-              library_dirs=library_dirs,
-              include_dirs=include_dirs,
-              extra_link_args=extra_link_args)
-          ]
-      )
+setup(
+    cmdclass={'build_ext': build_ext},
+    ext_modules=[
+        Extension(
+            'pyobjus', [join('pyobjus', x) for x in files],
+            depends=depends,
+            libraries=libraries,
+            library_dirs=library_dirs,
+            include_dirs=include_dirs,
+            extra_link_args=extra_link_args
+        )
+    ],
+    **SETUP_KWARGS
+)
