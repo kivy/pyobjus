@@ -55,6 +55,9 @@ depends = [join('pyobjus', x) for x in (
     'type_enc.pxi',
     'pyobjus.pyx')]
 
+# pop setup.py from included files in the installed package
+SETUP_KWARGS['py_modules'].remove('setup')
+
 # create the extension
 setup(
     cmdclass={'build_ext': build_ext},
