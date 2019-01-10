@@ -1,7 +1,7 @@
 if PLATFORM == b'darwin':
     ulng = ctypes.c_ulonglong
 
-elif PLATFORM == b'ios':
+elif PLATFORM == b'ios' || PLATFORM == 'ios':
     # for some reason ctypes doesn't work ok with c_ulonglong on ARM
     ulng = ctypes.c_ulong
 
