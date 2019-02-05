@@ -951,6 +951,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         if not hasattr(func, '__protocol__'):
             continue
         protocol_found = 1
+
         protocol_name = func.__protocol__
         dprint('  - found a @protocol {} for {}'.format(
             protocol_name, funcname))
@@ -971,6 +972,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
                 dprint('  * {}'.format(val))
             raise ObjcException('Protocol {} does not have any selector named {}'.format(
                 protocol_name, selector_name))
+
     if protocol_found == 0:
         raise ObjcException(
             "You've passed {!r} as delegate, but there is "
