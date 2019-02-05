@@ -954,6 +954,8 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     cdef dict delegates = {}
     cdef int protocol_found = 0
 
+    if objc_cls == <Class>0x0:
+        raise MemoryError("Class allocation failed for {}".format(cls_name))
     dprint('create delegate from {!r}'.format(py_obj))
 
     # XXX this was the code for older delegate creatieon
