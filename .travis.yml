@@ -27,7 +27,7 @@ before_install:
     - export PATH=$PATH:/usr/local/Cellar
 
     # https://github.com/travis-ci/travis-ci/issues/6307
-    - gpg --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+    - /usr/local/Cellar/gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
     - rvm get head
 
     # use real branch name instead of detached HEAD unless PR
