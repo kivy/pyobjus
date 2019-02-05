@@ -1,4 +1,4 @@
-if PLATFORM == b'darwin':
+if PLATFORM == b'darwin' or PLATFORM == 'darwin':
     ulng = ctypes.c_ulonglong
 
 elif PLATFORM == b'ios' or PLATFORM == 'ios':
