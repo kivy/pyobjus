@@ -55,6 +55,12 @@ include "type_enc.pxi"
 include "pyobjus_types.pxi"
 include "pyobjus_conversions.pxi"
 
+# the symbol `id` is overloaded in objc. We need the python `id()` builtin:
+try:
+    import builtins  # python 3
+except ImportError:
+    import __builtin__ as builtins  # python 2
+
 # bootstrap
 pyobjc_internal_init()
 
@@ -69,6 +75,13 @@ dev_platform = PLATFORM
 cdef pr(void *pointer):
     # convert a void* to a 0x... value
     return '0x%x' % <unsigned long>pointer
+
+cdef instance_str(py_obj):
+    # Return a repr-like string for any object
+    # guaranteed to be unique for the lifetime of the object
+    return '{}.{}@{}'.format(py_obj.__class__.__module__,
+                             py_obj.__class__.__name__,
+                             hex(builtins.id(py_obj)))
 
 
 def get_factory():
@@ -920,7 +933,9 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     if not isinstance(py_obj, object):
         raise ObjcException('Delegate must be an instantiated class')
 
-    cls_name = py_obj.__class__.__name__
+    # Handle name collisions between modules, multiple instances of objects
+    # Pyobjus Issue #49
+    cls_name = instance_str(py_obj)
     dprint('objc_create_delegate: {}'.format(cls_name))
 
     # Returns the cached delegate instance if exists for the current py_obj
