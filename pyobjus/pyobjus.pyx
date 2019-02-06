@@ -664,10 +664,11 @@ def autoclass(py_cls_name, **kwargs):
     if cls_name in oclass_register and load_class_methods_dict is None \
         and load_instance_methods_dict is None and cls_name not in omethod_partial_register:
         if (not new_instance and "class" in oclass_register[cls_name]):
-            dprint("getting class from cache...", of_type='i')
+            dprint("getting class from cache: {}...".format(cls_name), of_type='i')
             return oclass_register[cls_name]['class']
         elif (new_instance and "instance" in oclass_register[cls_name]):
-            dprint('getting instance from cache...', of_type='i')
+            dprint('getting instance of {} from cache...'.format(cls_name),
+                   of_type='i')
             return oclass_register[cls_name]['instance']
 
     # Resolving does user want to copy properties of class, or it doesn't
@@ -920,6 +921,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         raise ObjcException('Delegate must be an instantiated class')
 
     cls_name = py_obj.__class__.__name__
+    dprint('objc_create_delegate: {}'.format(cls_name))
 
     # Returns the cached delegate instance if exists for the current py_obj
     # to release unused instances.
@@ -944,6 +946,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
     # protocol found, and that all the selector have a signature associated to
     # it.
     for funcname in dir(py_obj):
+        dprint("Checking attribute: {}".format(funcname))
         func = getattr(py_obj, funcname)
         if not hasattr(func, '__protocol__'):
             continue
@@ -989,6 +992,7 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         objc_cls, sel_registerName(b"respondsToSelector:"),
         <IMP>&protocol_respondsToSelector, "v@::")
 
+    dprint('Registering Class Pair: {}...'.format(pr(objc_cls)))
     objc_registerClassPair(objc_cls)
 
     cdef dict class_dict = {'__objcclass__': c_cls_name,
