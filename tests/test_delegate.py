@@ -101,3 +101,14 @@ class DelegateTest(unittest.TestCase):
         # if everything is find, the keyboard should instanciate
         # without issue
         iOSKeyboard = IOSKeyboard()
+
+    def test_multiple_delegates(self):
+      # Ensure we can create delegates for multiple instances of the same class
+      # PR #50: https://github.com/kivy/pyobjus/pull/50
+      conn1 = DelegateExample()
+      conn2 = DelegateExample()
+      conn1.request_connection()
+      conn2.request_connection()
+      cf.CFRunLoopRunInMode(K_CF_RUNLOOP_DEFAULT_MODE, 1, False)
+      self.assertTrue(conn1.delegate_called)
+      self.assertTrue(conn2.delegate_called)
