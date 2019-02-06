@@ -121,7 +121,7 @@ Utility functions
 
     Initialize `NSNumber` with a `NSString` type.
 
-    :param some_float: String parameter
+    :param some_string: String parameter
     :rtype: NSString.stringWithUTF8String: Python representation
 
 
@@ -179,7 +179,7 @@ Pyobjus Objective C types
 
 .. class:: ObjcLong
 
-    Objective C ``long`` representation 
+    Objective C ``long`` representation
 
 .. class:: ObjcLongLong
 
@@ -257,7 +257,7 @@ Pyobjus Objective C types
 
     Representation of some Objective C exception
 
-    
+
 .. module:: pyobjus.objc_py_types
 
 Structure types

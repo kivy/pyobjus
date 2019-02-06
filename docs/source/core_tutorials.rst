@@ -12,7 +12,7 @@ You need to load code into pyobjus so it can actually find the appropriate
 class with the autoclass function.
 
 Maybe you want to write some Objective C code, and you want to load it into
-pyobjus, or you want to use some exising `.dylib` or sommething similar. 
+pyobjus, or you want to use some exising `.dylib` or sommething similar.
 
 These problems can be solved using the pyobjus dylib_manager. Currently it has
 a few functions, so let's see what we can do with them.
@@ -397,25 +397,25 @@ pyobjus will convert the value to that type.
 
 Here is the list of possible types::
 
-    'ObjcChar', 
-    'ObjcInt', 
-    'ObjcShort', 
-    'ObjcLong', 
-    'ObjcLongLong', 
-    'ObjcUChar', 
-    'ObjcUInt', 
-    'ObjcUShort', 
-    'ObjcULong', 
-    'ObjcULongLong', 
-    'ObjcFloat', 
-    'ObjcDouble', 
-    'ObjcBool', 
-    'ObjcBOOL', 
-    'ObjcVoid', 
-    'ObjcString', 
-    'ObjcClassInstance', 
-    'ObjcClass', 
-    'ObjcSelector', 
+    'ObjcChar',
+    'ObjcInt',
+    'ObjcShort',
+    'ObjcLong',
+    'ObjcLongLong',
+    'ObjcUChar',
+    'ObjcUInt',
+    'ObjcUShort',
+    'ObjcULong',
+    'ObjcULongLong',
+    'ObjcFloat',
+    'ObjcDouble',
+    'ObjcBool',
+    'ObjcBOOL',
+    'ObjcVoid',
+    'ObjcString',
+    'ObjcClassInstance',
+    'ObjcClass',
+    'ObjcSelector',
     'ObjcMethod'
 
 Those already listed types are defined inside the pyobjus module, so you can
@@ -478,6 +478,9 @@ Objective C equivalents are::
     # NSNumber *noNumber = @NO;             // equivalent to [NSNumber numberWithBool:NO]
     objc_b(False)
 
+    # NSString *string = @"some string";
+    objc_str('some string')
+
     # NSArray *array = @[ @"Hello", NSApp, [NSNumber numberWithInt:42] ];
     objc_arr(objc_str('Hello'), objc_str('some str'), objc_i(42))
 
@@ -491,9 +494,6 @@ Objective C equivalents are::
         'date': autoclass('NSDate').date(),
         'processInfo': autoclass('NSProcessInfo').processInfo()
     })
-
-    # NSString *string = @"some string";
-    objc_str('some string')
 
 We have tried to make the build names for these literals clear and intuitive.
 We start with the prefix ``objc_`` followed by the letter/letters which denote
