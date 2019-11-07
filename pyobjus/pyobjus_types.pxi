@@ -669,14 +669,14 @@ cdef class ObjcClassInstance:
 
     def __dealloc__(self):
         if self.o_instance != NULL:
-            objc_msgSend(self.o_instance, sel_registerName('release'))
+            objc_msgSend_custom(self.o_instance, sel_registerName('release'))
             self.o_instance = NULL
 
     cdef void instanciate_from(self, id o_instance, int retain=1) except *:
         self.o_instance = o_instance
         # XXX is retain is needed ?
         if retain:
-            self.o_instance = objc_msgSend(self.o_instance, sel_registerName('retain'))
+            self.o_instance = objc_msgSend_custom(self.o_instance, sel_registerName('retain'))
         #print 'retainCount', <int>objc_msgSend(self.o_instance,
         #        sel_registerName('retainCount'))
         self.resolve_methods()

@@ -420,7 +420,7 @@ cdef class ObjcMethod(object):
             raise MemoryError('Unable to allocate res_ptr')
 
         if not self.signature_return[0].startswith((b'(', b'{')):
-            ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
+            ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
 
         else:
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture and armv7 ios
@@ -449,20 +449,20 @@ cdef class ObjcMethod(object):
                     stret = True
 
                 if stret:
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend_stret, res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
                     del_res_ptr = False
                 else:
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
 
             ELIF PLATFORM == 'ios':
                 IF ARCH == 'arm64':
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
                     dprint('ios(arm64) platform objc_msgSend call')
                 ELSE:
-                    ffi_call(&self.f_cif, <void(*)()>objc_msgSend_stret, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend_stret, res_ptr, f_args)
                     dprint('ios(armv7) platform objc_msgSend_stret call')
 
             ELSE:
