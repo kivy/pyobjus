@@ -118,6 +118,9 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
         return &ffi_type_void
     elif enc.startswith(b'^'):
         return &ffi_type_pointer
+    elif enc.startswith(b'?'):
+        # An unknown type (among other things, this code is used for function pointers)
+        return &ffi_type_pointer
     # return type is struct or union
     elif enc.startswith((b'(', b'{')):
         # NOTE: Tested with this nested input, and it works!
