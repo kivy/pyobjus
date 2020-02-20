@@ -154,11 +154,6 @@ cdef ffi_type* type_encoding_to_ffitype(type_encoding, str_in_union=False):
         return ffi_complex_type
     elif enc == b'b':
         raise ObjcException("Bit fields aren't supported in pyobjus!")
-
-    # TODO: Check is this solution in all cases?
-    elif enc == b'?':
-        return &ffi_type_pointer;
-
     elif enc.startswith(b'['): #[array type]    An array
         return &ffi_type_pointer
 
