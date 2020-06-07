@@ -31,4 +31,4 @@ jobs:
         pip install --timeout=120 --user .
     - name: Test with pytest
       run: |
-        pytest
+        python -m pytest
