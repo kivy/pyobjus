@@ -369,7 +369,7 @@ objc_b = lambda x: NSNumber().numberWithBool_(x)
 objc_str = lambda x: NSString().stringWithUTF8String_(x)
 
 def objc_arr(*args):
-    if args[-1] is not None:
+    if not args or args[-1] is not None:
         args = args + (None,)
     return NSArray().arrayWithObjects_(*args)
 
