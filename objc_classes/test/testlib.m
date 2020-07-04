@@ -146,7 +146,7 @@ typedef union test_un_ {
     return [self methodForSelector:@selector(getSumOf:and:)];
 }
 
-- (int) useImp:(IMP)imp withA:(int)a andB:(int)b {
+- (int) useImp:(IMP*(void*, SEL, ...))imp withA:(int)a andB:(int)b {
     return (int)imp(self, @selector(getSumOf:and:), a, b);
 }
 
