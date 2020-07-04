@@ -34,7 +34,7 @@ class NSMutableArrayTest(unittest.TestCase):
 
     def test_return_object(self):
         returned_object = test_array.objectAtIndex_(0)
-        self.assertEqual(returned_object.UTF8String(), 'Some text')
+        self.assertEqual(returned_object.UTF8String(), b'Some text')
 
     def test_replace(self):
         ns_string_object = Str("Replaced text")
