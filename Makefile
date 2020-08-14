@@ -8,7 +8,7 @@ test_lib:
 	clang objc_classes/test/testlib.m -o objc_classes/test/testlib.dylib -dynamiclib -framework Foundation
 
 tests: build_ext
-	cd tests && env PYTHONPATH=..:$(PYTHONPATH) pytest -v
+	cd tests && env PYTHONPATH=..:$(PYTHONPATH) python -m pytest -v
 
 html:
 	$(MAKE) -C docs html

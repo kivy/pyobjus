@@ -10,7 +10,7 @@ class NSObject(unittest.TestCase):
     def test_utf8(self):
         s = u'\x09cole'
         text = N(s)
-        self.assertTrue(text.UTF8String() == s)
+        self.assertTrue(text.UTF8String() == s.encode('utf8'))
         self.assertTrue(text.cString().decode('utf8') == s)
 
     def test_length(self):
@@ -31,7 +31,7 @@ class NSObject(unittest.TestCase):
 
     def test_utf8string(self):
         text = N('Hello')
-        self.assertEqual(text.UTF8String(), 'Hello')
+        self.assertEqual(text.UTF8String(), b'Hello')
 
     def test_rangeOfString(self):
        text = N('some text')
@@ -48,7 +48,7 @@ class NSObject(unittest.TestCase):
     def test_substringWithRange(self):
         text = N("some text")
         range = opy.NSRange(1, 3)
-        self.assertEqual(text.substringWithRange_(range).UTF8String(), "ome")
+        self.assertEqual(text.substringWithRange_(range).UTF8String(), b"ome")
 
     def test_compare(self):
         text = N("some text")

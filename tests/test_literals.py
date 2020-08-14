@@ -7,7 +7,7 @@ class LiteralsTest(unittest.TestCase):
         self.assertEqual(objc_c('I').charValue(), 'I')
 
     def test_string(self):
-        self.assertEqual(objc_str('some string').UTF8String(), 'some string')
+        self.assertEqual(objc_str('some string').UTF8String(), b'some string')
 
     def test_integer(self):
         self.assertEqual(objc_i(123).intValue(), 123)
