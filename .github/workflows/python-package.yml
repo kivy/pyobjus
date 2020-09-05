@@ -26,7 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install --timeout=120 --user -U setuptools pytest
+        pip install --timeout=120 --user -U setuptools cython pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install --timeout=120 --user .
     - name: Test with pytest
