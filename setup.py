@@ -66,7 +66,7 @@ depends = [join('pyobjus', x) for x in (
 
 data_allowed_ext = (
     'readme', 'py', 'wav', 'png', 'jpg', 'svg', 'json', 'avi', 'gif', 'txt',
-    'ttf', 'obj', 'mtl', 'kv', 'mpg', 'glsl', 'zip', 'h', 'm'
+    'ttf', 'obj', 'mtl', 'kv', 'mpg', 'glsl', 'zip', 'h', 'm', 'md',
 )
 
 def tree(source, allowed_ext=data_allowed_ext, tree_name='share/pyobjus-'):
