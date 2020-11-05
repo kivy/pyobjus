@@ -1,0 +1,57 @@
+name: Deploy sdist
+
+on: [push, pull_request]
+
+jobs:
+  deploy:
+    runs-on: macOs-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        pip install cython twine
+
+    - name: Build Package
+      run: |
+        python setup.py sdist --formats=gztar
+
+    - name: Create artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: sdist
+        path: dist
+
+    - name: Upload to GitHub Releases
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v0.1.5
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB }}
+      with:
+        files: dist/*
+        draft: false
+
+    - name: Publish to PyPI
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        twine upload dist/*
+
+    - name: Test sdist
+      run: |
+        pip uninstall cython -y
+
+        root="$(pwd)"
+        cd ~
+        pyobjus_fname=$(ls $root/dist/pyobjus-*.tar.gz)
+        pip install "$pyobjus_fname"
+
+        python -c "from pyobjus import autoclass, objc_str"

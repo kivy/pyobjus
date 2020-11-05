@@ -1,2 +1,5 @@
-include *LICENSE
+include *LICENSE *pyproject.toml *Makefile *README.md 
 recursive-include pyobjus *.pyx *.pxi *.h
+recursive-include docs *
+recursive-include tests *
+recursive-include tools *
