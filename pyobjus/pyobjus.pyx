@@ -448,7 +448,7 @@ cdef class ObjcMethod(object):
                 if self.signature_return[0].startswith((b'{', b'(')) and size_ret > 16:
                     stret = True
 
-                if stret:
+                if ARCH!= 'arm64' and stret:
                     ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend_stret, res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
                     del_res_ptr = False
