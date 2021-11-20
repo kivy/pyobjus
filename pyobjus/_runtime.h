@@ -40,3 +40,16 @@ void drainAutoreleasePool(id pool) {
 id objc_msgSend_custom(id obj, SEL sel){
   return ((id (*)(id, SEL)) objc_msgSend)(obj, sel); 
 }
+
+#if TARGET_OS_OSX && TARGET_CPU_X86_64
+  void objc_msgSend_stret__safe(id _Nullable self, SEL _Nonnull op){
+      ((id (*)(id, SEL)) objc_msgSend_stret)(self, op);
+  }
+
+  bool MACOS_HAVE_OBJMSGSEND_STRET = true;
+#else
+  void objc_msgSend_stret__safe(id _Nullable self, SEL _Nonnull op){
+  }
+
+  bool MACOS_HAVE_OBJMSGSEND_STRET = false;
+#endif

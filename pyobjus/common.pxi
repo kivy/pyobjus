@@ -159,3 +159,5 @@ cdef extern from "_runtime.h":
     id    allocAndInitAutoreleasePool()
     void  drainAutoreleasePool(id pool)
     id    objc_msgSend_custom(id obj, SEL sel)
+    void  objc_msgSend_stret__safe(id self, SEL selector, ...)
+    bool  MACOS_HAVE_OBJMSGSEND_STRET
