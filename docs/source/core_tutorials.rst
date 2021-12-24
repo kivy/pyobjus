@@ -12,7 +12,7 @@ You need to load code into pyobjus so it can actually find the appropriate
 class with the autoclass function.
 
 Maybe you want to write some Objective C code, and you want to load it into
-pyobjus, or you want to use some exising `.dylib` or sommething similar.
+pyobjus, or you want to use some exising `.dylib` or something similar.
 
 These problems can be solved using the pyobjus dylib_manager. Currently it has
 a few functions, so let's see what we can do with them.

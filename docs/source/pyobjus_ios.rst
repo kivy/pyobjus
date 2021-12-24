@@ -124,7 +124,7 @@ You can open this project with xcode as follows::
 If you have setup your developer account, you only need to click play and the
 app will be deployed on your iOS device.
 
-This is screenshoot from my iPad.
+This is screenshot from my iPad.
 
 .. figure::  images/IMG_0322.PNG
    :align:   center
@@ -453,7 +453,7 @@ After this step, xcode will open and, if you have connected your iOS
 device to your computer, you can run the project and will see your app
 running on your device.
 
-This is a screenshoot from an iPad.
+This is a screenshot from an iPad.
 
 .. figure::  images/IMG_0330.PNG
    :align:   center

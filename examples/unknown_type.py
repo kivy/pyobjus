@@ -64,7 +64,7 @@ print ret_type.getMembers(only_types=True)
 # Pyobjus is using ctypes structures, so we can get actual pointer to c structure from python object,
 # but if we want to get working correct values of passed arg, we need to cast pointer to appropriate type
 # If type is defined in pyobjus/objc_cy_types pyobjus will cost it for us, but if it isn't, we will need to convert
-# it by ourselfs, for example internaly in function where we are passing struct value. Lets see example of this:
+# it by ourselfs, for example internally in function where we are passing struct value. Lets see example of this:
 
 # - (void) useUnknownStr:(void*)str_vp {
 #   unknown_str *str_p = (unknown_str*)str_vp;
@@ -78,7 +78,7 @@ car.useUnknownStr_(ret_type)
 
 # Another use-case of unknown type signature is with pointers to implementations of methods. 
 # As you known every method has pointer to IMP type, which is actual implementation of that method.
-# So, if we need to get IMP of some method, we can do sommething like this:
+# So, if we need to get IMP of some method, we can do something like this:
 imp = car.methodForSelector_(selector('getSumOf:and:'))
 
 # Method signature for return type of this function is ^?, so that is also some unknown type.
