@@ -39,14 +39,14 @@ sel_ptr = car.makeSelectorPtr()
 car.useSelectorPtr_(sel_ptr)
 
 # but what if we have selector value (not reference) and we want to call method which accepts reference, not value?
-# Luckily pyobjus is smart enought to figure out that method which we call accepts reference, 
+# Luckily pyobjus is smart enough to figure out that method which we call accepts reference, 
 # and also knows are we passing reference or value to some method.
 # So if we pass a value, he will by himself convert it to reference to some type which method accepts, 
 # and with this user is freed of thinking is method accepting value, or reference to some type
 car.useSelectorPtr_(sel)
 
 # As we knows, in native Objective C we can dereference pointer to get actual value on which pointer points
-# Pyobjus also have mechanism of dereferencing some pointer. He is also smart enought to know on which type 
+# Pyobjus also have mechanism of dereferencing some pointer. He is also smart enough to know on which type 
 # he need to cast value on which pointer points.
 sel = dereference(sel_ptr)
 print sel

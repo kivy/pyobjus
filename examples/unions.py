@@ -30,7 +30,7 @@ car = Car.alloc().init()
 union = car.makeUnion()
 print union.rect.origin.x, union.rect.origin.y
 
-# Also there is ability to call function which returns pointer to some unoin type
+# Also there is ability to call function which returns pointer to some union type
 # - (test_un_*) makeUnionPtr {
 #   test_un_ *un = malloc(sizeof(test_un_));
 #   NSRect rect = NSMakeRect(10, 30, 50, 60);
@@ -56,6 +56,6 @@ print union_val.rect.origin.x, union_val.rect.origin.y
 # }
 car.useUnionPtr_(union_ptr)
 
-# Because pyobjus internaly convert union values to union pointer (if that is needed),
-# we can also call this function by passing union value (value will be converted to pointer internaly)
+# Because pyobjus internally convert union values to union pointer (if that is needed),
+# we can also call this function by passing union value (value will be converted to pointer internally)
 car.useUnionPtr_(union)
