@@ -21,7 +21,7 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: python -m pip install --upgrade twine cibuildwheel
+      run: python -m pip install --upgrade twine cibuildwheel cython
 
     - name: Build sdist
       run: |
@@ -56,6 +56,7 @@ jobs:
 
     - name: Test sdist
       run: |
+        pip uninstall cython -y
         root="$(pwd)"
         cd ~
         pyobjus_fname=$(ls $root/dist/pyobjus-*.tar.gz)
