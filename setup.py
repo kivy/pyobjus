@@ -21,10 +21,6 @@ print("Pyobjus platform is {}".format(dev_platform))
 
 # OSX
 if dev_platform == 'darwin':
-    try:
-        from Cython.Distutils import build_ext
-    except ImportError:
-        raise
     files = ['pyobjus.pyx']
 # iOS
 elif dev_platform == 'ios':
