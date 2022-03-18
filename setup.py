@@ -1,9 +1,9 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 from os import environ, walk
 from os.path import dirname, join, exists
 import sys
-import subprocess
 import platform
+from distutils.command.build_ext import build_ext
 
 with open(join('pyobjus', '__init__.py')) as fd:
     VERSION = [
@@ -20,11 +20,11 @@ if kivy_ios_root is not None:
 print("Pyobjus platform is {}".format(dev_platform))
 
 # OSX
+files = []
 if dev_platform == 'darwin':
     files = ['pyobjus.pyx']
 # iOS
 elif dev_platform == 'ios':
-    from distutils.command.build_ext import build_ext
     files = ['pyobjus.c']
 
 
@@ -64,6 +64,7 @@ data_allowed_ext = (
     'readme', 'py', 'wav', 'png', 'jpg', 'svg', 'json', 'avi', 'gif', 'txt',
     'ttf', 'obj', 'mtl', 'kv', 'mpg', 'glsl', 'zip', 'h', 'm', 'md',
 )
+
 
 def tree(source, allowed_ext=data_allowed_ext, tree_name='share/pyobjus-'):
     found = {}
