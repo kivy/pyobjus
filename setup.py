@@ -1,9 +1,9 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 from os import environ, walk
 from os.path import dirname, join, exists
 import sys
-import subprocess
 import platform
+from distutils.command.build_ext import build_ext
 
 with open(join('pyobjus', '__init__.py')) as fd:
     VERSION = [
@@ -20,19 +20,36 @@ if kivy_ios_root is not None:
 print("Pyobjus platform is {}".format(dev_platform))
 
 # OSX
+files = []
 if dev_platform == 'darwin':
-    try:
-        from Cython.Distutils import build_ext
-    except ImportError:
-        raise
     files = ['pyobjus.pyx']
 # iOS
 elif dev_platform == 'ios':
-    from distutils.command.build_ext import build_ext
     files = ['pyobjus.c']
 
 
 class PyObjusBuildExt(build_ext, object):
+
+    def __new__(cls, *a, **kw):
+        # Note how this class is declared as a subclass of distutils
+        # build_ext as the Cython version may not be available in the
+        # environment it is initially started in. However, if Cython
+        # can be used, setuptools will bring Cython into the environment
+        # thus its version of build_ext will become available.
+        # The reason why this is done as a __new__ rather than through a
+        # factory function is because there are distutils functions that check
+        # the values provided by cmdclass with issublcass, and so it would
+        # result in an exception.
+        # The following essentially supply a dynamically generated subclass
+        # that mix in the cython version of build_ext so that the
+        # functionality provided will also be executed.
+        if dev_platform != 'ios':
+            from Cython.Distutils import build_ext as cython_build_ext
+            build_ext_cls = type(
+                'PyObjusBuildExt', (PyObjusBuildExt, cython_build_ext), {})
+            return super(PyObjusBuildExt, cls).__new__(build_ext_cls)
+        else:
+            return super(PyObjusBuildExt, cls).__new__(cls)
 
     def build_extensions(self):
         # create a configuration file for pyobjus (export the platform)
@@ -68,6 +85,7 @@ data_allowed_ext = (
     'readme', 'py', 'wav', 'png', 'jpg', 'svg', 'json', 'avi', 'gif', 'txt',
     'ttf', 'obj', 'mtl', 'kv', 'mpg', 'glsl', 'zip', 'h', 'm', 'md',
 )
+
 
 def tree(source, allowed_ext=data_allowed_ext, tree_name='share/pyobjus-'):
     found = {}
