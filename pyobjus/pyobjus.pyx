@@ -294,6 +294,7 @@ cdef class ObjcMethod(object):
 
         # casting is needed here because otherwise we will get warning at compile
         cdef unsigned int num_args = <unsigned int>len(signature_args)
+        cdef unsigned int num_fixed_args = <unsigned int>len(self.signature_args)
         cdef unsigned int size = sizeof(ffi_type) * num_args
 
         # allocate memory to hold ffi_type* of arguments
@@ -317,8 +318,19 @@ cdef class ObjcMethod(object):
 
         # FFI PREP
         cdef ffi_status f_status
-        f_status = ffi_prep_cif(&self.f_cif, FFI_DEFAULT_ABI,
-                num_args, self.f_result_type, self.f_arg_types)
+        if num_args > num_fixed_args:
+            dprint('num_args > num_fixed_args')
+            f_status = ffi_prep_cif_var(
+                &self.f_cif,
+                FFI_DEFAULT_ABI,
+                num_fixed_args,
+                num_args,
+                self.f_result_type,
+                self.f_arg_types,
+            )
+        else:
+            f_status = ffi_prep_cif(&self.f_cif, FFI_DEFAULT_ABI,
+                    num_args, self.f_result_type, self.f_arg_types)
         if f_status != FFI_OK:
             raise ObjcException(
                     'Unable to prepare the method {0!r}'.format(self.name))
@@ -348,7 +360,8 @@ cdef class ObjcMethod(object):
         cdef size_t result_size = <size_t>int(self.signature_return[1])
 
         # check that we have at least the same number of arguments as the
-        # signature want.
+        # signature want (having more than expected could signify that the called
+        # function is variadic).
         if len(args) < len(self.signature_args) - 2:
             raise ObjcException('Not enough parameters for {}'.format(
                 self.name))
