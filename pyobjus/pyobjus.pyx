@@ -318,19 +318,17 @@ cdef class ObjcMethod(object):
 
         # FFI PREP
         cdef ffi_status f_status
-        if num_args > num_fixed_args:
-            dprint('num_args > num_fixed_args')
-            f_status = ffi_prep_cif_var(
-                &self.f_cif,
-                FFI_DEFAULT_ABI,
-                num_fixed_args,
-                num_args,
-                self.f_result_type,
-                self.f_arg_types,
-            )
-        else:
-            f_status = ffi_prep_cif(&self.f_cif, FFI_DEFAULT_ABI,
-                    num_args, self.f_result_type, self.f_arg_types)
+
+        f_status = guarded_ffi_prep_cif_var(
+            &self.f_cif,
+            FFI_DEFAULT_ABI,
+            num_fixed_args,
+            num_args,
+            self.f_result_type,
+            self.f_arg_types,
+        )
+
+
         if f_status != FFI_OK:
             raise ObjcException(
                     'Unable to prepare the method {0!r}'.format(self.name))
