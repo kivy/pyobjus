@@ -4,8 +4,9 @@ build_ext:
 	env CFLAGS="-O0" python setup.py build_ext --inplace -g
 
 test_lib:
-	rm -rf objc_classes/test/usrlib.dylib
-	clang objc_classes/test/testlib.m -o objc_classes/test/testlib.dylib -dynamiclib -framework Foundation
+	rm -rf objc_classes/test/testlib.dylib objc_classes/test/CArrayTestlib.dylib
+	clang objc_classes/test/testlib.m -o objc_classes/test/testlib.dylib -dynamiclib -framework Foundation -arch arm64 -arch x86_64
+	clang objc_classes/test/CArrayTestlib.m -o objc_classes/test/CArrayTestlib.dylib -dynamiclib -framework Foundation -arch arm64 -arch x86_64
 
 tests: build_ext
 	cd tests && env PYTHONPATH=..:$(PYTHONPATH) python -m pytest -v

@@ -1,5 +1,6 @@
 #include <objc/runtime.h>
 #include <objc/message.h>
+#include <ffi/ffi.h>
 #include <stdio.h>
 #include <dlfcn.h>
 #include <string.h>
@@ -53,3 +54,20 @@ id objc_msgSend_custom(id obj, SEL sel){
 
   bool MACOS_HAVE_OBJMSGSEND_STRET = false;
 #endif
+
+  ffi_status guarded_ffi_prep_cif_var(ffi_cif *_Nonnull cif, ffi_abi abi, unsigned int nfixedargs,
+                                      unsigned int ntotalargs, ffi_type *_Nonnull rtype, ffi_type *_Nonnull *_Nonnull atypes)
+  {
+    if (ntotalargs > nfixedargs)
+    {
+      #if TARGET_OS_OSX
+      if (__builtin_available(macOS 10.15, *))
+      {
+        return ffi_prep_cif_var(cif, abi, nfixedargs, ntotalargs, rtype, atypes);
+      }
+      #elif TARGET_OS_IOS
+        return ffi_prep_cif_var(cif, abi, nfixedargs, ntotalargs, rtype, atypes);
+      #endif
+    }
+    return ffi_prep_cif(cif, abi, ntotalargs, rtype, atypes);
+  }

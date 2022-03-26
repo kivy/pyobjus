@@ -146,8 +146,20 @@ typedef union test_un_ {
     return [self methodForSelector:@selector(getSumOf:and:)];
 }
 
-- (int) useImp:(IMP*(void*, SEL, ...))imp withA:(int)a andB:(int)b {
+/*
+    Variadic Functions are managed differently on ARM64!
+
+    IMP*(void*, SEL, ...) is failing on Apple Silicon, but not due to pyobjus.
+    - getandUseImpWithDefaultValues is here to demonstrate is not pyobjus fault,
+    in fact, directly calling getandUseImpWithDefaultValues with `IMP*(void*, SEL, ...)`
+    instead of `IMP*(void*, SEL, int, int)` will lead to unexpected results.
+*/
+- (int) useImp:(IMP*(void*, SEL, int, int))imp withA:(int)a andB:(int)b {
     return (int)imp(self, @selector(getSumOf:and:), a, b);
+}
+
+- (int) getandUseImpWithDefaultValues {
+    return (int)[self useImp: [self getImp] withA: 7 andB: 5];
 }
 
 /******************** </UNKNOWN TYPE TESTS> ***********************/

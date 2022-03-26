@@ -148,9 +148,6 @@ cdef extern from "ffi/ffi.h":
     cdef ffi_type ffi_type_longdouble
     cdef ffi_type ffi_type_pointer
 
-    cdef ffi_status  ffi_prep_cif(ffi_cif *cif, ffi_abi abi,
-                        unsigned int nargs,ffi_type *rtype, ffi_type **atypes)
-
     cdef void        ffi_call(ffi_cif *cif, void (*fn)(), void *rvalue,
                         void **avalue)
 
@@ -161,3 +158,6 @@ cdef extern from "_runtime.h":
     id    objc_msgSend_custom(id obj, SEL sel)
     void  objc_msgSend_stret__safe(id self, SEL selector, ...)
     bool  MACOS_HAVE_OBJMSGSEND_STRET
+    ffi_status guarded_ffi_prep_cif_var(ffi_cif *cif, ffi_abi abi,
+                                    unsigned int nfixedargs, unsigned int ntotalargs,
+                                    ffi_type *rtype, ffi_type **atypes)
