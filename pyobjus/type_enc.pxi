@@ -1,35 +1,11 @@
-def seperate_encoding(sig):
-    c = sig[0][:1]
-
-    if c in b'rnNoORV':
-        sig = (sig[0][1:], sig[1], c)
-    else:
-        sig = (sig[0], sig[1], None)
+def clean_type_specifier(sig):
+    """
+    Clean up the type specifier for a function signature.
+    See: https://gcc.gnu.org/onlinedocs/gcc-5.3.0/gcc/Type-encoding.html
+    """
+    if sig[:1] in  b'rnNoORV':
+        return sig[1:]
     return sig
-
-
-def parse_signature(bytes signature):
-    parts = re.split(b'(\d+)', signature)[:-1]
-    signature_return = seperate_encoding(parts[0:2])
-    parts = parts[2:]
-    signature_args = [seperate_encoding(x) for x in zip(parts[0::2], parts[1::2])]
-
-    # reassembly for array
-    if b'[' in signature:
-        tmp_sig = []
-        arr_sig = b''
-        for item in signature_args:
-            if item[0].startswith(b'['):
-                arr_sig += item[0] + item[1]
-            elif item[0].endswith(b']'):
-                arr_sig += item[0]
-                tmp_sig.append((arr_sig, item[1], item[2]))
-            else:
-                tmp_sig.append(item)
-        signature_args = tmp_sig
-
-    return signature_return, signature_args
-
 
 def signature_types_to_list(type_encoding):
     type_enc_list = []

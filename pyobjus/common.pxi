@@ -93,8 +93,9 @@ cdef extern from "objc/runtime.h":
     const_char_ptr  sel_getName(SEL)
 
     SEL             method_getName(Method)
-    const_char_ptr  method_getTypeEncoding(Method)
+    unsigned int method_getNumberOfArguments(Method)
     const_char_ptr  method_copyArgumentType(Method method, int)
+    const_char_ptr method_copyReturnType(Method)
     objc_method_description* method_getDescription(Method m)
 
     Class           object_getClass(id obj)
