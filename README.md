@@ -35,11 +35,9 @@ If you need assistance, you can ask for help on our mailing list:
 * User Group : https://groups.google.com/group/kivy-users
 * Email      : kivy-users@googlegroups.com
 
-We also have an IRC channel:
+We also have a Discord server:
 
-* Server  : irc.freenode.net
-* Port    : 6667, 6697 (SSL only)
-* Channel : #kivy
+[https://chat.kivy.org/](https://chat.kivy.org/)
 
 
 ## Contributing
