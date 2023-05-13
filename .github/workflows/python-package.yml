@@ -18,10 +18,14 @@ jobs:
             python: "3.9"
           - runs_on: macos-latest
             python: "3.10"
+          - runs_on: macos-latest
+            python: "3.11"
           - runs_on: apple-silicon-m1
-            python: "3.9.11"
+            python: "3.9"
           - runs_on: apple-silicon-m1
-            python: "3.10.3"
+            python: "3.10"
+          - runs_on: apple-silicon-m1
+            python: "3.11"
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python }}
