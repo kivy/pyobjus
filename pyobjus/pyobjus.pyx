@@ -184,7 +184,6 @@ def convert_return_value(retval, clsname, methodname):
 
 cdef class ObjcMethod(object):
     cdef bytes name
-    cdef bytes signature
     cdef int is_static
     cdef object signature_return
     cdef object signature_current_args
@@ -206,7 +205,7 @@ cdef class ObjcMethod(object):
     cdef ffi_type **f_arg_types
     cdef object objc_name
 
-    def __cinit__(self, signature, objc_name, **kwargs):
+    def __cinit__(self, objc_name, signature_args, signature_return, **kwargs):
         self.is_ready = 0
         self.f_result_type = NULL
         self.f_arg_types = NULL
@@ -233,10 +232,12 @@ cdef class ObjcMethod(object):
             #self.f_result_type = NULL
         # TODO: Memory management
 
-    def __init__(self, bytes signature, bytes objc_name, **kwargs):
+    def __init__(self, bytes objc_name, signature_args, signature_return, **kwargs):
         super(ObjcMethod, self).__init__()
-        self.signature = <bytes>signature
-        self.signature_return, self.signature_args = parse_signature(signature)
+
+        self.signature_args = [clean_type_specifier(sign_arg) for sign_arg in signature_args]
+        self.signature_return = clean_type_specifier(signature_return)
+
         self.is_static = kwargs.get('static', False)
         self.name = kwargs.get('name')
         self.objc_name = objc_name
@@ -267,8 +268,8 @@ cdef class ObjcMethod(object):
         else:
             self.name = self.objc_name
 
-        if self.signature_return[0].startswith((b'(', b'{')):
-            sig = self.signature_return[0]
+        if self.signature_return.startswith((b'(', b'{')):
+            sig = self.signature_return
             self.return_type = sig[1:-1].split(b'=', 1)
 
         self.selector = sel_registerName(<bytes>self.name)
@@ -285,12 +286,12 @@ cdef class ObjcMethod(object):
         dprint('signature: {}'.format(signature_args))
 
         # resolve f_result_type
-        if self.signature_return[0].startswith(b'('):
+        if self.signature_return.startswith(b'('):
             self.f_result_type = type_encoding_to_ffitype(
-                    self.signature_return[0], str_in_union=True)
+                    self.signature_return, str_in_union=True)
         else:
             self.f_result_type = type_encoding_to_ffitype(
-                    self.signature_return[0])
+                    self.signature_return)
 
         # casting is needed here because otherwise we will get warning at compile
         cdef unsigned int num_args = <unsigned int>len(signature_args)
@@ -308,12 +309,12 @@ cdef class ObjcMethod(object):
         # populate f_args_type array for FFI prep
         cdef int index = 0
         for arg in signature_args:
-            if arg[0].startswith(b'('):
+            if arg.startswith(b'('):
                 raise ObjcException(
                     'Currently passing unions as arguments by '
                     'value is not supported in pyobjus!')
             dprint('argument ==>', arg, len(signature_args))
-            self.f_arg_types[index] = type_encoding_to_ffitype(arg[0])
+            self.f_arg_types[index] = type_encoding_to_ffitype(arg)
             index = index + 1
 
         # FFI PREP
@@ -355,7 +356,6 @@ cdef class ObjcMethod(object):
         cdef int index
         cdef size_t size
         cdef ObjcClassInstance arg_objcclass
-        cdef size_t result_size = <size_t>int(self.signature_return[1])
 
         # check that we have at least the same number of arguments as the
         # signature want (having more than expected could signify that the called
@@ -400,7 +400,7 @@ cdef class ObjcMethod(object):
                 sig_index = -1
                 signature_args.append(signature_args[-1])
 
-            sig, offset, attr = sig_full = signature_args[sig_index]
+            sig = signature_args[sig_index]
             arg_size = type_encoding_to_ffitype(sig).size
 
             # we already know the ffitype/size being used
@@ -430,7 +430,7 @@ cdef class ObjcMethod(object):
         if res_ptr == NULL:
             raise MemoryError('Unable to allocate res_ptr')
 
-        if not self.signature_return[0].startswith((b'(', b'{')):
+        if not self.signature_return.startswith((b'(', b'{')):
             ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
 
         else:
@@ -456,7 +456,7 @@ cdef class ObjcMethod(object):
                 size_ret = ctypes.sizeof(obj_ret)
 
                 stret = False
-                if self.signature_return[0].startswith((b'{', b'(')) and size_ret > 16:
+                if self.signature_return.startswith((b'{', b'(')) and size_ret > 16:
                     stret = True
 
                 if stret and MACOS_HAVE_OBJMSGSEND_STRET:
@@ -485,8 +485,8 @@ cdef class ObjcMethod(object):
         cdef ObjcClassInstance cret
         cdef bytes bret
 
-        sig = self.signature_return[0]
-        dprint("return signature", self.signature_return[0], of_type="i")
+        sig = self.signature_return
+        dprint("return signature", self.signature_return, of_type="i")
 
         if sig == b'@':
             ret_id = (<id>res_ptr[0])
@@ -524,10 +524,13 @@ cdef objc_method_to_py(Method method, main_cls_name, static=True):
     '''
 
     cdef char* method_name = <char*>sel_getName(method_getName(method))
-    cdef char* method_args = <char*>method_getTypeEncoding(method)
+    cdef unsigned int method_args_len = method_getNumberOfArguments(method)
+    cdef char* method_return_type = method_copyReturnType(method)
+    cdef list method_args_types = [method_copyArgumentType(method, i) for i in range(method_args_len)]
+
     cdef basestring py_name = (<bytes>method_name).replace(b":", b"_").decode("utf-8")
 
-    return py_name, ObjcMethod(<bytes>method_args, method_name, static=static, main_cls_name=main_cls_name)
+    return py_name, ObjcMethod(method_name, method_args_types, method_return_type, static=static, main_cls_name=main_cls_name)
 
 cdef class_get_methods(Class cls, static=False, main_cls_name=None):
     cdef unsigned int index, num_methods
@@ -600,7 +603,11 @@ cdef get_class_method(Class cls, char *name):
         ObjcMethod instance
     '''
     cdef Method m_cls = class_getClassMethod(cls, sel_registerName(name))
-    return ObjcMethod(<bytes><char*>method_getTypeEncoding(m_cls), name, static=True, \
+    cdef unsigned int method_args_len = method_getNumberOfArguments(m_cls)
+    cdef char* method_return_type = method_copyReturnType(m_cls)
+    cdef list method_args_types = [method_copyArgumentType(m_cls, i) for i in range(method_args_len)]
+
+    return ObjcMethod(name, method_args_types, method_return_type, static=True, \
         main_cls_name=class_getName(cls))
 
 cdef resolve_super_class_methods(Class cls, instance_methods=True):
