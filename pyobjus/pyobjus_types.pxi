@@ -612,7 +612,7 @@ cdef class ObjcClassInstance:
         super(ObjcClassInstance, self).__init__()
         cdef ObjcClassStorage storage
         if 'getcls' not in kwargs:
-            storage = self.__cls_storage
+            storage = getattr(self, CLS_STORAGE_NAME)
             self.o_cls = storage.o_cls
 
         if 'noinstance' not in kwargs:
