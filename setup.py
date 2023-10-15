@@ -56,7 +56,10 @@ class PyObjusBuildExt(build_ext, object):
         config_pxi_fn = join(dirname(__file__), 'pyobjus', 'config.pxi')
         config_pxi_need_update = True
         config_pxi = 'DEF PLATFORM = "{}"\n'.format(dev_platform)
-        config_pxi += 'DEF ARCH = "{}"'.format(arch)
+        config_pxi += 'DEF ARCH = "{}"\n'.format(arch)
+        import Cython
+        cython3 = Cython.__version__.startswith('3.')
+        config_pxi += f"DEF PYOBJUS_CYTHON_3 = {cython3}"
         if exists(config_pxi_fn):
             with open(config_pxi_fn) as fd:
                 config_pxi_need_update = fd.read() != config_pxi
