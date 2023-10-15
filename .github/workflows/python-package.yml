@@ -26,12 +26,13 @@ jobs:
             python: "3.7"
           - runs_on: apple-silicon-m1
             python: "3.8"
+          - runs_on: apple-silicon-m1
+            python: "3.9"
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python }}
-      # Needs to be skipped on our self-hosted runners tagged as 'apple-silicon-m1'
-      if: ${{ matrix.runs_on  != 'apple-silicon-m1' }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 
@@ -40,15 +41,11 @@ jobs:
 
     - name: Install project
       run: |
-        source .ci/osx_ci.sh
-        arm64_set_path_and_python_version ${{ matrix.python }}
         pip install cython pytest
         pip install .
 
     - name: Test with pytest
       run: |
-        source .ci/osx_ci.sh
-        arm64_set_path_and_python_version ${{ matrix.python }}
         make test_lib
         make
         make tests
