@@ -57,8 +57,11 @@ class PyObjusBuildExt(build_ext, object):
         config_pxi_need_update = True
         config_pxi = 'DEF PLATFORM = "{}"\n'.format(dev_platform)
         config_pxi += 'DEF ARCH = "{}"\n'.format(arch)
-        import Cython
-        cython3 = Cython.__version__.startswith('3.')
+        if dev_platform == 'ios':
+            cython3 = False # Assume Cython 0.29, which is what we use for kivy-ios (ATM)
+        else:
+            import Cython
+            cython3 = Cython.__version__.startswith('3.')
         config_pxi += f"DEF PYOBJUS_CYTHON_3 = {cython3}"
         if exists(config_pxi_fn):
             with open(config_pxi_fn) as fd:
