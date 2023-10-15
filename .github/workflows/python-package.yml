@@ -18,6 +18,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
         cython:
           - "<3"
           - ">=3"
@@ -41,7 +42,7 @@ jobs:
 
     - name: Install project
       run: |
-        pip install cython pytest
+        pip install cython pytest setuptools
         pip install .
 
     - name: Test with pytest
