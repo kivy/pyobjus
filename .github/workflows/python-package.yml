@@ -9,9 +9,9 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
     strategy:
       matrix:
-        runs_on:
-          - macos-latest
-          - apple-silicon-m1
+        # macos-latest (ATM macos-14) runs on Apple Silicon,
+        # macos-13 runs on Intel
+        runs_on: ['macos-latest', 'macos-13']
         python:
           - "3.8"
           - "3.9"
@@ -21,11 +21,6 @@ jobs:
         cython:
           - "<3"
           - ">=3"
-        exclude:
-          - runs_on: apple-silicon-m1
-            python: "3.8"
-          - runs_on: apple-silicon-m1
-            python: "3.9"
     steps:
     - uses: actions/checkout@v2
 
