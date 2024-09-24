@@ -21,7 +21,7 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: python -m pip install --upgrade twine cibuildwheel~=2.16.2 cython
+      run: python -m pip install --upgrade twine cibuildwheel~=2.16.2 cython setuptools
 
     - name: Build sdist
       run: |
