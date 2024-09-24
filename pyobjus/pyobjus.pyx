@@ -435,7 +435,7 @@ cdef class ObjcMethod(object):
         if res_ptr == NULL:
             raise MemoryError('Unable to allocate res_ptr')
 
-        if not self.signature_return[0].startswith((b'(', b'{')):
+        if not self.signature_return.startswith((b'(', b'{')):
             ffi_call(&self.f_cif, <void(*)() noexcept><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
 
         else:
