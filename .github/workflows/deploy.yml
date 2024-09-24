@@ -8,20 +8,20 @@ jobs:
     runs-on: macos-latest
     env:
       CIBW_BUILD_VERBOSITY: 3
-      CIBW_BUILD: cp3{6,7,8,9,10}-*
-      CIBW_ARCHS: "x86_64 universal2 arm64"
+      CIBW_BUILD: "cp37-macosx_x86_64 cp38-macosx_universal2 cp39-macosx_universal2 cp310-macosx_universal2 cp311-macosx_universal2 cp312-macosx_universal2"
+      CIBW_ARCHS_MACOS: "x86_64 universal2"
       CIBW_TEST_COMMAND: python -c "from pyobjus import autoclass, objc_str"
       CIBW_TEST_SKIP: "*arm64*"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: python -m pip install --upgrade twine cibuildwheel cython
+      run: python -m pip install --upgrade twine cibuildwheel~=2.16.2 cython setuptools
 
     - name: Build sdist
       run: |
@@ -32,14 +32,14 @@ jobs:
         python -m cibuildwheel --output-dir dist
 
     - name: Create artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: wheels
         path: dist
 
     - name: Upload to GitHub Releases
       if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v0.1.14
+      uses: softprops/action-gh-release@v2.0.8
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:

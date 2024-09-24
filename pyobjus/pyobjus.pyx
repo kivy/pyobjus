@@ -49,6 +49,11 @@ from libcpp cimport bool
 
 # library files
 include "config.pxi"
+
+# from Cython 3.0, in the MetaJavaClass, this is accessed as _JavaClass__cls_storage
+# see https://cython.readthedocs.io/en/latest/src/userguide/migrating_to_cy30.html#class-private-name-mangling
+cdef CLS_STORAGE_NAME = '_JavaClass__cls_storage' if PYOBJUS_CYTHON_3 else '__cls_storage'
+
 include "debug.pxi"
 include "common.pxi"
 include "type_enc.pxi"
@@ -129,7 +134,7 @@ class MetaObjcClass(type):
             raise ObjcException('Unable to find class {0!r}'.format(
                 __objcclass__))
 
-        classDict['__cls_storage'] = storage
+        classDict[CLS_STORAGE_NAME] = storage
 
         cdef ObjcMethod om
         for name, value in classDict.iteritems():
@@ -430,8 +435,8 @@ cdef class ObjcMethod(object):
         if res_ptr == NULL:
             raise MemoryError('Unable to allocate res_ptr')
 
-        if not self.signature_return.startswith((b'(', b'{')):
-            ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
+        if not self.signature_return[0].startswith((b'(', b'{')):
+            ffi_call(&self.f_cif, <void(*)() noexcept><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
 
         else:
             # TODO FIXME NOTE: Currently this only work on x86_64 architecture and armv7 ios
@@ -460,20 +465,20 @@ cdef class ObjcMethod(object):
                     stret = True
 
                 if stret and MACOS_HAVE_OBJMSGSEND_STRET:
-                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend_stret__safe, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)() noexcept><id(*)(id, SEL)>objc_msgSend_stret__safe, res_ptr, f_args)
                     fun_name = "objc_msgSend_stret"
                     del_res_ptr = False
                 else:
-                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)() noexcept><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
                     fun_name = "objc_msgSend"
                 dprint("x86_64 architecture {0} call".format(fun_name), of_type='i')
 
             ELIF PLATFORM == 'ios':
                 IF ARCH == 'arm64':
-                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)() noexcept><id(*)(id, SEL)>objc_msgSend, res_ptr, f_args)
                     dprint('ios(arm64) platform objc_msgSend call')
                 ELSE:
-                    ffi_call(&self.f_cif, <void(*)()><id(*)(id, SEL)>objc_msgSend_stret, res_ptr, f_args)
+                    ffi_call(&self.f_cif, <void(*)() noexcept><id(*)(id, SEL)>objc_msgSend_stret, res_ptr, f_args)
                     dprint('ios(armv7) platform objc_msgSend_stret call')
 
             ELSE:

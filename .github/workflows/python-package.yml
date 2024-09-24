@@ -5,48 +5,40 @@ on: [push, pull_request]
 jobs:
   build:
 
-    name: "build (${{ matrix.runs_on }}, ${{ matrix.python }})"
-    defaults:
-      run:
-        shell: ${{ matrix.run_wrapper || 'bash --noprofile --norc -eo pipefail {0}' }}
-    runs-on: ${{ matrix.runs_on || 'macos-latest' }}
+    name: "build (${{ matrix.runs_on }}, ${{ matrix.python }} - Cython ${{ matrix.cython }})"
+    runs-on: ${{ matrix.runs_on }}
     strategy:
       matrix:
-        include:
-          - runs_on: macos-latest
-            python: "3.7"
-          - runs_on: macos-latest
-            python: "3.8"
-          - runs_on: macos-latest
-            python: "3.9"
-          - runs_on: macos-latest
-            python: "3.10"
-          - runs_on: apple-silicon-m1
-            run_wrapper: arch -arm64 bash --noprofile --norc -eo pipefail {0}
-            python: "3.9.11"
-          - runs_on: apple-silicon-m1
-            run_wrapper: arch -arm64 bash --noprofile --norc -eo pipefail {0}
-            python: "3.10.3"
+        # macos-latest (ATM macos-14) runs on Apple Silicon,
+        # macos-13 runs on Intel
+        runs_on: ['macos-latest', 'macos-13']
+        python:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+        cython:
+          - "<3"
+          - ">=3"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+
     - name: Set up Python ${{ matrix.python }}
-      # Needs to be skipped on our self-hosted runners tagged as 'apple-silicon-m1'
-      if: ${{ matrix.runs_on  != 'apple-silicon-m1' }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
 
+    - name: Force Cython version
+      run: sed -i.bak 's/"Cython"/"Cython${{matrix.cython}}"/' pyproject.toml
+
     - name: Install project
       run: |
-        source .ci/osx_ci.sh
-        arm64_set_path_and_python_version ${{ matrix.python }}
-        pip install cython pytest
+        pip install cython pytest setuptools
         pip install .
 
     - name: Test with pytest
       run: |
-        source .ci/osx_ci.sh
-        arm64_set_path_and_python_version ${{ matrix.python }}
         make test_lib
         make
         make tests
