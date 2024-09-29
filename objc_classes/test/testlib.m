@@ -159,7 +159,10 @@ typedef union test_un_ {
 }
 
 - (int) getandUseImpWithDefaultValues {
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wincompatible-function-pointer-types"
     return (int)[self useImp: [self getImp] withA: 7 andB: 5];
+    #pragma clang diagnostic pop
 }
 
 /******************** </UNKNOWN TYPE TESTS> ***********************/
