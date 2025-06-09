@@ -430,8 +430,6 @@ cpdef object convert_py_to_nsobject(arg):
         return autoclass('NSNumber').alloc().initWithBool_(int(arg))
     elif isinstance(arg, (str, unicode)):
         return autoclass('NSString').alloc().initWithUTF8String_(arg)
-    elif isinstance(arg, long):
-        return autoclass('NSNumber').alloc().initWithInt_(arg)
     elif isinstance(arg, int):
         return autoclass('NSNumber').alloc().initWithLong_(arg)
     elif isinstance(arg, float):
@@ -525,10 +523,10 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
     # method is accepting long
     elif sig == b'l':
         if by_value:
-            (<long*>val_ptr)[0] = <long>long(arg)
+            (<long*>val_ptr)[0] = <long>int(arg)
         else:
             if not objc_ref:
-                (<long*>arg_val_ptr)[0] = <long>long(arg)
+                (<long*>arg_val_ptr)[0] = <long>int(arg)
             (<long**>val_ptr)[0] = <long*>arg_val_ptr
     # method is accepting long long
     elif sig == b'q':
@@ -692,7 +690,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
             # ARRAY, ETC.
         else:
             # TODO: Add better conversion between primitive types!
-            if type(arg) is long:
+            if type(arg) is int:
                 (<void**>val_ptr)[0] = <void*><unsigned long long>arg
             elif type(arg) is str:
                 # passing bytes as void* is the same as for char*
