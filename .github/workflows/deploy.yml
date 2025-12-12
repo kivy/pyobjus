@@ -32,7 +32,7 @@ jobs:
         python -m cibuildwheel --output-dir dist
 
     - name: Create artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: wheels
         path: dist
