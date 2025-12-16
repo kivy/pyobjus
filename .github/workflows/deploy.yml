@@ -6,12 +6,6 @@ on: [push, pull_request]
 jobs:
   deploy:
     runs-on: macos-latest
-    env:
-      CIBW_BUILD_VERBOSITY: 3
-      CIBW_BUILD: "cp37-macosx_x86_64 cp38-macosx_universal2 cp39-macosx_universal2 cp310-macosx_universal2 cp311-macosx_universal2 cp312-macosx_universal2"
-      CIBW_ARCHS_MACOS: "x86_64 universal2"
-      CIBW_TEST_COMMAND: python -c "from pyobjus import autoclass, objc_str"
-      CIBW_TEST_SKIP: "*arm64*"
     steps:
     - uses: actions/checkout@v5
 
@@ -20,16 +14,18 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Install dependencies
-      run: python -m pip install --upgrade twine cibuildwheel~=2.16.2 cython setuptools
-
     - name: Build sdist
       run: |
         python setup.py sdist --formats=gztar
 
     - name: Build wheels
-      run: |
-        python -m cibuildwheel --output-dir dist
+      uses: pypa/cibuildwheel@v3.3.0
+      env:
+        CIBW_BUILD_VERBOSITY: 3
+        CIBW_ARCHS_MACOS: "x86_64 universal2"
+        CIBW_TEST_COMMAND: python -c "from pyobjus import autoclass, objc_str"
+      with:
+        output-dir: dist
 
     - name: Create artifacts
       uses: actions/upload-artifact@v4
