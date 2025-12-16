@@ -16,7 +16,7 @@ jobs:
 
     - name: Build sdist
       run: |
-        pip install setuptools
+        pip install setuptools Cython
         python setup.py sdist --formats=gztar
 
     - name: Build wheels
