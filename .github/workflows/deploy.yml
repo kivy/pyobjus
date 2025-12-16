@@ -22,6 +22,7 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v3.3.0
       env:
+        CIBW_PLATFORM: "macos ios"
         CIBW_ARCHS_MACOS: "universal2"
         CIBW_ARCHS_IOS: "arm64_iphoneos arm64_iphonesimulator x86_64_iphonesimulator"
         CIBW_BUILD: "cp310-macosx_universal2 cp311-macosx_universal2 cp312-macosx_universal2 cp313-macosx_universal2 cp314-macosx_universal2 cp314-ios_arm64_iphoneos cp314-ios_arm64_iphonesimulator cp314-ios_x86_64_iphonesimulator"
