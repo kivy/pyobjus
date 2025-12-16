@@ -22,7 +22,7 @@ jobs:
     - name: Build wheels (macOS)
       uses: pypa/cibuildwheel@v3.3.0
       env:
-        CIBW_PLATFORM: "macos ios"
+        CIBW_PLATFORM: "macos"
         CIBW_ARCHS_MACOS: "universal2"
         CIBW_BUILD: "cp310-macosx_universal2 cp311-macosx_universal2 cp312-macosx_universal2 cp313-macosx_universal2 cp314-macosx_universal2 cp314-ios_arm64_iphoneos"
         CIBW_TEST_COMMAND: python -c "from pyobjus import autoclass, objc_str"
