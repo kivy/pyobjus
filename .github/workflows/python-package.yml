@@ -5,22 +5,17 @@ on: [push, pull_request]
 jobs:
   build:
 
-    name: "build (${{ matrix.runs_on }}, ${{ matrix.python }} - Cython ${{ matrix.cython }})"
+    name: "build (${{ matrix.runs_on }}, ${{ matrix.python }}"
     runs-on: ${{ matrix.runs_on }}
     strategy:
       matrix:
-        # macos-latest (ATM macos-14) runs on Apple Silicon,
-        # macos-13 runs on Intel
-        runs_on: ['macos-latest', 'macos-13']
+        runs_on: ['macos-latest', 'macos-15-intel']
         python:
-          - "3.8"
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
-        cython:
-          - "<3"
-          - ">=3"
+          - "3.13"
+          - "3.14"
     steps:
     - uses: actions/checkout@v5
 
@@ -28,9 +23,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
-
-    - name: Force Cython version
-      run: sed -i.bak 's/"Cython"/"Cython${{matrix.cython}}"/' pyproject.toml
 
     - name: Install project
       run: |
