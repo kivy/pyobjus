@@ -1,9 +1,12 @@
 import unittest
 from pyobjus import autoclass, selector
 from pyobjus.dylib_manager import load_dylib
+import pytest
+import sys
 
 Car = car = None
 
+@pytest.mark.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
 class UnknownTypesTest(unittest.TestCase):
 
     def setUp(self):

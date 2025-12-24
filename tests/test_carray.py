@@ -4,6 +4,7 @@ from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
 from pyobjus.dylib_manager import load_dylib
 import ctypes
 import pytest
+import sys
 
 num_list = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9]
 char_list = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
@@ -27,6 +28,7 @@ twoD_array = [
 
 _instance = None
 
+@pytest.mark.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
 class CArrayTest(unittest.TestCase):
 
     def setUp(self):

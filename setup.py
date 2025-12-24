@@ -3,7 +3,8 @@ from os import environ, walk
 from os.path import dirname, join, exists
 import sys
 import platform
-from distutils.command.build_ext import build_ext
+import Cython
+from Cython.Distutils import build_ext
 
 with open(join('pyobjus', '__init__.py')) as fd:
     VERSION = [
@@ -11,57 +12,22 @@ with open(join('pyobjus', '__init__.py')) as fd:
         if x.startswith('__version__')
     ][0].split("'")[-2]
 
-dev_platform = sys.platform
-kivy_ios_root = environ.get('KIVYIOSROOT', None)
 arch = environ.get('ARCH', platform.machine())
-if kivy_ios_root is not None:
-    dev_platform = 'ios'
 
-print("Pyobjus platform is {}".format(dev_platform))
+print("Pyobjus platform is {}".format(sys.platform))
 
-# OSX
-files = []
-if dev_platform == 'darwin':
-    files = ['pyobjus.pyx']
-# iOS
-elif dev_platform == 'ios':
-    files = ['pyobjus.c']
+files = ['pyobjus.pyx']
 
 
 class PyObjusBuildExt(build_ext, object):
-
-    def __new__(cls, *a, **kw):
-        # Note how this class is declared as a subclass of distutils
-        # build_ext as the Cython version may not be available in the
-        # environment it is initially started in. However, if Cython
-        # can be used, setuptools will bring Cython into the environment
-        # thus its version of build_ext will become available.
-        # The reason why this is done as a __new__ rather than through a
-        # factory function is because there are distutils functions that check
-        # the values provided by cmdclass with issublcass, and so it would
-        # result in an exception.
-        # The following essentially supply a dynamically generated subclass
-        # that mix in the cython version of build_ext so that the
-        # functionality provided will also be executed.
-        if dev_platform != 'ios':
-            from Cython.Distutils import build_ext as cython_build_ext
-            build_ext_cls = type(
-                'PyObjusBuildExt', (PyObjusBuildExt, cython_build_ext), {})
-            return super(PyObjusBuildExt, cls).__new__(build_ext_cls)
-        else:
-            return super(PyObjusBuildExt, cls).__new__(cls)
 
     def build_extensions(self):
         # create a configuration file for pyobjus (export the platform)
         config_pxi_fn = join(dirname(__file__), 'pyobjus', 'config.pxi')
         config_pxi_need_update = True
-        config_pxi = 'DEF PLATFORM = "{}"\n'.format(dev_platform)
+        config_pxi = 'DEF PLATFORM = "{}"\n'.format(sys.platform)
         config_pxi += 'DEF ARCH = "{}"\n'.format(arch)
-        if dev_platform == 'ios':
-            cython3 = False # Assume Cython 0.29, which is what we use for kivy-ios (ATM)
-        else:
-            import Cython
-            cython3 = Cython.__version__.startswith('3.')
+        cython3 = Cython.__version__.startswith('3.')
         config_pxi += f"DEF PYOBJUS_CYTHON_3 = {cython3}"
         if exists(config_pxi_fn):
             with open(config_pxi_fn) as fd:
@@ -78,6 +44,27 @@ library_dirs = []
 extra_compile_args = []
 extra_link_args = []
 include_dirs = []
+
+if sys.platform == "ios":
+    ios_ver = platform.ios_ver()
+    ios_deps_path = join(dirname(__file__), "ios-deps-install")
+
+    # Check if the ios-deps-install directory exists
+    if not exists(ios_deps_path):
+        raise RuntimeError(
+            "iOS dependencies not found. Please run the .ci/build_ios_dependencies.sh script to build them."
+        )
+
+    ffi_lib_path = join(
+        ios_deps_path,
+        "iphonesimulator" if ios_ver.is_simulator else "iphoneos",
+        arch,
+    )
+    library_dirs.append(join(ffi_lib_path, "lib"))
+    include_dirs.append(join(ffi_lib_path, "include"))
+    include_dirs.append(join(ffi_lib_path, "include", "ffi"))
+    libraries.append('objc')
+
 depends = [join('pyobjus', x) for x in (
     'common.pxi',
     'config.pxi',
