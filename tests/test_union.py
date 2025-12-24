@@ -1,9 +1,12 @@
 import unittest
 from pyobjus import autoclass, dereference, objc_py_types as opy
 from pyobjus.dylib_manager import load_dylib
+import pytest
+import sys
 
 Car = None
 
+@pytest.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
 class Union(unittest.TestCase):
 
     def setUp(self):

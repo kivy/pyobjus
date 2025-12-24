@@ -2,9 +2,12 @@ import unittest
 from pyobjus import autoclass, dereference, ObjcInt
 from pyobjus.dylib_manager import load_dylib
 from pyobjus.objc_py_types import NSRange
+import pytest
+import sys
 
 Car = car = None
 
+@pytest.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
 class DereferenceTest(unittest.TestCase):
 
     def setUp(self):
