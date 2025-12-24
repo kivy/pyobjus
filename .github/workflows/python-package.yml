@@ -32,5 +32,4 @@ jobs:
     - name: Test with pytest
       run: |
         make test_lib
-        pip install -ve .
-        make tests
+        cd tests && env PYTHONPATH=..:$(PYTHONPATH) python -m pytest -v
