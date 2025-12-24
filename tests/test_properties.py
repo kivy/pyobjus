@@ -6,7 +6,7 @@ import sys
 
 Car = None
 
-@pytest.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
+@pytest.mark.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
 class ObjcPropertyTest(unittest.TestCase):
 
     def setUp(self):

@@ -28,7 +28,7 @@ twoD_array = [
 
 _instance = None
 
-@pytest.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
+@pytest.mark.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
 class CArrayTest(unittest.TestCase):
 
     def setUp(self):
