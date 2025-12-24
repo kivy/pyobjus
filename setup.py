@@ -63,6 +63,7 @@ if sys.platform == "ios":
     library_dirs.append(join(ffi_lib_path, "lib"))
     include_dirs.append(join(ffi_lib_path, "include"))
     include_dirs.append(join(ffi_lib_path, "include", "ffi"))
+    libraries.append('objc')
 
 depends = [join('pyobjus', x) for x in (
     'common.pxi',
