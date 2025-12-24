@@ -37,8 +37,7 @@ build_for_platform() {
     local dest_dir="$INSTALL_DIR/$platform/$arch"
     mkdir -p "$dest_dir/lib"
     cp "build/Release-$sdk/libffi.a" "$dest_dir/lib/"
-    mkdir -p "$dest_dir/include"
-    cp -r "include" "$dest_dir/include/ffi"
+    cp -r "build/Release-$sdk/include" "$dest_dir/include"
     cd ..
 }
 
