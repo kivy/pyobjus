@@ -47,9 +47,21 @@ include_dirs = []
 
 if sys.platform == "ios":
     ios_ver = platform.ios_ver()
-    ios_deps_path = join(dirname(__file__), 'ios-deps-install')
-    print(ios_ver)
+    ios_deps_path = join(dirname(__file__), "ios-deps-install")
 
+    # Check if the ios-deps-install directory exists
+    if not exists(ios_deps_path):
+        raise RuntimeError(
+            "iOS dependencies not found. Please run the .ci/build_ios_dependencies.sh script to build them."
+        )
+
+    ffi_lib_path = join(
+        ios_deps_path,
+        "iphonesimulator" if ios_ver.is_simulator else "iphoneos",
+        arch,
+    )
+    library_dirs.append(join(ffi_lib_path, "lib"))
+    include_dirs.append(join(ffi_lib_path, "include"))
 
 depends = [join('pyobjus', x) for x in (
     'common.pxi',
