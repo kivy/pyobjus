@@ -26,7 +26,7 @@ jobs:
 
     - name: Install project
       run: |
-        pip install cython pytest setuptools
+        pip install pytest
         pip install .
 
     - name: Test with pytest

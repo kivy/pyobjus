@@ -16,8 +16,8 @@ jobs:
 
     - name: Build sdist
       run: |
-        pip install setuptools Cython
-        python setup.py sdist --formats=gztar
+        pip install build
+        python -m build --sdist
 
     - name: Build wheels (macOS)
       uses: pypa/cibuildwheel@v3.3.0
