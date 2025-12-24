@@ -37,7 +37,8 @@ jobs:
         CIBW_PLATFORM: "ios"
         CIBW_ARCHS_IOS: "arm64_iphoneos arm64_iphonesimulator x86_64_iphonesimulator"
         CIBW_BUILD: "cp313-* cp314-*"
-        CIBW_TEST_COMMAND: python -c "from pyobjus import autoclass, objc_str"
+        CIBW_TEST_REQUIRES: "pytest"
+        CIBW_TEST_COMMAND: python -m pytest tests"
       with:
         output-dir: dist
 
