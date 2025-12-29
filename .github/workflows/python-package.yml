@@ -24,9 +24,12 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
 
+    - name: Install CI/CD requirements
+      run: |
+        pip install -r .ci/cicd-requirements.txt
+
     - name: Install project
       run: |
-        pip install pytest
         pip install -e .
 
     - name: Test with pytest

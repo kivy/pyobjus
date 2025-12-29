@@ -14,9 +14,12 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Install CI/CD requirements
+      run:  |
+        pip install -r .ci/cicd-requirements.txt
+
     - name: Build sdist
       run: |
-        pip install build
         python -m build --sdist
 
     - name: Build wheels (macOS)
