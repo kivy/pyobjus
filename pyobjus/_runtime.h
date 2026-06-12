@@ -1,31 +1,13 @@
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <ffi/ffi.h>
-#include <stdio.h>
-#include <dlfcn.h>
 #include <string.h>
 
-static void pyobjc_internal_init() {	
-
-    static void *foundation = NULL;
-    if ( foundation == NULL ) {
-        foundation = dlopen(
-        "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
-        if ( foundation == NULL ) {
-           // Load from the most likely path fails. Log and try alternative
-            char *msg = dlerror();
-            printf("Got dlopen error on Foundation: %s\n", msg);
-
-            foundation = dlopen(
-            "/Groups/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation", RTLD_LAZY);
-            if ( foundation == NULL ) {
-                // 2nd fail
-                msg = dlerror();
-                printf("Got fallback dlopen error on Foundation: %s\n", msg);
-                return;
-            }
-        }
-    }
+static void pyobjc_internal_init() {
+    // Foundation lives in the dyld shared cache on iOS 16+ and is linked
+    // directly on macOS; dlopen by absolute path always fails there.
+    // The ObjC runtime (objc_getClass, etc.) provides Foundation symbols
+    // without an explicit dlopen handle, so nothing is needed here.
 }
 
 id allocAndInitAutoreleasePool() {
