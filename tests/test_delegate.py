@@ -109,6 +109,11 @@ class DelegateTest(unittest.TestCase):
       conn2 = DelegateExample()
       conn1.request_connection()
       conn2.request_connection()
-      cf.CFRunLoopRunInMode(K_CF_RUNLOOP_DEFAULT_MODE, 1, False)
+      # Each connection_didFailWithError_ callback calls CFRunLoopStop, so the
+      # loop exits after the first failure.  Restart it until both have fired.
+      for _ in range(20):
+          cf.CFRunLoopRunInMode(K_CF_RUNLOOP_DEFAULT_MODE, 0.5, False)
+          if conn1.delegate_called and conn2.delegate_called:
+              break
       self.assertTrue(conn1.delegate_called)
       self.assertTrue(conn2.delegate_called)
