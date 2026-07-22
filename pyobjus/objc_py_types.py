@@ -141,9 +141,9 @@ class Factory(object):
             else:
                 if not field_name:
                     field_name, letter, perm_n, perms = self._generate_variable_name(letter, perm_n, perms)
-                    field_list.append((field_name, types[_type]))
-                else:
-                    field_list.append((field_name, types[_type]))
+                # The Cython layer passes bytes on Python 3; decode before lookup in the str-keyed dict.
+                _key = _type.decode("ascii") if isinstance(_type, bytes) else _type
+                field_list.append((field_name, types[_key]))
             self.field_name_ind += 1
         UnknownType._fields_ = field_list
         return UnknownType
