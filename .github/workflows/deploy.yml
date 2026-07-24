@@ -23,7 +23,7 @@ jobs:
         python -m build --sdist
 
     - name: Build wheels (macOS)
-      uses: pypa/cibuildwheel@v3.3.0
+      uses: pypa/cibuildwheel@v3.4.1
       env:
         CIBW_PLATFORM: "macos"
         CIBW_ARCHS_MACOS: "universal2"
@@ -33,7 +33,7 @@ jobs:
         output-dir: dist
 
     - name: Build wheels (iOS)
-      uses: pypa/cibuildwheel@v3.3.0
+      uses: pypa/cibuildwheel@v3.4.1
       env:
         CIBW_BEFORE_ALL: |
           ./.ci/build_ios_dependencies.sh
