@@ -893,11 +893,25 @@ cdef void protocol_forwardInvocation(id self, SEL _cmd, id invocation) with gil:
             dprint('pfi: unsupported complex arg type {!r}, passing None'.format(tp))
             py_method_args.append(None)
             continue
-        arg_type = type_encoding_to_ffitype(tp[:1])
-        dprint('pfi: convert arg {} with type {}'.format(i, tp[:1]))
+        try:
+            arg_type = type_encoding_to_ffitype(tp)
+        except Exception as e:
+            dprint('pfi: unknown arg type {!r}: {}'.format(tp, e))
+            py_method_args.append(None)
+            continue
+        if arg_type == NULL:
+            dprint('pfi: null ffi type for arg {!r}, passing None'.format(tp))
+            py_method_args.append(None)
+            continue
+        if arg_type.size > sizeof(c_arg):
+            dprint('pfi: arg type {!r} too large ({}), passing None'.format(
+                tp, arg_type.size))
+            py_method_args.append(None)
+            continue
+        dprint('pfi: convert arg {} with type {}'.format(i, tp))
         c_arg = NULL
         inv.getArgument_atIndex_(<unsigned long long>&c_arg, i)
-        py_arg = convert_cy_ret_to_py(&c_arg, tp[:1],
+        py_arg = convert_cy_ret_to_py(&c_arg, tp,
                                       <size_t>arg_type.size, members=None,
                                       objc_prop=False, main_cls_name=cls_name)
         py_method_args.append(py_arg)

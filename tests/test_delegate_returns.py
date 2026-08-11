@@ -79,6 +79,17 @@ class _ReturnDelegate(object):
         return objc_str('icon.png')
 
     @protocol('PyobjusReturnTest')
+    def doubleConstNameForKey_(self, key):
+        # Multiple ObjC qualifiers (rn) must still resolve to object return.
+        self.log.append('double-const-name')
+        return objc_str('icon.png')
+
+    @protocol('PyobjusReturnTest')
+    def consumePointer_(self, ptr):
+        self.log.append(('pointer', ptr))
+        return None
+
+    @protocol('PyobjusReturnTest')
     def flagForKey_(self, key):
         self.log.append('flag')
         return True
@@ -125,6 +136,8 @@ class DelegateReturnsTest(unittest.TestCase):
             'nameForKey:': ('@@:@', '@@:@'),
             'pyNameForKey:': ('@@:@', '@@:@'),
             'constNameForKey:': ('r@@:@', 'r@@:@'),
+            'doubleConstNameForKey:': ('rn@@:@', 'rn@@:@'),
+            'consumePointer:': ('v@:^i', 'v24@0:8^i16'),
             'flagForKey:': ('B@:@', 'B@:@'),
             'charForKey:': ('c@:@', 'c@:@'),
             'ucharForKey:': ('C@:@', 'C@:@'),
@@ -165,6 +178,24 @@ class DelegateReturnsTest(unittest.TestCase):
             ptr, 'const-qualified NSString return was NULL (qualifier strip?)')
         length = _msg_send(ctypes.c_ulong, ptr, 'length')
         self.assertEqual(length, len('icon.png'))
+
+    def test_msgsend_double_const_qualified_string_return(self):
+        ptr = _msg_send(
+            ctypes.c_void_p, self.target, 'doubleConstNameForKey:', self.key)
+        self.assertIn('double-const-name', self.delegate.log)
+        self.assertTrue(
+            ptr, 'double-qualified NSString return was NULL')
+        length = _msg_send(ctypes.c_ulong, ptr, 'length')
+        self.assertEqual(length, len('icon.png'))
+
+    def test_pointer_argument_preserves_pointee_type(self):
+        value = ctypes.c_int(42)
+        ptr = ctypes.cast(ctypes.pointer(value), ctypes.c_void_p)
+        _msg_send(None, self.target, 'consumePointer:', ptr)
+        entries = [e for e in self.delegate.log if e[0] == 'pointer']
+        self.assertEqual(len(entries), 1)
+        ref = entries[0][1]
+        self.assertEqual(ref.of_type, b'i')
 
     def test_msgsend_bool_return(self):
         val = _msg_send(
