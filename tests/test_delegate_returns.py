@@ -29,12 +29,32 @@ def _msg_send(restype, target, sel_name, *args):
         sel_name.encode('utf8') if isinstance(sel_name, str) else sel_name)
     argtypes = [ctypes.c_void_p, ctypes.c_void_p] + [
         ctypes.c_void_p] * len(args)
-    fn = ctypes.CFUNCTYPE(restype, *argtypes)(('objc_msgSend', OBJC))
+    if restype is None:
+        fn = ctypes.CFUNCTYPE(None, *argtypes)(('objc_msgSend', OBJC))
+    else:
+        fn = ctypes.CFUNCTYPE(restype, *argtypes)(('objc_msgSend', OBJC))
     call_args = [target.get_address() if hasattr(target, 'get_address')
                  else target, sel]
     for a in args:
         call_args.append(a.get_address() if hasattr(a, 'get_address') else a)
     return fn(*call_args)
+
+
+def _restore_protocol(name, mapping):
+    if mapping is None:
+        protocols.pop(name, None)
+    else:
+        protocols[name] = mapping
+
+
+def _poison_table_height_encoding(test_case):
+    """Temporarily install a stale float encoding for NSTableViewDelegate."""
+    original = protocols.get('NSTableViewDelegate')
+    poisoned = dict(original or {})
+    poisoned['tableView:heightOfRow:'] = (
+        'f16@0:4@8i12', 'f32@0:8@16i24')
+    protocols['NSTableViewDelegate'] = poisoned
+    test_case.addCleanup(_restore_protocol, 'NSTableViewDelegate', original)
 
 
 class _ReturnDelegate(object):
@@ -183,7 +203,7 @@ class DelegateReturnsTest(unittest.TestCase):
         self.assertAlmostEqual(val, 2.25, places=10)
 
     def test_msgsend_void_return(self):
-        _msg_send(ctypes.c_void_p, self.target, 'voidForKey:', self.key)
+        _msg_send(None, self.target, 'voidForKey:', self.key)
         self.assertIn('void', self.delegate.log)
 
     def test_responds_to_selector_returns_bool(self):
@@ -229,11 +249,7 @@ class CGFloatReturnRegressionTest(unittest.TestCase):
     def test_runtime_table_height_encoding_is_double(self):
         from pyobjus.pyobjus import objc_protocol_get_delegates
 
-        # Poison the static fallback; runtime AppKit protocol must still win.
-        protocols['NSTableViewDelegate'] = dict(
-            protocols.get('NSTableViewDelegate') or {})
-        protocols['NSTableViewDelegate']['tableView:heightOfRow:'] = (
-            'f16@0:4@8i12', 'f32@0:8@16i24')
+        _poison_table_height_encoding(self)
 
         d = objc_protocol_get_delegates('NSTableViewDelegate')
         enc = d['tableView:heightOfRow:'][-1]
@@ -246,10 +262,7 @@ class CGFloatReturnRegressionTest(unittest.TestCase):
     def test_msgsend_table_height_returns_double(self):
         # Even if the static table says float, a loaded AppKit protocol must
         # make heightOfRow: return a double to the caller.
-        protocols['NSTableViewDelegate'] = dict(
-            protocols.get('NSTableViewDelegate') or {})
-        protocols['NSTableViewDelegate']['tableView:heightOfRow:'] = (
-            'f16@0:4@8i12', 'f32@0:8@16i24')
+        _poison_table_height_encoding(self)
 
         delegate = _TableHeightDelegate()
         target = convert_py_to_nsobject(delegate)
@@ -260,6 +273,32 @@ class CGFloatReturnRegressionTest(unittest.TestCase):
                 ('objc_msgSend', OBJC))
         val = fn(target.get_address(), sel, None, 0)
         self.assertAlmostEqual(val, 42.5, places=10)
+
+    def test_signature_cache_refreshes_when_encoding_changes(self):
+        # Simulate a delegate that cached a stale float signature; runtime
+        # lookup should rebuild it as double once AppKit is loaded.
+        delegate = _TableHeightDelegate()
+        target = convert_py_to_nsobject(delegate)
+        stale = 'f32@0:8@16i24'
+        NSMethodSignature = autoclass('NSMethodSignature')
+        setattr(
+            delegate,
+            '_sig_tableView:heightOfRow:',
+            NSMethodSignature.signatureWithObjCTypes_(stale))
+        setattr(delegate, '_sigenc_tableView:heightOfRow:', stale)
+
+        sel = OBJC.sel_registerName(b'tableView:heightOfRow:')
+        sig = _msg_send(
+            ctypes.c_void_p, target, 'methodSignatureForSelector:', sel)
+        self.assertTrue(sig)
+
+        fresh_enc = getattr(delegate, '_sigenc_tableView:heightOfRow:')
+        if isinstance(fresh_enc, bytes):
+            fresh_enc = fresh_enc.decode('utf8')
+        self.assertTrue(
+            fresh_enc.startswith('d'),
+            'expected refreshed signature encoding to start with d, got %r'
+            % fresh_enc)
 
 
 if __name__ == '__main__':
