@@ -3,8 +3,10 @@ def clean_type_specifier(sig):
     Clean up the type specifier for a function signature.
     See: https://gcc.gnu.org/onlinedocs/gcc-5.3.0/gcc/Type-encoding.html
     """
-    if sig[:1] in  b'rnNoORV':
-        return sig[1:]
+    if isinstance(sig, unicode):
+        sig = sig.encode('utf8')
+    while sig[:1] in b'rnNoORV':
+        sig = sig[1:]
     return sig
 
 def signature_types_to_list(type_encoding):

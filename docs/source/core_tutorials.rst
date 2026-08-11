@@ -705,6 +705,22 @@ Here, we specify that our object method `connection_didFailWithError_` handles
 the `connection:didFailWithError:` delegation  of the `NSURLConnectionDelegate`
 protocol. Pyobjus then redirects this Objective-C message to our method.
 
+If the protocol method has a non-void return type, the value returned from
+Python is written back onto the ``NSInvocation`` so Objective-C callers receive
+it (for example an ``NSString *``, ``BOOL``, integer, ``char`` /
+``unsigned char``, or ``float`` / ``double``). Supported return kinds today
+are objects (``@``), common integer widths, ``BOOL``, ``char`` /
+``unsigned char``, and ``f`` / ``d``; other encodings (structs, …) are not
+forwarded yet.
+
+Struct, union, and array arguments are not decoded yet either: those
+parameters are passed to the Python method as ``None``.
+
+On 64-bit platforms ``CGFloat`` is ``double``. Load the framework that
+declares a protocol (AppKit, UIKit, …) before creating the delegate so
+pyobjus can use the runtime type encodings; the static
+``pyobjus/protocols.py`` table is only a fallback.
+
 For a complete example, please see the `examples/delegate.py` file.
 
 Using enum types

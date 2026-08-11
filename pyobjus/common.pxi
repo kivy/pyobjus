@@ -9,6 +9,8 @@ cdef extern from "string.h":
 cdef extern from "CoreFoundation/CoreFoundation.h":
     ctypedef struct CFRange:
         pass
+    void *CFRetain(void *cf)
+    void *CFAutorelease(void *cf)
 
 
 cdef extern from "CoreGraphics/CoreGraphics.h":
