@@ -62,6 +62,10 @@ if sys.platform == "ios":
     include_dirs.append(join(ffi_lib_path, "include", "ffi"))
     libraries.append('objc')
 
+if sys.platform in ("ios", "darwin"):
+    # protocol_forwardInvocation uses CFRetain/CFAutorelease for object returns.
+    extra_link_args.extend(['-framework', 'CoreFoundation'])
+
 depends = [join('pyobjus', x) for x in (
     'common.pxi',
     'config.pxi',
