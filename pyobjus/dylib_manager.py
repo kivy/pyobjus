@@ -1,4 +1,5 @@
 import os
+import sys
 import ctypes
 from pyobjus import dprint, autoclass, ObjcException
 from .objc_py_types import enum
@@ -171,8 +172,20 @@ frameworks = dict(
 
 INCLUDE = enum('pyobjus_include', **frameworks)
 
+def _framework_binary(framework):
+    ''' The binary of a framework bundle: Foo.framework/Foo '''
+    path = framework.rstrip('/')
+    name = os.path.splitext(os.path.basename(path))[0]
+    return os.path.join(path, name)
+
+
 def load_framework(framework):
     ''' Function for loading frameworks
+
+    On iOS the framework's binary is opened with dlopen. System frameworks
+    there have no binary on disk, only in the dyld shared cache, so NSBundle
+    finds no executable and cannot load them; dyld resolves the path from the
+    cache. Elsewhere NSBundle loads the framework.
 
     Args:
         framework: Framework to load
@@ -180,11 +193,30 @@ def load_framework(framework):
     Raises:
         ObjcException if it can't load framework
     '''
+    if sys.platform == 'ios':
+        try:
+            ctypes.CDLL(_framework_binary(framework))
+        except OSError as e:
+            raise ObjcException(
+                'Error while loading {0} framework: {1}'.format(framework, e))
+        dprint("Framework {0} succesufully loaded!".format(framework))
+        return
+
     NSBundle = autoclass('NSBundle')
     ns_framework = autoclass('NSString').stringWithUTF8String_(framework)
     bundle = NSBundle.bundleWithPath_(ns_framework)
     try:
-        if bundle.load():
-            dprint("Framework {0} succesufully loaded!".format(framework))
+        loaded = bundle.load()
     except:
         raise ObjcException('Error while loading {0} framework'.format(framework))
+    if not loaded:
+        # Python builds for iOS before 3.13 report sys.platform as 'darwin',
+        # the same value macOS reports, so sys.platform cannot tell them
+        # apart from macOS. They reach this NSBundle branch and need the
+        # dlopen route by hand.
+        raise ObjcException(
+            'NSBundle could not load the {0} framework. If its binary is not '
+            'on disk, as for system frameworks on iOS, open it with dlopen '
+            'instead: ctypes.CDLL({1!r})'.format(
+                framework, _framework_binary(framework)))
+    dprint("Framework {0} succesufully loaded!".format(framework))
