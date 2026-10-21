@@ -45,6 +45,7 @@ import os
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport Py_INCREF, Py_DECREF
 from libc.stdlib cimport malloc, free
+from libc.string cimport memcpy
 from libcpp cimport bool
 
 # library files

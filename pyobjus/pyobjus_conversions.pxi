@@ -144,7 +144,7 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value
 
     else:
         if by_value:
-            (<id*>val_ptr)[0] = (<id*>py_obj)[0]
+            memcpy(val_ptr, py_obj, size)
         else:
             (<id**>val_ptr)[0] = (<id*>py_obj)
         dprint("Possible problems with casting, in pyobjus_conversionx.pxi", of_type='w')
