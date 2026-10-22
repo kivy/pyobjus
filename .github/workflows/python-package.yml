@@ -36,3 +36,31 @@ jobs:
       run: |
         make test_lib
         python -m pytest tests -v
+
+  unsupported-platform:
+    # pyobjus only builds on macOS and iOS. Elsewhere, building an sdist must
+    # still work, and installing must fail with a clear error.
+    name: "unsupported platform (ubuntu-latest)"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.x'
+
+    - name: Build sdist
+      run: |
+        pip install build
+        python -m build --sdist
+
+    - name: Install fails with a clear error
+      run: |
+        if pip install . > install.log 2>&1; then
+          cat install.log
+          echo "::error::pip install unexpectedly succeeded on Linux"
+          exit 1
+        fi
+        cat install.log
+        grep -q "can only be built on macOS or iOS" install.log
