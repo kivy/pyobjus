@@ -1,4 +1,5 @@
 from setuptools import setup, Extension
+from setuptools.errors import PlatformError
 from os import environ, walk
 from os.path import dirname, join, exists
 import sys
@@ -21,6 +22,13 @@ files = ['pyobjus.pyx']
 class PyObjusBuildExt(build_ext, object):
 
     def build_extensions(self):
+        # Checked here rather than at import so that sdist and metadata
+        # generation (e.g. dependency resolvers) still work on any platform.
+        if sys.platform not in ('darwin', 'ios'):
+            raise PlatformError(
+                "pyobjus is a bridge to the Objective-C runtime and can only "
+                "be built on macOS or iOS (this platform is {!r}).".format(sys.platform))
+
         # create a configuration file for pyobjus (export the platform)
         config_pxi_fn = join(dirname(__file__), 'pyobjus', 'config.pxi')
         config_pxi_need_update = True
@@ -107,6 +115,8 @@ setup(
         ]
         for item in data
     ],
+    license_expression='MIT',
+    license_files=['LICENSE'],
     cmdclass={'build_ext': PyObjusBuildExt},
     ext_modules=[
         Extension(
@@ -121,9 +131,9 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: MacOS',
+        'Operating System :: iOS',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
