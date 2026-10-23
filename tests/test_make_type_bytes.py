@@ -82,3 +82,34 @@ class TestMakeTypeBytesDecode(unittest.TestCase):
             [(fn, ft) for fn, ft in result._fields_],
             [('x', ctypes.c_float), ('y', ctypes.c_float)],
         )
+
+    # --- nested structs (the nested member's encoding is bytes too) ----------
+
+    def test_nested_named_struct(self):
+        """A named nested struct becomes a field named after its type."""
+        result = self.factory.make_type([b'TestOuter', b'{TestInner=di}fd'])
+        self.assertEqual([fn for fn, _ in result._fields_], ['TestInner', 'a', 'b'])
+        inner = result._fields_[0][1]
+        self.assertEqual([ft for _, ft in inner._fields_], [ctypes.c_double, ctypes.c_int])
+
+        class Inner(ctypes.Structure):
+            _fields_ = [('a', ctypes.c_double), ('b', ctypes.c_int)]
+
+        class Outer(ctypes.Structure):
+            _fields_ = [('inner', Inner), ('c', ctypes.c_float), ('d', ctypes.c_double)]
+
+        self.assertEqual(ctypes.sizeof(result), ctypes.sizeof(Outer))
+
+    def test_nested_anonymous_structs(self):
+        """Anonymous nested structs ({?=...}) get distinct generated names."""
+        result = self.factory.make_type([b'?', b'{?=qiIq}{?=qiIq}'])
+        names = [fn for fn, _ in result._fields_]
+        self.assertEqual(len(set(names)), 2)
+        self.assertEqual(ctypes.sizeof(result), 48)
+
+    def test_nested_registered_struct(self):
+        """A registered nested struct (CGPoint) reuses the registered type."""
+        from pyobjus.objc_py_types import NSPoint
+        result = self.factory.make_type([b'TestWithPoint', b'{CGPoint=dd}d'])
+        self.assertIs(result._fields_[0][1], NSPoint)
+        self.assertEqual(ctypes.sizeof(result), 24)
