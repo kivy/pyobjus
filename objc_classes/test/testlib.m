@@ -138,6 +138,19 @@ typedef union test_un_ {
     printf("%f\n", str.rect.origin.x);
 }
 
+- (unknown_str) echoUnknownStr:(unknown_str)str {
+    return str;
+}
+
+typedef struct {
+    NSPoint point;
+    double z;
+} point_and_z;
+
+- (double) sumPointAndZ:(point_and_z)s {
+    return s.point.x + s.point.y + s.z;
+}
+
 - (int) getSumOf:(int)a and:(int)b {
     return a + b;
 }

@@ -45,6 +45,7 @@ import os
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport Py_INCREF, Py_DECREF
 from libc.stdlib cimport malloc, free
+from libc.string cimport memcpy
 from libcpp cimport bool
 
 # library files
@@ -406,7 +407,15 @@ cdef class ObjcMethod(object):
                 signature_args.append(signature_args[-1])
 
             sig = signature_args[sig_index]
-            arg_size = type_encoding_to_ffitype(sig).size
+            if sig.startswith((b'{', b'(')):
+                # A struct or union ffi_type has size 0 until ffi_prep_cif
+                # lays it out, so take the size from the ctypes type. A None
+                # argument is passed as a nil pointer, hence the floor.
+                arg_size = max(
+                    ctypes.sizeof(self.factory.find_object(sig[1:-1].split(b'=', 1))),
+                    sizeof(void *))
+            else:
+                arg_size = type_encoding_to_ffitype(sig).size
 
             # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg {!r} with sig {}".format(
