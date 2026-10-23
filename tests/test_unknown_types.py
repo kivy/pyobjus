@@ -15,18 +15,15 @@ class UnknownTypesTest(unittest.TestCase):
         Car = autoclass('Car')
         car = Car.alloc().init()
 
-    @unittest.skip("Segfault, TBF")
     def test_generatingByMembers(self):
         ret_unknown = car.makeUnknownStr(members=['a', 'b', 'CGRect', 'ustr'])
         self.assertEqual(ret_unknown.ustr.a, 2)
         self.assertEqual(ret_unknown.ustr.b, 4)
 
-    @unittest.skip("Segfault, TBF")
     def test_obtainMembers(self):
         member_list = ret_unknown = car.makeUnknownStr(members=['a', 'b', 'CGRect', 'ustr']).getMembers(only_fields=True)
         self.assertEqual(member_list, ['a', 'b', 'CGRect', 'ustr'])
 
-    @unittest.skip("Segfault, TBF")
     def test_generatingUnknownType(self):
         ret_unknown = car.makeUnknownStr()
         self.assertEqual(ret_unknown.a, 10)
