@@ -7,10 +7,10 @@ jobs:
   deploy:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.x'
 
@@ -23,7 +23,7 @@ jobs:
         python -m build --sdist
 
     - name: Build wheels (macOS)
-      uses: pypa/cibuildwheel@v3.3.0
+      uses: pypa/cibuildwheel@v3.4.1
       env:
         CIBW_PLATFORM: "macos"
         CIBW_ARCHS_MACOS: "universal2"
@@ -33,7 +33,7 @@ jobs:
         output-dir: dist
 
     - name: Build wheels (iOS)
-      uses: pypa/cibuildwheel@v3.3.0
+      uses: pypa/cibuildwheel@v3.4.1
       env:
         CIBW_BEFORE_ALL: |
           ./.ci/build_ios_dependencies.sh
@@ -48,7 +48,7 @@ jobs:
         output-dir: dist
 
     - name: Create artifacts
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: wheels
         path: dist
