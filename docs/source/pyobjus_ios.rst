@@ -321,7 +321,8 @@ You will get output similar to this::
 
 You can add additional bridge methods to your pyobjus iOS app by changing the
 content of the `bridge.m/.h` files, or by adding completely new files and
-classes to your xcode project. After that, you can consume them with pyobjus
+classes to your xcode project. A copy of the bridge class used in this section
+is in ``examples/ios-coremotion-bridge``. After that, you can consume them with pyobjus
 using the methods illustrated above.
 
 Pyobjus-ball example
