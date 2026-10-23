@@ -16,6 +16,9 @@ Structs other than CGRect, CGPoint, CGSize and NSRange were also copied as a
 single pointer-sized word, so only their first 8 bytes reached Objective-C.
 The NSEdgeInsets test covers that path.
 
+Structs that contain other structs are sized from the ctypes type that
+Factory.make_type builds from the signature; the testlib tests cover those.
+
 See: https://github.com/kivy/pyobjus/issues/90
 """
 import ctypes
@@ -42,6 +45,16 @@ ROUND_TRIP = textwrap.dedent("""
         assert got == want, (want, got)
     print("ok")
 """)
+
+
+def leaves(struct):
+    ''' Yield (parent, field name) for every non-struct field, depth first. '''
+    for name, _ in struct._fields_:
+        value = getattr(struct, name)
+        if isinstance(value, ctypes.Structure):
+            yield from leaves(value)
+        else:
+            yield struct, name
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="Only for macOS")
@@ -74,6 +87,39 @@ class TestStructArgByValue(unittest.TestCase):
             got = NSValue.valueWithEdgeInsets_(NSEdgeInsets(*want)).edgeInsetsValue()
             got = tuple(getattr(got, name) for name, _ in got._fields_)
             self.assertEqual(got, want)
+
+    def test_nested_unregistered_struct_round_trips(self):
+        from pyobjus import autoclass
+        from pyobjus.dylib_manager import load_dylib
+
+        load_dylib('testlib.dylib', usr_path=False)
+        car = autoclass('Car').alloc().init()
+        # {?=ii{CGRect=...}{?=fi{CGRect=...}}}: 80 bytes, anonymous structs
+        # nested two deep around a registered one.
+        sent = type(car.makeUnknownStr())()
+        fields = list(leaves(sent))
+        for value, (parent, name) in enumerate(fields, start=1):
+            setattr(parent, name, value)
+        got = car.echoUnknownStr_(sent)
+        self.assertEqual(
+            [getattr(parent, name) for parent, name in leaves(got)],
+            list(range(1, len(fields) + 1)))
+
+    def test_nested_struct_in_float_registers(self):
+        from pyobjus import autoclass
+        from pyobjus.dylib_manager import load_dylib
+        from pyobjus.objc_py_types import NSPoint
+
+        class PointAndZ(ctypes.Structure):
+            _fields_ = [("point", NSPoint), ("z", ctypes.c_double)]
+
+        load_dylib('testlib.dylib', usr_path=False)
+        car = autoclass('Car').alloc().init()
+        # Three doubles, so arm64 passes it in floating-point registers, which
+        # libffi only does if the nested CGPoint is described correctly.
+        for i in range(100):
+            arg = PointAndZ(NSPoint(1.5 + i, 2.5), 4.0 + i)
+            self.assertEqual(car.sumPointAndZ_(arg), 8.0 + 2 * i)
 
     @pytest.mark.skipif(not os.path.exists(GUARD_MALLOC),
                         reason="Guard Malloc is not installed")
