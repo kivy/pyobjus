@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build:
 
-    name: "build (${{ matrix.runs_on }}, ${{ matrix.python }}"
+    name: "build (${{ matrix.runs_on }}, ${{ matrix.python }})"
     runs-on: ${{ matrix.runs_on }}
     strategy:
       matrix:
@@ -16,11 +16,15 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+        include:
+          - runs_on: macos-latest
+            python: "3.14"
+            coverage: true
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
 
@@ -32,7 +36,21 @@ jobs:
       run: |
         pip install -e .
 
+    - name: Build test libraries
+      run: make test_lib
+
     - name: Test with pytest
-      run: |
-        make test_lib
-        python -m pytest tests -v
+      if: matrix.coverage != true
+      run: python -m pytest tests -v
+
+    # Standard Python tracing does not cover the compiled Cython/Objective-C code.
+    - name: Test with Python coverage
+      if: matrix.coverage == true
+      run: python -m pytest tests -v --cov=pyobjus --cov-report=xml:coverage.xml
+
+    - name: Upload Python coverage to Coveralls
+      if: matrix.coverage == true
+      uses: coverallsapp/github-action@v2
+      with:
+        file: coverage.xml
+        fail-on-error: false
