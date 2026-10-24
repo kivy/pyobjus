@@ -210,10 +210,6 @@ def load_framework(framework):
     except:
         raise ObjcException('Error while loading {0} framework'.format(framework))
     if not loaded:
-        # Python builds for iOS before 3.13 report sys.platform as 'darwin',
-        # the same value macOS reports, so sys.platform cannot tell them
-        # apart from macOS. They reach this NSBundle branch and need the
-        # dlopen route by hand.
         raise ObjcException(
             'NSBundle could not load the {0} framework. If its binary is not '
             'on disk, as for system frameworks on iOS, open it with dlopen '

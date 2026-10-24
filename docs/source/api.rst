@@ -350,11 +350,11 @@ Dynamic library manager
 
     Function that loads an Objective C framework via NSBundle.
 
-    On iOS (``sys.platform == 'ios'``, Python 3.13 and later) the framework's
-    binary is opened with ``dlopen`` instead: system frameworks there have no
-    binary on disk, only in the dyld shared cache, so NSBundle cannot load
-    them. Python builds for iOS that report ``'darwin'`` take the NSBundle
-    path; for those, load the binary directly, for example
+    On iOS (``sys.platform == 'ios'``) the framework's binary is opened with
+    ``dlopen`` instead: system frameworks there have no binary on disk, only
+    in the dyld shared cache, so NSBundle cannot load them. If NSBundle cannot
+    load a framework elsewhere, the error names the call that opens its
+    binary directly, for example
     ``ctypes.CDLL('/System/Library/Frameworks/WebKit.framework/WebKit')``.
 
     :param framework: Path to the framework.

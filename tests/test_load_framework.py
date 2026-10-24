@@ -9,8 +9,7 @@ return normally in that case, and the failure surfaced later as
 
 load_framework now opens the framework's binary with dlopen on iOS, and
 raises elsewhere when NSBundle cannot load the framework, naming the dlopen
-call to use (Python builds for iOS before 3.13 report sys.platform as
-'darwin' and take that branch).
+call to use.
 
 The iOS branch is exercised on macOS by patching sys.platform: dyld resolves
 macOS system framework paths from the shared cache too. The NSBundle failure
