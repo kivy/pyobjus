@@ -45,6 +45,7 @@ import os
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport Py_INCREF, Py_DECREF
 from libc.stdlib cimport malloc, free
+from libc.string cimport memcpy
 from libcpp cimport bool
 
 # library files
@@ -392,23 +393,28 @@ cdef class ObjcMethod(object):
 
         cdef ObjcClassInstance ocl
 
-        # populate the rest of f_args based on method signature
+        # automatically expand the signature args based on the last
+        # signature argument, to cover variables arguments (va_args)
         signature_args = self.signature_args[:]
+        extra = len(args) + 2 - len(signature_args)
+        if extra > 0:
+            signature_args.extend([signature_args[-1]] * extra)
+
+        # ensure that ffi method is correctly prepared for our current signature.
+        # ffi_prep_cif also lays out struct ffi_types, which have size 0 until then.
+        self.ensure_method(signature_args)
+
+        # populate the rest of f_args based on method signature
         for index, arg in enumerate(args):
 
             dprint("==", index, arg)
 
-            # automatically expand the signature args based on the last
-            # signature argument, to cover variables arguments (va_args)
-            sig_index = index + 2
-            if sig_index >= len(signature_args):
-                sig_index = -1
-                signature_args.append(signature_args[-1])
+            sig = signature_args[index + 2]
+            arg_size = self.f_arg_types[index + 2].size
+            if arg is None:
+                # None is passed as a nil pointer, even for a smaller struct.
+                arg_size = max(arg_size, sizeof(void *))
 
-            sig = signature_args[sig_index]
-            arg_size = type_encoding_to_ffitype(sig).size
-
-            # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg {!r} with sig {}".format(
                     index, arg_size, arg, sig))
 
@@ -423,8 +429,6 @@ cdef class ObjcMethod(object):
                     arg, sig, by_value, arg_size)
             dprint('pointer before ffi_call:', pr(f_args[index + 2]))
 
-        # ensure that ffi method is correctly prepared for our current signature
-        self.ensure_method(signature_args)
         dprint('--- really call {} with args {} (signature is {})'.format(
             self.name, args, signature_args))
         for index in range(len(signature_args)):
