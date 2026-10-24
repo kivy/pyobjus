@@ -674,6 +674,16 @@ def check_copy_properties(cls_name):
             return oclass_register[cls_name].get('class').__copy_properties__
     return None
 
+cdef selector_names_to_bytes(names):
+    ''' Encode selector names given as str to bytes, leaving bytes unchanged.
+
+    Returns:
+        A list of bytes, or None if names is None
+    '''
+    if names is None:
+        return None
+    return [name.encode("utf-8") if isinstance(name, str) else name for name in names]
+
 def autoclass(py_cls_name, **kwargs):
     cdef bytes cls_name
     if isinstance(py_cls_name, bytes):
@@ -683,8 +693,8 @@ def autoclass(py_cls_name, **kwargs):
       cls_name = <bytes>py_cls_name.encode("utf-8")
 
     new_instance = kwargs.get('new_instance', False)
-    load_class_methods_dict = kwargs.get('load_class_methods')
-    load_instance_methods_dict = kwargs.get('load_instance_methods')
+    load_class_methods_dict = selector_names_to_bytes(kwargs.get('load_class_methods'))
+    load_instance_methods_dict = selector_names_to_bytes(kwargs.get('load_instance_methods'))
     reset_autoclass = kwargs.get('reset_autoclass')
     if not new_instance and load_instance_methods_dict:
         omethod_partial_register[cls_name] = load_instance_methods_dict
