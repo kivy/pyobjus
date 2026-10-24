@@ -16,8 +16,7 @@ Structs other than CGRect, CGPoint, CGSize and NSRange were also copied as a
 single pointer-sized word, so only their first 8 bytes reached Objective-C.
 The NSEdgeInsets test covers that path.
 
-Structs that contain other structs are sized from the ctypes type that
-Factory.make_type builds from the signature; the testlib tests cover those.
+The testlib tests cover structs that contain other structs.
 
 See: https://github.com/kivy/pyobjus/issues/90
 """
