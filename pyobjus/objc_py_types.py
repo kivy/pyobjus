@@ -119,7 +119,7 @@ class Factory(object):
                 field_name = members_keys[self.field_name_ind]
 
             if _type.find(b'=') >= 0:
-                type_obj = _type[1:-1].split('=', 1)
+                type_obj = _type[1:-1].split(b'=', 1)
                 if type_obj[0] == b'?':
                     if not field_name:
                         # TODO: This is temporary solution. Find more efficient solution for this!
@@ -132,7 +132,7 @@ class Factory(object):
                         members = members[self.field_name_ind:-1]
                 else:
                     if not field_name:
-                        field_name = type_obj[0]
+                        field_name = type_obj[0].decode("utf-8")
                         members = None
                     else:
                         members = members[self.field_name_ind:-1]
