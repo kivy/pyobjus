@@ -93,7 +93,9 @@ So let's see one simple example of using this function::
     load_framework(INCLUDE.AppKit)
 
 You may wonder what INCLUDE is, and can we load all Frameworks in this way?
-So INCLUDE is an enum, which contains paths to various Frameworks. Currently,
+So INCLUDE is an enum, which contains paths to various Frameworks.
+``load_framework`` takes the path of the framework bundle (the ``.framework``
+directory), and each INCLUDE entry is such a path. Currently,
 INCLUDE contains paths to the following frameworks::
 
     Accelerate = '/System/Library/Frameworks/Accelerate.framework',
