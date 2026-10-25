@@ -29,25 +29,17 @@ Using classes not in the standard Framework
 -------------------------------------------
 
 If you want to use classes other than those available from the linked
-framework, you need to preload the framework first, or add the Framework to
-your application (iOS only).  To preload the framework, you can use the
-pyobjus dylib_manager::
+framework, preload the framework by passing its bundle path to
+``load_framework``. The same path is used on macOS and iOS::
 
-    # We want to use NSAlert, but it's not a standard objective-C class
-    # so we need to either import the framework into our process (desktop)
-    # or link the framework to our app (iOS)
+    # NSAlert is in AppKit, which is not loaded by default
+    from pyobjus.dylib_manager import load_framework
+    load_framework('/System/Library/Frameworks/AppKit.framework')
+
+``INCLUDE`` holds that path for some common frameworks::
+
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
-
-    # OR in this way
-    # from pyobjus.dylib_manager import load_framework
-    # load_framework('/System/Library/Frameworks/AppKit.framework')
-
-    # OR in this way
-    # from pyobjus.dylib_manager import load_dylib
-    # load_dylib('/System/Library/Frameworks/AppKit.framework/Versions/C/Resources/BridgeSupport/AppKit.dylib')
-
-    # NOTE: there is a "Dynamic library manager" section dedicated explaining how to use dylib_manager functions
 
 Then we can use the NSAlert object::
 

@@ -182,13 +182,17 @@ def _framework_binary(framework):
 def load_framework(framework):
     ''' Function for loading frameworks
 
+    framework is the path of the framework bundle, for example
+    /System/Library/Frameworks/AppKit.framework. The same path is used on
+    iOS and elsewhere.
+
     On iOS the framework's binary is opened with dlopen. System frameworks
     there have no binary on disk, only in the dyld shared cache, so NSBundle
     finds no executable and cannot load them; dyld resolves the path from the
     cache. Elsewhere NSBundle loads the framework.
 
     Args:
-        framework: Framework to load
+        framework: Path to the framework bundle
 
     Raises:
         ObjcException if it can't load framework
