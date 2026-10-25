@@ -184,7 +184,7 @@ def load_framework(framework):
 
     framework is the path of the framework bundle, for example
     /System/Library/Frameworks/AppKit.framework. The same path is used on
-    iOS and elsewhere.
+    macOS and iOS.
 
     On iOS the framework's binary is opened with dlopen. System frameworks
     there have no binary on disk, only in the dyld shared cache, so NSBundle
