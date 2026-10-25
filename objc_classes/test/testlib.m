@@ -68,6 +68,10 @@ typedef struct bitfield {
     return bf;
 }
 
+- (int) useBitField:(bitfield)bf {
+    return bf.a;
+}
+
 /******************* </BIT FIELD TESTS> ***********************/
 
 /******************** <UNION TESTS> ***********************/

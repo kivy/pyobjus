@@ -132,3 +132,12 @@ class TestStructArgByValue(unittest.TestCase):
             "exit status {}; stderr:\n{}".format(
                 result.returncode, result.stderr[-2000:]))
         self.assertIn("ok", result.stdout)
+
+    def test_bit_field_struct_arg_raises_clear_error(self):
+        from pyobjus import autoclass, ObjcException
+        from pyobjus.dylib_manager import load_dylib
+
+        load_dylib('testlib.dylib', usr_path=False)
+        car = autoclass('Car').alloc().init()
+        with self.assertRaisesRegex(ObjcException, "Bit fields aren't supported"):
+            car.useBitField_(None)
