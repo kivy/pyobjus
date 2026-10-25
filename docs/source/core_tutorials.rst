@@ -85,18 +85,14 @@ There often can be situations when you need to load classes into pyobjus which
 don't belong to the Foundation framework. For example, say you want to load a
 class from the AppKit framework.
 
-Pass the path of the framework bundle to ``load_framework``. The same path is
-used on macOS and iOS::
-
-    from pyobjus.dylib_manager import load_framework
-    load_framework('/System/Library/Frameworks/AppKit.framework')
-
-``INCLUDE`` holds that bundle path for some common frameworks, so this is the
-same call::
+Load the framework with ``load_framework``. The same call is used on macOS
+and iOS::
 
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
 
+``INCLUDE`` holds the bundle path for some common frameworks.
+``INCLUDE.AppKit`` is ``/System/Library/Frameworks/AppKit.framework``.
 A framework that is not in ``INCLUDE`` is loaded the same way. Pass its bundle
 path, for example ``/System/Library/Frameworks/Metal.framework``.
 

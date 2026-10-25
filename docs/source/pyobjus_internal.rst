@@ -19,8 +19,9 @@ Let's say that we are in the situation where we need to load a NSString class
 belonging to the Foundation framework.
 
 You can load external code into pyobjus using the ``load_framework`` function,
-or by using ``load_dylib``. Pass ``load_framework`` the path of the framework
-bundle, for example ``/System/Library/Frameworks/AppKit.framework``. The same
+or by using ``load_dylib``. ``load_framework`` takes the path of the framework
+bundle. ``INCLUDE`` holds that path for some common frameworks, so
+``INCLUDE.AppKit`` is ``/System/Library/Frameworks/AppKit.framework``. The same
 path is used on iOS, where the framework binary is opened with dlopen.
 On macOS, NSBundle loads the framework. The ``load_dylib`` function uses ctypes
 for loading external .dylib objects into pyobjus.
@@ -29,11 +30,8 @@ Notice that you don't need to explicitly load the Foundation framework into
 pyobjus because the Foundation framework is loaded by default. But if you want
 AppKit, for example, you can do something like this::
 
-    from pyobjus.dylib_manager import load_framework
-    load_framework('/System/Library/Frameworks/AppKit.framework')
-
-``INCLUDE`` holds that bundle path for some common frameworks, so
-``load_framework(INCLUDE.AppKit)`` is the same call.
+    from pyobjus.dylib_manager import load_framework, INCLUDE
+    load_framework(INCLUDE.AppKit)
 
 This will load code from the AppKit framework into pyobjus, so now we can use
 these classes.

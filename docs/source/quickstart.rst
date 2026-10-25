@@ -29,17 +29,17 @@ Using classes not in the standard Framework
 -------------------------------------------
 
 If you want to use classes other than those available from the linked
-framework, preload the framework by passing its bundle path to
-``load_framework``. The same path is used on macOS and iOS::
+framework, preload the framework with ``load_framework``. The same call is
+used on macOS and iOS::
 
     # NSAlert is in AppKit, which is not loaded by default
-    from pyobjus.dylib_manager import load_framework
-    load_framework('/System/Library/Frameworks/AppKit.framework')
-
-``INCLUDE`` holds that path for some common frameworks::
-
     from pyobjus.dylib_manager import load_framework, INCLUDE
     load_framework(INCLUDE.AppKit)
+
+``INCLUDE`` holds the bundle path for some common frameworks.
+``INCLUDE.AppKit`` is ``/System/Library/Frameworks/AppKit.framework``.
+A framework that is not in ``INCLUDE`` is loaded by passing its bundle path,
+for example ``/System/Library/Frameworks/Metal.framework``.
 
 Then we can use the NSAlert object::
 
