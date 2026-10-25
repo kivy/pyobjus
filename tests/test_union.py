@@ -1,5 +1,5 @@
 import unittest
-from pyobjus import autoclass, dereference, objc_py_types as opy
+from pyobjus import autoclass, dereference, objc_py_types as opy, ObjcException
 from pyobjus.dylib_manager import load_dylib
 import pytest
 import sys
@@ -38,3 +38,10 @@ class Union(unittest.TestCase):
         rect = opy.NSRect(opy.NSPoint(20, 40), opy.NSSize(200, 400))
         union_arg.rect = rect
         self.assertTrue(car.useUnionPtrTest_(union_arg))
+
+    def test_passing_union_by_value_raises(self):
+        car = Car.alloc().init()
+        # The retry reuses the signature the first call failed to prepare.
+        for _ in range(2):
+            with self.assertRaisesRegex(ObjcException, "unions as arguments by value"):
+                car.useUnion_(car.makeUnion())

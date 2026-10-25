@@ -285,7 +285,10 @@ cdef class ObjcMethod(object):
     cdef void ensure_method(self, signature_args) except *:
         if self.signature_current_args == signature_args:
             return
-        self.signature_current_args = signature_args
+        # Only cache the signature once ffi_prep_cif succeeds, so a call that
+        # raises below doesn't leave a half-prepared method for the next call.
+        self.signature_current_args = None
+        self.is_ready = 0
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
@@ -340,6 +343,7 @@ cdef class ObjcMethod(object):
             raise ObjcException(
                     'Unable to prepare the method {0!r}'.format(self.name))
 
+        self.signature_current_args = signature_args
         self.is_ready = 1
 
     def __get__(self, obj, objtype):
@@ -370,6 +374,17 @@ cdef class ObjcMethod(object):
             raise ObjcException('Not enough parameters for {}'.format(
                 self.name))
 
+        # automatically expand the signature args based on the last
+        # signature argument, to cover variables arguments (va_args)
+        signature_args = self.signature_args[:]
+        extra = len(args) + 2 - len(signature_args)
+        if extra > 0:
+            signature_args.extend([signature_args[-1]] * extra)
+
+        # ensure that ffi method is correctly prepared for our current signature.
+        # ffi_prep_cif also lays out struct ffi_types, which have size 0 until then.
+        self.ensure_method(signature_args)
+
         # allocate f_args
         f_args = <void **>malloc(sizeof(void *) * (2 + len(args)))
         if f_args == NULL:
@@ -394,30 +409,16 @@ cdef class ObjcMethod(object):
         cdef ObjcClassInstance ocl
 
         # populate the rest of f_args based on method signature
-        signature_args = self.signature_args[:]
         for index, arg in enumerate(args):
 
             dprint("==", index, arg)
 
-            # automatically expand the signature args based on the last
-            # signature argument, to cover variables arguments (va_args)
-            sig_index = index + 2
-            if sig_index >= len(signature_args):
-                sig_index = -1
-                signature_args.append(signature_args[-1])
+            sig = signature_args[index + 2]
+            arg_size = self.f_arg_types[index + 2].size
+            if arg is None:
+                # None is passed as a nil pointer, even for a smaller struct.
+                arg_size = max(arg_size, sizeof(void *))
 
-            sig = signature_args[sig_index]
-            if sig.startswith((b'{', b'(')):
-                # A struct or union ffi_type has size 0 until ffi_prep_cif
-                # lays it out, so take the size from the ctypes type. A None
-                # argument is passed as a nil pointer, hence the floor.
-                arg_size = max(
-                    ctypes.sizeof(self.factory.find_object(sig[1:-1].split(b'=', 1))),
-                    sizeof(void *))
-            else:
-                arg_size = type_encoding_to_ffitype(sig).size
-
-            # we already know the ffitype/size being used
             dprint("index {}: allocating {} bytes for arg {!r} with sig {}".format(
                     index, arg_size, arg, sig))
 
@@ -432,8 +433,6 @@ cdef class ObjcMethod(object):
                     arg, sig, by_value, arg_size)
             dprint('pointer before ffi_call:', pr(f_args[index + 2]))
 
-        # ensure that ffi method is correctly prepared for our current signature
-        self.ensure_method(signature_args)
         dprint('--- really call {} with args {} (signature is {})'.format(
             self.name, args, signature_args))
         for index in range(len(signature_args)):
