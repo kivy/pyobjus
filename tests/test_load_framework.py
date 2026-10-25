@@ -8,7 +8,7 @@ return normally in that case, and the failure surfaced later as
 "Unable to find class" from autoclass.
 
 load_framework now opens the framework's binary with dlopen on iOS, and
-raises elsewhere when NSBundle cannot load the framework, naming the dlopen
+raises on macOS when NSBundle cannot load the framework, naming the dlopen
 call to use.
 
 The iOS branch is exercised on macOS by patching sys.platform: dyld resolves

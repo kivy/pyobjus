@@ -355,7 +355,7 @@ Dynamic library manager
     macOS and iOS. On iOS (``sys.platform == 'ios'``) pyobjus appends the
     binary name and opens it with ``dlopen``: system frameworks there have no
     binary on disk, only in the dyld shared cache, so NSBundle cannot load
-    them. Elsewhere NSBundle loads the bundle. If NSBundle cannot load a
+    them. On macOS, NSBundle loads the bundle. If NSBundle cannot load a
     framework, the error names the call that opens its binary directly, for
     example
     ``ctypes.CDLL('/System/Library/Frameworks/WebKit.framework/WebKit')``.

@@ -22,7 +22,7 @@ You can load external code into pyobjus using the ``load_framework`` function,
 or by using ``load_dylib``. Pass ``load_framework`` the path of the framework
 bundle, for example ``/System/Library/Frameworks/AppKit.framework``. The same
 path is used on iOS, where the framework binary is opened with dlopen.
-Elsewhere NSBundle loads the framework. The ``load_dylib`` function uses ctypes
+On macOS, NSBundle loads the framework. The ``load_dylib`` function uses ctypes
 for loading external .dylib objects into pyobjus.
 
 Notice that you don't need to explicitly load the Foundation framework into

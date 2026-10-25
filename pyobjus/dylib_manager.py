@@ -189,7 +189,7 @@ def load_framework(framework):
     On iOS the framework's binary is opened with dlopen. System frameworks
     there have no binary on disk, only in the dyld shared cache, so NSBundle
     finds no executable and cannot load them; dyld resolves the path from the
-    cache. Elsewhere NSBundle loads the framework.
+    cache. On macOS, NSBundle loads the framework.
 
     Args:
         framework: Path to the framework bundle
