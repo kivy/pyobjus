@@ -285,7 +285,10 @@ cdef class ObjcMethod(object):
     cdef void ensure_method(self, signature_args) except *:
         if self.signature_current_args == signature_args:
             return
-        self.signature_current_args = signature_args
+        # Only cache the signature once ffi_prep_cif succeeds, so a call that
+        # raises below doesn't leave a half-prepared method for the next call.
+        self.signature_current_args = None
+        self.is_ready = 0
 
         dprint('-' * 80)
         dprint('signature ensure_method -->', self.name, self.signature_return)
@@ -340,6 +343,7 @@ cdef class ObjcMethod(object):
             raise ObjcException(
                     'Unable to prepare the method {0!r}'.format(self.name))
 
+        self.signature_current_args = signature_args
         self.is_ready = 1
 
     def __get__(self, obj, objtype):
@@ -370,6 +374,17 @@ cdef class ObjcMethod(object):
             raise ObjcException('Not enough parameters for {}'.format(
                 self.name))
 
+        # automatically expand the signature args based on the last
+        # signature argument, to cover variables arguments (va_args)
+        signature_args = self.signature_args[:]
+        extra = len(args) + 2 - len(signature_args)
+        if extra > 0:
+            signature_args.extend([signature_args[-1]] * extra)
+
+        # ensure that ffi method is correctly prepared for our current signature.
+        # ffi_prep_cif also lays out struct ffi_types, which have size 0 until then.
+        self.ensure_method(signature_args)
+
         # allocate f_args
         f_args = <void **>malloc(sizeof(void *) * (2 + len(args)))
         if f_args == NULL:
@@ -392,17 +407,6 @@ cdef class ObjcMethod(object):
         dprint(' - selector is', pr(self.selector))
 
         cdef ObjcClassInstance ocl
-
-        # automatically expand the signature args based on the last
-        # signature argument, to cover variables arguments (va_args)
-        signature_args = self.signature_args[:]
-        extra = len(args) + 2 - len(signature_args)
-        if extra > 0:
-            signature_args.extend([signature_args[-1]] * extra)
-
-        # ensure that ffi method is correctly prepared for our current signature.
-        # ffi_prep_cif also lays out struct ffi_types, which have size 0 until then.
-        self.ensure_method(signature_args)
 
         # populate the rest of f_args based on method signature
         for index, arg in enumerate(args):

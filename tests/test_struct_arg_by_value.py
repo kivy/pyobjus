@@ -139,5 +139,7 @@ class TestStructArgByValue(unittest.TestCase):
 
         load_dylib('testlib.dylib', usr_path=False)
         car = autoclass('Car').alloc().init()
-        with self.assertRaisesRegex(ObjcException, "Bit fields aren't supported"):
-            car.useBitField_(None)
+        # The retry reuses the signature the first call failed to prepare.
+        for _ in range(2):
+            with self.assertRaisesRegex(ObjcException, "Bit fields aren't supported"):
+                car.useBitField_(None)
