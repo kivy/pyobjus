@@ -1,10 +1,10 @@
-from setuptools import setup, Extension
+from setuptools import setup
 from setuptools.errors import PlatformError
 from os import environ, walk
 from os.path import dirname, join, exists
 import sys
 import platform
-from Cython.Distutils import build_ext
+from Cython.Distutils import Extension, build_ext
 
 with open(join('pyobjus', '__init__.py')) as fd:
     VERSION = [
@@ -13,6 +13,7 @@ with open(join('pyobjus', '__init__.py')) as fd:
     ][0].split("'")[-2]
 
 arch = environ.get('ARCH', platform.machine())
+coverage_build = environ.get('PYOBJUS_COVERAGE') == '1'
 
 print("Pyobjus platform is {}".format(sys.platform))
 
@@ -125,7 +126,12 @@ setup(
             libraries=libraries,
             library_dirs=library_dirs,
             include_dirs=include_dirs,
-            extra_link_args=extra_link_args
+            extra_link_args=extra_link_args,
+            cython_directives={'linetrace': True} if coverage_build else {},
+            define_macros=[
+                ('CYTHON_TRACE', '1'),
+                ('CYTHON_USE_SYS_MONITORING', '0'),
+            ] if coverage_build else [],
         )
     ],
     classifiers=[

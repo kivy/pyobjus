@@ -33,8 +33,18 @@ jobs:
         pip install -r .ci/cicd-requirements.txt
 
     - name: Install project
+      if: matrix.coverage != true
       run: |
         pip install -e .
+
+    - name: Install instrumented project
+      if: matrix.coverage == true
+      env:
+        PYOBJUS_COVERAGE: '1'
+      run: |
+        python -m pip install "Cython>3" "setuptools>=77" wheel
+        python -m pip install --no-build-isolation -e .
+        python setup.py build_ext --inplace --force
 
     - name: Build test libraries
       run: make test_lib
@@ -43,16 +53,17 @@ jobs:
       if: matrix.coverage != true
       run: python -m pytest tests -v
 
-    # Standard Python tracing does not cover the compiled Cython/Objective-C code.
-    - name: Test with Python coverage
+    - name: Test with Python and Cython coverage
       if: matrix.coverage == true
-      run: python -m pytest tests -v --cov=pyobjus --cov-report=xml:coverage.xml
+      run: python -m pytest tests -v --cov --cov-report=xml:coverage.xml
 
-    - name: Upload Python coverage to Coveralls
+    - name: Upload Python and Cython coverage to Coveralls
       if: matrix.coverage == true
       uses: coverallsapp/github-action@v2
       with:
         file: coverage.xml
+        # The Cobertura uploader ignores XML <sources>; retain repository paths.
+        base-path: pyobjus
         fail-on-error: false
 
   unsupported-platform:
