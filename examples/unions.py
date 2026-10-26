@@ -28,7 +28,7 @@ car = Car.alloc().init()
 #   return un;
 # }
 union = car.makeUnion()
-print union.rect.origin.x, union.rect.origin.y
+print(union.rect.origin.x, union.rect.origin.y)
 
 # Also there is ability to call function which returns pointer to some union type
 # - (test_un_*) makeUnionPtr {
@@ -39,7 +39,7 @@ print union.rect.origin.x, union.rect.origin.y
 # }
 union_ptr = car.makeUnionPtr()
 union_val = dereference(union_ptr)
-print union_val.rect.origin.x, union_val.rect.origin.y
+print(union_val.rect.origin.x, union_val.rect.origin.y)
 
 # BUT, currently passing unions by value to some function isn't supported,
 # because pyobjus use libffi, which doesn't support that feature

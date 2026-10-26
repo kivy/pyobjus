@@ -28,5 +28,5 @@ enumerator = mutable_dictionary.objectEnumerator()
 obj = enumerator.nextObject()
 while obj:
     str_value = obj.UTF8String()
-    print str_value
+    print(str_value)
     obj = enumerator.nextObject()
