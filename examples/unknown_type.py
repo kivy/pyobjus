@@ -52,13 +52,13 @@ ret_type = car.makeUnknownStr(members=['first', 'second', 'struct_field', 'tmp_f
 # for it's members
 # Maybe you are asking yourself know, how you will know actual generated name, so pyobjus will help you about this.
 # There is getMembers function, which returns name and type of some field in struct.
-print ret_type.getMembers()
+print(ret_type.getMembers())
 
 # If you don't need types, only names, you can call method in following way:
-print ret_type.getMembers(only_fields=True)
+print(ret_type.getMembers(only_fields=True))
 
 # Also, if you want to know only names, you can get it on following way
-print ret_type.getMembers(only_types=True)
+print(ret_type.getMembers(only_types=True))
 
 # If you want to use returned type to pass it as argument to some function there will be some problems. 
 # Pyobjus is using ctypes structures, so we can get actual pointer to c structure from python object,
@@ -86,4 +86,4 @@ imp = car.methodForSelector_(selector('getSumOf:and:'))
 # - (int) useImp:(IMP)imp withA:(int)a andB:(int)b {
 #   return (int)imp(self, @selector(getSumOf:and:), a, b);
 # })
-print car.useImp_withA_andB_(imp, 5, 7)
+print(car.useImp_withA_andB_(imp, 5, 7))
