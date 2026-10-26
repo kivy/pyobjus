@@ -49,7 +49,7 @@ car.useSelectorPtr_(sel)
 # Pyobjus also have mechanism of dereferencing some pointer. He is also smart enough to know on which type 
 # he need to cast value on which pointer points.
 sel = dereference(sel_ptr)
-print sel
+print(sel)
 
 # There is one limitation of dereference function in cases when we have function which returns void pointer (void*)
 # But pyobjus can also deal with this situation, user only need to tell pyobjus in which type to convert
@@ -61,4 +61,4 @@ print sel
 # }
 sel_void_ptr = car.makeSelectorVoidPtr()
 sel = dereference(sel_void_ptr, of_type=ObjcSelector)
-print sel
+print(sel)

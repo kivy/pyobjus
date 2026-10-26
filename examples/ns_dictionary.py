@@ -15,4 +15,4 @@ dictionary = NSDictionary.dictionaryWithObjects_forKeys_(array_object, array_key
 
 returned_nsstring = dictionary.objectForKey_(array_key.objectAtIndex_(0))
 str_value = returned_nsstring.UTF8String()
-print str_value
+print(str_value)

@@ -13,5 +13,5 @@ contain_object = array.containsObject_(string_for_array)
 returnedNSStringObject = array.objectAtIndex_(0)
 value = returnedNSStringObject.UTF8String()
 
-print "string value of returned object -->", value
-print "return value of containsObject method -->", contain_object
+print("string value of returned object -->", value)
+print("return value of containsObject method -->", contain_object)
