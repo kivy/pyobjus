@@ -1,5 +1,5 @@
 import unittest
-from pyobjus import autoclass, dereference, ObjcInt
+from pyobjus import autoclass, dereference, ObjcInt, ObjcSelector
 from pyobjus.dylib_manager import load_dylib
 from pyobjus.objc_py_types import NSRange
 import pytest
@@ -26,3 +26,10 @@ class DereferenceTest(unittest.TestCase):
         int_ptr = car.makeIntVoidPtr()
         int_val = dereference(int_ptr, of_type=ObjcInt)
         self.assertEqual(int_val, 12345)
+
+    def test_dereference_selector_void_ptr(self):
+        # dereferencing a void* as a selector must produce a usable ObjcSelector
+        sel_ptr = car.makeSelectorVoidPtr()
+        sel = dereference(sel_ptr, of_type=ObjcSelector)
+        self.assertIsInstance(sel, ObjcSelector)
+        self.assertTrue(car.respondsToSelector_(sel))
