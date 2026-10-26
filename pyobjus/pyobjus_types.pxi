@@ -461,7 +461,7 @@ cdef class ObjcString:
 cdef class ObjcSelector(object):
     """ Class for storing selector
     """
-    enc = ':'
+    enc = b':'
     cdef SEL selector
 
     def __cinit__(self, *args, **kwargs):
