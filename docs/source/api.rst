@@ -357,7 +357,9 @@ Dynamic library manager
     binary directly, for example
     ``ctypes.CDLL('/System/Library/Frameworks/WebKit.framework/WebKit')``.
 
-    :param framework: Path to the framework.
+    :param framework: Path to the framework bundle (the ``.framework``
+        directory), for example
+        ``'/System/Library/Frameworks/AppKit.framework'`` or ``INCLUDE.AppKit``.
     :type framework: String
     :raises: ``ObjcException`` if the framework can't be found or loaded.
 
