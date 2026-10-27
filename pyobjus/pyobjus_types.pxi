@@ -250,12 +250,45 @@ cdef class CArray:
             bool_t[i] = self.PyList[i]
         return bool_t
 
-    cdef char **as_char_ptr(self): ## not tested
+    cdef char **as_char_ptr(self):
+        # Elements may be bytes or str. A bytes element is used in place, so
+        # its pointer is only valid while the caller keeps that object alive.
+        # A str element is encoded as UTF-8 and copied to malloc'd memory,
+        # because the encoded temporary would otherwise be freed before the
+        # Objective-C side uses it. That copy is intentionally never freed:
+        # the callee may keep the pointer after the call returns.
+        cdef list items = []
+        cdef list is_copy = []
+        cdef bytes encoded
+        cdef char *copy
+        cdef Py_ssize_t n
+        # validate everything first so a bad element raises before anything is allocated
+        for item in self.PyList:
+            if isinstance(item, str):
+                items.append(item.encode("utf8"))
+                is_copy.append(True)
+            elif isinstance(item, bytes):
+                items.append(item)
+                is_copy.append(False)
+            else:
+                raise TypeError(
+                    "char* array elements must be str or bytes, not {}".format(type(item).__name__))
+
         cdef char **char_ptr_t = <char**> malloc(sizeof(char*) * self.PyListSize)
         if char_ptr_t is NULL:
             raise MemoryError()
-        for i in xrange(self.PyListSize):
-            char_ptr_t[i] = <char*><bytes>self.PyList[i]
+        for i in range(self.PyListSize):
+            encoded = items[i]
+            if is_copy[i]:
+                n = len(encoded)
+                copy = <char*> malloc(n + 1)
+                if copy is NULL:
+                    free(char_ptr_t)
+                    raise MemoryError()
+                memcpy(copy, <char*>encoded, n + 1)  # a bytes buffer is NUL-terminated
+                char_ptr_t[i] = copy
+            else:
+                char_ptr_t[i] = <char*>encoded
         return char_ptr_t
 
     cdef id *as_object_array(self):
