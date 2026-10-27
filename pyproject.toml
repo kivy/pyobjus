@@ -3,3 +3,8 @@ requires = [
     "setuptools>=77", "wheel",
     "cython>3",
 ]
+
+[tool.coverage.run]
+core = "ctrace"
+plugins = ["Cython.Coverage"]
+source = ["pyobjus"]
