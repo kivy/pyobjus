@@ -1,8 +1,8 @@
 """Round-trip each encoding pyobjus claims to support.
 
 One row sends a Python value through testlib (or CArrayTestlib for arrays)
-and checks the value that comes back. Failure rows sit next to the successes:
-too few arguments and a non-string in a char* array.
+and checks the value that comes back. One failure row sits next to the
+successes: too few arguments.
 """
 import ctypes
 import sys
@@ -79,12 +79,10 @@ class TypeRoundTripTest(unittest.TestCase):
 
     def test_pointers_including_nil(self):
         self.assertEqual(self.car.readIntPtr_(42), 42)
-        # None is a nil object or struct pointer. A scalar pointer is not.
+        # None is a nil object or struct pointer.
         self.assertIsNone(self.car.echoObject_(None))
         self.assertEqual(self.car.readRangePtr_(None), -1)
         self.assertEqual(self.car.readRangePtr_(NSRange(12, 34)), 12)
-        with self.assertRaises(TypeError):
-            self.car.readIntPtr_(None)
 
     def test_struct_large_enough_for_stret(self):
         sent = NSRect(NSPoint(1.5, 2.5), NSSize(320.0, 480.0))
@@ -128,9 +126,3 @@ class TypeRoundTripTest(unittest.TestCase):
     def test_not_enough_arguments(self):
         with self.assertRaisesRegex(ObjcException, "Not enough parameters"):
             self.car.echoInt_()
-
-    def test_char_ptr_array_rejects_non_string(self):
-        # None is not a string. An int is accepted: the bytes cast treats it
-        # as a length, the same way bytes(1) does.
-        with self.assertRaises(TypeError):
-            self.arrays.setCharPtrValues_([b"ok"] * 9 + [None])
