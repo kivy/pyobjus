@@ -317,8 +317,9 @@ def remove_dimensions(array):
     return result
 
 
-cdef void *parse_array(sig, arg, size, multidimension=False):
+cdef void *parse_array(sig, arg, size, ArgArena arena, multidimension=False):
     cdef void *val_ptr = malloc(size)
+    cdef CArray carray = CArray(arg, arena)
     sig = sig[1:len(sig) - 1]
     sig_split = re.split(b'(\d+)', sig)
     array_size = int(sig_split[1])
@@ -329,75 +330,76 @@ cdef void *parse_array(sig, arg, size, multidimension=False):
     if array_size != len(arg) and not multidimension:
         dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
             array_size, len(arg)))
+        free(val_ptr)
         raise TypeError()
 
     elif array_type == b"i":
         dprint("  [+] ...array is integer!")
-        (<int **>val_ptr)[0] = CArray(arg).as_int()
+        (<int **>val_ptr)[0] = carray.as_int()
 
     elif array_type == b"c":
         dprint("  [+] ...array is char!")
-        (<char **>val_ptr)[0] = CArray(arg).as_char()
+        (<char **>val_ptr)[0] = carray.as_char()
 
     elif array_type == b"s":
         dprint("  [+] ...array is short")
-        (<short **>val_ptr)[0] = CArray(arg).as_short()
+        (<short **>val_ptr)[0] = carray.as_short()
 
     elif array_type == b"l":
         dprint("  [+] ...array is long")
-        (<long **>val_ptr)[0] = CArray(arg).as_long()
+        (<long **>val_ptr)[0] = carray.as_long()
 
     elif array_type == b"q":
         dprint("  [+] ...array is long long")
-        (<long long**>val_ptr)[0] = CArray(arg).as_longlong()
+        (<long long**>val_ptr)[0] = carray.as_longlong()
 
     elif array_type == b"f":
         dprint("  [+] ...array is float")
-        (<float**>val_ptr)[0] = CArray(arg).as_float()
+        (<float**>val_ptr)[0] = carray.as_float()
 
     elif array_type == b"d":
         dprint("  [+] ...array is double")
-        (<double**>val_ptr)[0] = CArray(arg).as_double()
+        (<double**>val_ptr)[0] = carray.as_double()
 
     elif array_type == b"I":
         dprint("  [+] ...array is unsigned int")
-        (<unsigned int**>val_ptr)[0] = CArray(arg).as_uint()
+        (<unsigned int**>val_ptr)[0] = carray.as_uint()
 
     elif array_type == b"S":
         dprint("  [+] ...array is unsigned short")
-        (<unsigned short**>val_ptr)[0] = CArray(arg).as_ushort()
+        (<unsigned short**>val_ptr)[0] = carray.as_ushort()
 
     elif array_type == b"L":
         dprint("  [+] ...array is unsigned long")
-        (<unsigned long**>val_ptr)[0] = CArray(arg).as_ulong()
+        (<unsigned long**>val_ptr)[0] = carray.as_ulong()
 
     elif array_type == b"Q":
         dprint("  [+] ...array is unsigned long long")
-        (<unsigned long long**>val_ptr)[0] = CArray(arg).as_ulonglong()
+        (<unsigned long long**>val_ptr)[0] = carray.as_ulonglong()
 
     elif array_type == b"C":
         dprint("  [+] ...array is unsigned char")
-        (<unsigned char**>val_ptr)[0] = CArray(arg).as_uchar()
+        (<unsigned char**>val_ptr)[0] = carray.as_uchar()
 
     elif array_type == b"B":
         dprint("  [+] ...array is bool")
-        (<bool**>val_ptr)[0] = CArray(arg).as_bool()
+        (<bool**>val_ptr)[0] = carray.as_bool()
 
     elif array_type == b"*":
         dprint("  [+] ...array is char*")
-        (<char***>val_ptr)[0] = CArray(arg).as_char_ptr()
+        (<char***>val_ptr)[0] = carray.as_char_ptr()
 
     elif array_type == b"@":
         dprint("  [+] ...array is object(@)")
-        (<id**>val_ptr)[0] = CArray(arg).as_object_array()
+        (<id**>val_ptr)[0] = carray.as_object_array()
 
     elif array_type == b"#":
         dprint("  [+] ...array is class(#)")
-        (<Class**>val_ptr)[0] = CArray(arg).as_class_array()
+        (<Class**>val_ptr)[0] = carray.as_class_array()
 
     elif array_type == b":":
         dprint("  [+] ...array is sel(:)")
-        (<SEL**>val_ptr)[0] = CArray(arg).as_sel_array()
+        (<SEL**>val_ptr)[0] = carray.as_sel_array()
 
     elif array_type.startswith(b"["):
         dprint("  [+] ...array is array({})".format(sig))
@@ -405,12 +407,13 @@ cdef void *parse_array(sig, arg, size, multidimension=False):
         depth = int(sig[0:parse_position])
         sig = sig[parse_position:]
         dprint("Entering recursion for signature {}".format(sig))
-        return parse_array(sig, remove_dimensions(arg), size, multidimension=True)
+        free(val_ptr)  # the recursive call allocates its own
+        return parse_array(sig, remove_dimensions(arg), size, arena, multidimension=True)
 
     elif array_type.startswith((b"{", b"(")):
         arg_type = array_type[1:-1].split(b'=', 1)
         dprint("  [+] ...array is struct: {}".format(arg_type))
-        (<id**>val_ptr)[0] = CArray(arg).as_struct_array(size, arg_type)
+        (<id**>val_ptr)[0] = carray.as_struct_array(size, arg_type)
     elif array_type == b"b":
         pass
     elif array_type == b"^":
@@ -452,13 +455,14 @@ cpdef object convert_py_to_nsobject(arg):
     return d
 
 
-cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
+cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena) except *:
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
         arg: argument to convert
         sig: method signature
         by_value: True or False, are we passing argument by value or by reference
         size: size of argument in memory
+        arena: owns the memory of converted arrays; freed when the call is done
 
     Returns:
         Pointer (void*) to converted Cython object
@@ -644,7 +648,7 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size) except *:
     # TODO: array
     elif sig.startswith(b'['):
         dprint("==> Array signature for: {0}".format(list(arg)))
-        val_ptr = parse_array(sig, arg, size)
+        val_ptr = parse_array(sig, arg, size, arena)
 
     # method is accepting structure OR union
     # NOTE: Support for passing union as arguments by value wasn't supported with libffi,
