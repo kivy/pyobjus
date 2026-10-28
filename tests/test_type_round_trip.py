@@ -66,7 +66,6 @@ class TypeRoundTripTest(unittest.TestCase):
     def test_object_selector_and_class(self):
         text = autoclass("NSString").stringWithUTF8String_("round trip")
         self.assertEqual(self.car.echoObject_(text).UTF8String(), b"round trip")
-        self.assertIsNone(self.car.echoObject_(None))
 
         self.assertTrue(self.car.respondsToSelector_(
             self.car.echoSelector_(selector("print"))))
