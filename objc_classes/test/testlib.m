@@ -27,6 +27,11 @@ typedef struct {
     unknown_str_new u_str;
 } unknown_str;
 
+typedef struct {
+    int width;
+    int height;
+} pyobjus_size;
+
 @interface Car : NSObject {
 }
 
@@ -529,4 +534,48 @@ ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
     BOOL b = [s isKindOfClass:[st class]];
     printf("%d", b);
 }
+
+/******************** <TYPE ROUND TRIP> ***********************/
+
+- (char) echoChar:(char)v { return v; }
+- (int) echoInt:(int)v { return v; }
+- (short) echoShort:(short)v { return v; }
+- (long) echoLong:(long)v { return v; }
+- (long long) echoLongLong:(long long)v { return v; }
+- (unsigned char) echoUChar:(unsigned char)v { return v; }
+- (unsigned int) echoUInt:(unsigned int)v { return v; }
+- (unsigned short) echoUShort:(unsigned short)v { return v; }
+- (unsigned long) echoULong:(unsigned long)v { return v; }
+- (unsigned long long) echoULongLong:(unsigned long long)v { return v; }
+- (float) echoFloat:(float)v { return v; }
+- (double) echoDouble:(double)v { return v; }
+- (BOOL) echoBOOL:(BOOL)v { return v; }
+- (char *) echoCharPtr:(char *)v { return v; }
+- (id) echoObject:(id)v { return v; }
+- (SEL) echoSelector:(SEL)v { return v; }
+- (const char *) classNameOf:(Class)v {
+    if (v == Nil) return "nil";
+    return class_getName(v);
+}
+
+- (int) readIntPtr:(int *)v {
+    if (v == NULL) return -1;
+    return *v;
+}
+
+- (long long) readRangePtr:(NSRange *)v {
+    if (v == NULL) return -1;
+    return (long long)v->location;
+}
+
+- (pyobjus_size) makeSize {
+    pyobjus_size s;
+    s.width = 3;
+    s.height = 4;
+    return s;
+}
+
+- (pyobjus_size) echoSize:(pyobjus_size)v { return v; }
+
+/******************** </TYPE ROUND TRIP> ***********************/
 @end
