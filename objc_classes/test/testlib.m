@@ -568,8 +568,6 @@ ADD_DYNAMIC_PROPERTY(NSString*, propNsstringDyn, setPropNsstringDyn);
     return (long long)v->location;
 }
 
-- (NSRect) echoRect:(NSRect)v { return v; }
-
 - (pyobjus_size) makeSize {
     pyobjus_size s;
     s.width = 3;

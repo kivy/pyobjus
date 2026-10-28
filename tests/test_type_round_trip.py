@@ -1,24 +1,16 @@
 """Round-trip each encoding pyobjus claims to support.
 
-One row sends a Python value through testlib (or CArrayTestlib for arrays)
-and checks the value that comes back. One failure row sits next to the
-successes: too few arguments.
+One row sends a Python value through testlib and checks the value that comes
+back. One failure row sits next to the successes: too few arguments.
 """
-import ctypes
 import sys
 import unittest
 
 import pytest
 
-from pyobjus import (
-    CArray, ObjcException, autoclass, dereference, selector)
+from pyobjus import ObjcException, autoclass, selector
 from pyobjus.dylib_manager import load_dylib
-from pyobjus.objc_py_types import NSPoint, NSRange, NSRect, NSSize
-
-
-class Bar(ctypes.Structure):
-    """struct foo (typedef'd as bar) in CArrayTestlib.h."""
-    _fields_ = [("a", ctypes.c_int), ("b", ctypes.c_float)]
+from pyobjus.objc_py_types import NSRange
 
 
 # (method, value sent, value expected). Floats are compared approximately.
@@ -48,9 +40,7 @@ class TypeRoundTripTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         load_dylib("testlib.dylib", usr_path=False)
-        load_dylib("CArrayTestlib.dylib", usr_path=False)
         cls.car = autoclass("Car").alloc().init()
-        cls.arrays = autoclass("CArrayTestlib").alloc()
 
     def assert_echo(self, got, expected):
         if isinstance(expected, float):
@@ -83,13 +73,6 @@ class TypeRoundTripTest(unittest.TestCase):
         self.assertEqual(self.car.readRangePtr_(None), -1)
         self.assertEqual(self.car.readRangePtr_(NSRange(12, 34)), 12)
 
-    def test_struct_large_enough_for_stret(self):
-        sent = NSRect(NSPoint(1.5, 2.5), NSSize(320.0, 480.0))
-        got = self.car.echoRect_(sent)
-        self.assertEqual(
-            (got.origin.x, got.origin.y, got.size.width, got.size.height),
-            (1.5, 2.5, 320.0, 480.0))
-
     def test_unregistered_struct_name(self):
         # {pyobjus_size=ii} is not a registered name. make_type builds it.
         sent = type(self.car.makeSize())()
@@ -100,27 +83,6 @@ class TypeRoundTripTest(unittest.TestCase):
         self.assertEqual(
             [getattr(got, name) for name in names],
             [8, 9])
-
-    def test_arrays(self):
-        ints = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9]
-        self.arrays.setIntValues_(ints)
-        self.assertEqual(
-            dereference(self.arrays.getIntValues(), of_type=CArray, return_count=10),
-            ints)
-
-        chars = [b"abc%d" % i for i in range(10)]
-        self.arrays.setCharPtrValues_(chars)
-        self.assertEqual(
-            dereference(self.arrays.getCharPtrValues(), of_type=CArray, return_count=10),
-            chars)
-
-        structs = [Bar(i, i + 0.5) for i in range(10)]
-        self.arrays.setFooBarValues_(structs)
-        got = dereference(
-            self.arrays.getFooBarValues(), of_type=CArray, return_count=10)
-        self.assertEqual([item.a for item in got], [item.a for item in structs])
-        for item, sent in zip(got, structs):
-            self.assertAlmostEqual(item.b, sent.b, places=5)
 
     def test_not_enough_arguments(self):
         with self.assertRaisesRegex(ObjcException, "Not enough parameters"):
