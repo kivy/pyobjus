@@ -49,6 +49,62 @@ class CArrayTest(unittest.TestCase):
         self.assertEqual(returned_PyList, num_list)
         self.assertEqual(returned_PyList_withCount, num_list)
 
+    def test_carray_char_ptr_bytes(self):
+        values = [b"abc1", b"abc2", b"abc3", b"abc4", b"abc5",
+                  b"abc6", b"abc7", b"abc8", b"abc9", b"abc10"]
+        _instance.setCharPtrValues_(values)
+        returned = dereference(
+            _instance.getCharPtrValues(),
+            of_type=CArray, return_count=10)
+        self.assertEqual(returned, values)
+
+    def test_carray_char_ptr_str(self):
+        values = ["abc1", "abc2", "abc3", "abc4", "abc5",
+                  "abc6", "abc7", "abc8", "abc9", "abc10"]
+        _instance.setCharPtrValues_(values)
+        returned = dereference(
+            _instance.getCharPtrValues(),
+            of_type=CArray, return_count=10)
+        self.assertEqual(returned, [v.encode() for v in values])
+
+    def test_carray_char_ptr_str_non_ascii_is_utf8(self):
+        values = ["caf\u00e9", "\u00fcber", "na\u00efve", "\u65e5\u672c", "plain",
+                  "plain", "plain", "plain", "plain", "plain"]
+        _instance.setCharPtrValues_(values)
+        returned = dereference(
+            _instance.getCharPtrValues(),
+            of_type=CArray, return_count=10)
+        self.assertEqual(returned, [v.encode("utf8") for v in values])
+
+    def test_carray_char_ptr_mixed_str_and_bytes(self):
+        values = ["str0", b"bytes1", "str2", b"bytes3", "str4",
+                  b"bytes5", "str6", b"bytes7", "str8", b"bytes9"]
+        _instance.setCharPtrValues_(values)
+        returned = dereference(
+            _instance.getCharPtrValues(),
+            of_type=CArray, return_count=10)
+        expected = [v if isinstance(v, bytes) else v.encode() for v in values]
+        self.assertEqual(returned, expected)
+
+    def test_carray_char_ptr_str_outlives_python_list(self):
+        # the Objective-C object keeps the pointers after the call returns,
+        # so encoded strings must not depend on the Python list staying alive
+        import gc
+        values = ["kept%d" % i for i in range(10)]
+        _instance.setCharPtrValues_(values)
+        del values
+        gc.collect()
+        returned = dereference(
+            _instance.getCharPtrValues(),
+            of_type=CArray, return_count=10)
+        self.assertEqual(returned, [b"kept%d" % i for i in range(10)])
+
+    def test_carray_char_ptr_rejects_other_types(self):
+        for bad in (1, None, 1.5, object()):
+            values = ["ok"] * 9 + [bad]
+            with self.assertRaises(TypeError):
+                _instance.setCharPtrValues_(values)
+
     def test_carray_char(self):
         count = ctypes.c_uint32(0)
         _instance.setCharValues_(char_list)
