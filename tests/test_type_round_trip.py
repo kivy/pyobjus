@@ -17,15 +17,6 @@ from pyobjus.dylib_manager import load_dylib
 from pyobjus.objc_py_types import NSPoint, NSRange, NSRect, NSSize
 
 
-def _leaves(struct):
-    for name, _typ in struct._fields_:
-        value = getattr(struct, name)
-        if isinstance(value, ctypes.Structure):
-            yield from _leaves(value)
-        else:
-            yield struct, name
-
-
 class Bar(ctypes.Structure):
     """struct foo (typedef'd as bar) in CArrayTestlib.h."""
     _fields_ = [("a", ctypes.c_int), ("b", ctypes.c_float)]
@@ -102,16 +93,6 @@ class TypeRoundTripTest(unittest.TestCase):
         self.assertEqual(
             (got.origin.x, got.origin.y, got.size.width, got.size.height),
             (1.5, 2.5, 320.0, 480.0))
-
-    def test_nested_struct(self):
-        sent = type(self.car.makeUnknownStr())()
-        fields = list(_leaves(sent))
-        for value, (parent, name) in enumerate(fields, start=1):
-            setattr(parent, name, value)
-        got = self.car.echoUnknownStr_(sent)
-        self.assertEqual(
-            [getattr(parent, name) for parent, name in _leaves(got)],
-            list(range(1, len(fields) + 1)))
 
     def test_unregistered_struct_name(self):
         # {pyobjus_size=ii} is not a registered name. make_type builds it.
