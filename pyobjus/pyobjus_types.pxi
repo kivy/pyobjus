@@ -35,6 +35,10 @@ cdef class ArgArena:
     The memory only has to live for the duration of the call, so it is freed
     when the arena is released, i.e. when the call returns or raises. As with
     any C call, a callee that wants to keep an argument must copy it.
+
+    Memory whose address is handed to the callee as the argument's value, and
+    which the callee may therefore keep (the buffer behind a by-reference
+    scalar, e.g. a pointer property), must not be allocated here.
     """
 
     cdef list _ptrs  # addresses, stored as Python ints
@@ -46,7 +50,11 @@ cdef class ArgArena:
         cdef void *ptr = malloc(size if size > 0 else 1)
         if ptr is NULL:
             raise MemoryError()
-        self._ptrs.append(<size_t>ptr)
+        try:
+            self._ptrs.append(<size_t>ptr)
+        except BaseException:
+            free(ptr)  # not registered, so nothing else would free it
+            raise
         return ptr
 
     cdef void free_all(self):
