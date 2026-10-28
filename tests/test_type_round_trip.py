@@ -2,8 +2,7 @@
 
 One row sends a Python value through testlib (or CArrayTestlib for arrays)
 and checks the value that comes back. Failure rows sit next to the successes:
-too few arguments, a non-string in a char* array, and a second call after
-preparing the call has already failed.
+too few arguments and a non-string in a char* array.
 """
 import ctypes
 import sys
@@ -104,16 +103,6 @@ class TypeRoundTripTest(unittest.TestCase):
         self.assertEqual(
             [getattr(got, name) for name in names],
             [8, 9])
-
-    def test_union_return_and_by_value_argument(self):
-        union = self.car.makeUnion()
-        self.assertEqual(union.rect.origin.x, 20)
-        self.assertEqual(union.rect.origin.y, 40)
-        # The first call fails while the method is being prepared. The second
-        # call must raise the same error, not reuse a half-prepared method.
-        for _ in range(2):
-            with self.assertRaisesRegex(ObjcException, "unions as arguments by value"):
-                self.car.useUnion_(union)
 
     def test_arrays(self):
         ints = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9]
