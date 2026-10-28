@@ -43,6 +43,13 @@
     return self;
 }
 
+- (void) dealloc
+{
+    for (int i = 0; i < 10; i++)
+        free(self->char_ptr_arr[i]);
+    [super dealloc];
+}
+
 
 //  int[10] array
 - (void) setIntValues:(int[10])val_arr
@@ -507,7 +514,12 @@
 - (void) setCharPtrValues: (char*[10]) val_arr
 {
     NSLog(@"Setting char ptr array values...");
-    memcpy(self->char_ptr_arr, val_arr, sizeof(char*) * 10);
+    // Copy the strings: the caller's pointers are only valid during this call.
+    for (int i = 0; i < 10; i++)
+    {
+        free(self->char_ptr_arr[i]);
+        self->char_ptr_arr[i] = val_arr[i] ? strdup(val_arr[i]) : NULL;
+    }
     NSLog(@"Value copied...");
 }
 - (char**) getCharPtrValues

@@ -26,6 +26,20 @@ twoD_array = [
     [91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
 ]
 
+
+class _MallocStats(ctypes.Structure):
+    _fields_ = [("blocks_in_use", ctypes.c_uint),
+                ("size_in_use", ctypes.c_size_t),
+                ("max_size_in_use", ctypes.c_size_t),
+                ("size_allocated", ctypes.c_size_t)]
+
+
+def _malloc_bytes_in_use():
+    """Bytes currently allocated by malloc across all zones (macOS)."""
+    stats = _MallocStats()
+    ctypes.CDLL(None).malloc_zone_statistics(None, ctypes.byref(stats))
+    return stats.size_in_use
+
 _instance = None
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="Only for MacOS, as it needs test dylib")
@@ -87,8 +101,9 @@ class CArrayTest(unittest.TestCase):
         self.assertEqual(returned, expected)
 
     def test_carray_char_ptr_str_outlives_python_list(self):
-        # the Objective-C object keeps the pointers after the call returns,
-        # so encoded strings must not depend on the Python list staying alive
+        # pyobjus frees the C strings it passes to setCharPtrValues: as soon as
+        # the call returns, so the test library keeps its own copies. Reading
+        # the values back after the Python list is gone checks those copies.
         import gc
         values = ["kept%d" % i for i in range(10)]
         _instance.setCharPtrValues_(values)
@@ -104,6 +119,20 @@ class CArrayTest(unittest.TestCase):
             values = ["ok"] * 9 + [bad]
             with self.assertRaises(TypeError):
                 _instance.setCharPtrValues_(values)
+
+    def test_carray_char_ptr_args_do_not_leak(self):
+        # Converted array arguments are only needed for the duration of the
+        # call and must be freed afterwards. Each call below converts ~10 MB
+        # of strings, so 30 calls would leak ~300 MB if they are not freed.
+        values = ["x" * (1024 * 1024) for _ in range(10)]
+        _instance.setCharPtrValues_(values)  # warm up
+        before = _malloc_bytes_in_use()
+        for _ in range(30):
+            _instance.setCharPtrValues_(values)
+        growth_mb = (_malloc_bytes_in_use() - before) / (1024 * 1024)
+        # malloc zone accounting can fluctuate by more than one converted
+        # array on CI; this remains far below the ~300 MB regression signal.
+        self.assertLess(growth_mb, 25)
 
     def test_carray_char(self):
         count = ctypes.c_uint32(0)

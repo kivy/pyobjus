@@ -28,13 +28,45 @@ cdef class CArrayCount:
         self.value = set_value.value
 
 
+cdef class ArgArena:
+    """Owns the C memory allocated while converting the arguments of one
+    method call (arrays and the strings inside them).
+
+    The memory only has to live for the duration of the call, so it is freed
+    when the arena is released, i.e. when the call returns or raises. As with
+    any C call, a callee that wants to keep an argument must copy it.
+    """
+
+    cdef list _ptrs  # addresses, stored as Python ints
+
+    def __cinit__(self):
+        self._ptrs = []
+
+    cdef void *alloc(self, size_t size) except NULL:
+        cdef void *ptr = malloc(size if size > 0 else 1)
+        if ptr is NULL:
+            raise MemoryError()
+        self._ptrs.append(<size_t>ptr)
+        return ptr
+
+    cdef void free_all(self):
+        for addr in self._ptrs:
+            free(<void *><size_t>addr)
+        self._ptrs = []
+
+    def __dealloc__(self):
+        self.free_all()
+
+
 cdef class CArray:
     """Class for representing C array. Due to lack of void ptr arithmetic support there is no void casting magic, therefore per type casting is needed."""
 
     cdef public list PyList
     cdef public unsigned int PyListSize
+    cdef ArgArena arena
 
-    def __init__(self, arr=None):
+    def __init__(self, arr=None, arena=None):
+        self.arena = arena
         if arr is not None:
             self.PyList = self.fix_args(arr)
             self.PyListSize = <unsigned int> len(self.PyList)
@@ -47,6 +79,17 @@ cdef class CArray:
             return arr
         else:
             return list(arr)
+
+    cdef void *_alloc(self, size_t size) except NULL:
+        # Memory for converted call arguments belongs to the call's arena and
+        # is freed when the call is done. Without an arena the caller owns it.
+        cdef void *ptr
+        if self.arena is not None:
+            return self.arena.alloc(size)
+        ptr = malloc(size if size > 0 else 1)
+        if ptr is NULL:
+            raise MemoryError()
+        return ptr
 
     def get_from_ptr(self, unsigned long long ptr, char *of_type, unsigned long long arr_size):
         cdef bytes b_of_type = of_type
@@ -144,108 +187,82 @@ cdef class CArray:
 
     cdef int *as_int(self):
         dprint(" [+] ...converting to int array")
-        cdef int *int_t = <int*> malloc(sizeof(int) * self.PyListSize)
-        if int_t is NULL:
-            raise MemoryError()
+        cdef int *int_t = <int*> self._alloc(sizeof(int) * self.PyListSize)
         for i in xrange(self.PyListSize):
             int_t[i] = self.PyList[i]
         return int_t
 
 
     cdef char *as_char(self):
-        cdef char *char_t = <char*> malloc(sizeof(char) * self.PyListSize)
-        if char_t is NULL:
-            raise MemoryError()
+        cdef char *char_t = <char*> self._alloc(sizeof(char) * self.PyListSize)
         for i in xrange(self.PyListSize):
             char_t[i] = ord(self.PyList[i])
         return char_t
 
 
     cdef short *as_short(self):
-        cdef short *short_t = <short*> malloc(sizeof(short) * self.PyListSize)
-        if short_t is NULL:
-            raise MemoryError()
+        cdef short *short_t = <short*> self._alloc(sizeof(short) * self.PyListSize)
         for i in xrange(self.PyListSize):
             short_t[i] = self.PyList[i]
         return short_t
 
     cdef long *as_long(self):
-        cdef long* long_t = <long*> malloc(sizeof(long) * self.PyListSize)
-        if long_t is NULL:
-            raise MemoryError()
+        cdef long* long_t = <long*> self._alloc(sizeof(long) * self.PyListSize)
         for i in xrange(self.PyListSize):
             long_t[i] = self.PyList[i]
         return long_t
 
     cdef long long *as_longlong(self):
-        cdef long long *longlong_t = <long long*> malloc(sizeof(long long) * self.PyListSize)
-        if longlong_t is NULL:
-            raise MemoryError()
+        cdef long long *longlong_t = <long long*> self._alloc(sizeof(long long) * self.PyListSize)
         for i in xrange(self.PyListSize):
             longlong_t[i] = self.PyList[i]
         return longlong_t
 
 
     cdef float *as_float(self):
-        cdef float *float_t = <float*> malloc(sizeof(float) * self.PyListSize)
-        if float_t is NULL:
-            raise MemoryError()
+        cdef float *float_t = <float*> self._alloc(sizeof(float) * self.PyListSize)
         for i in xrange(self.PyListSize):
             float_t[i] = self.PyList[i]
         return float_t
 
     cdef double *as_double(self):
-        cdef double *double_t = <double*> malloc(sizeof(double) * self.PyListSize)
-        if double_t is NULL:
-            raise MemoryError()
+        cdef double *double_t = <double*> self._alloc(sizeof(double) * self.PyListSize)
         for i in xrange(self.PyListSize):
             double_t[i] = self.PyList[i]
         return double_t
 
     cdef unsigned int *as_uint(self):
-        cdef unsigned int *uint_t = <unsigned int*> malloc(sizeof(unsigned int) * self.PyListSize)
-        if uint_t is NULL:
-            raise MemoryError()
+        cdef unsigned int *uint_t = <unsigned int*> self._alloc(sizeof(unsigned int) * self.PyListSize)
         for i in xrange(self.PyListSize):
             uint_t[i] = self.PyList[i]
         return uint_t
 
     cdef unsigned short *as_ushort(self):
-        cdef unsigned short *ushort_t = <unsigned short*> malloc(sizeof(unsigned short) * self.PyListSize)
-        if ushort_t is NULL:
-            raise MemoryError()
+        cdef unsigned short *ushort_t = <unsigned short*> self._alloc(sizeof(unsigned short) * self.PyListSize)
         for i in xrange(self.PyListSize):
             ushort_t[i] = self.PyList[i]
         return ushort_t
 
     cdef unsigned long *as_ulong(self):
-        cdef unsigned long *ulong_t = <unsigned long*> malloc(sizeof(unsigned long) * self.PyListSize)
-        if ulong_t is NULL:
-            raise MemoryError()
+        cdef unsigned long *ulong_t = <unsigned long*> self._alloc(sizeof(unsigned long) * self.PyListSize)
         for i in xrange(self.PyListSize):
             ulong_t[i] = self.PyList[i]
         return ulong_t
 
     cdef unsigned long long *as_ulonglong(self):
-        cdef unsigned long long *ulonglong = <unsigned long long*> malloc(sizeof(unsigned long long) * self.PyListSize)
-        if ulonglong is NULL:
-            raise MemoryError()
+        cdef unsigned long long *ulonglong = <unsigned long long*> self._alloc(sizeof(unsigned long long) * self.PyListSize)
         for i in xrange(self.PyListSize):
             ulonglong[i] = self.PyList[i]
         return ulonglong
 
     cdef unsigned char *as_uchar(self):
-        cdef unsigned char *uchar_t = <unsigned char*> malloc(sizeof(unsigned char) * self.PyListSize)
-        if uchar_t is NULL:
-            raise MemoryError()
+        cdef unsigned char *uchar_t = <unsigned char*> self._alloc(sizeof(unsigned char) * self.PyListSize)
         for i in xrange(self.PyListSize):
             uchar_t[i] = ord(self.PyList[i])
         return uchar_t
 
     cdef bool *as_bool(self):
-        cdef bool *bool_t = <bool*> malloc(sizeof(bool) * self.PyListSize)
-        if bool_t is NULL:
-            raise MemoryError()
+        cdef bool *bool_t = <bool*> self._alloc(sizeof(bool) * self.PyListSize)
         for i in xrange(self.PyListSize):
             bool_t[i] = self.PyList[i]
         return bool_t
@@ -253,10 +270,9 @@ cdef class CArray:
     cdef char **as_char_ptr(self):
         # Elements may be bytes or str. A bytes element is used in place, so
         # its pointer is only valid while the caller keeps that object alive.
-        # A str element is encoded as UTF-8 and copied to malloc'd memory,
+        # A str element is encoded as UTF-8 and copied into the call's arena,
         # because the encoded temporary would otherwise be freed before the
-        # Objective-C side uses it. That copy is intentionally never freed:
-        # the callee may keep the pointer after the call returns.
+        # Objective-C side uses it.
         cdef list items = []
         cdef list is_copy = []
         cdef bytes encoded
@@ -274,17 +290,12 @@ cdef class CArray:
                 raise TypeError(
                     "char* array elements must be str or bytes, not {}".format(type(item).__name__))
 
-        cdef char **char_ptr_t = <char**> malloc(sizeof(char*) * self.PyListSize)
-        if char_ptr_t is NULL:
-            raise MemoryError()
+        cdef char **char_ptr_t = <char**> self._alloc(sizeof(char*) * self.PyListSize)
         for i in range(self.PyListSize):
             encoded = items[i]
             if is_copy[i]:
                 n = len(encoded)
-                copy = <char*> malloc(n + 1)
-                if copy is NULL:
-                    free(char_ptr_t)
-                    raise MemoryError()
+                copy = <char*> self._alloc(n + 1)
                 memcpy(copy, <char*>encoded, n + 1)  # a bytes buffer is NUL-terminated
                 char_ptr_t[i] = copy
             else:
@@ -292,30 +303,24 @@ cdef class CArray:
         return char_ptr_t
 
     cdef id *as_object_array(self):
-        cdef id *object_array = <id*> malloc(sizeof(id) * self.PyListSize)
+        cdef id *object_array = <id*> self._alloc(sizeof(id) * self.PyListSize)
         cdef ObjcClassInstance ocl
-        if object_array is NULL:
-            raise MemoryError()
         for i in xrange(self.PyListSize):
             ocl = <ObjcClassInstance>self.PyList[i]
             object_array[i] = <id>ocl.o_instance
         return object_array
 
     cdef Class *as_class_array(self):
-        cdef Class *class_array = <Class*> malloc(sizeof(Class) * self.PyListSize)
+        cdef Class *class_array = <Class*> self._alloc(sizeof(Class) * self.PyListSize)
         cdef ObjcClass obj_class
-        if class_array is NULL:
-            raise MemoryError()
         for i in xrange(self.PyListSize):
             obj_class = <ObjcClass>self.PyList[i]
             class_array[i] = <Class>obj_class.o_cls
         return class_array
 
     cdef SEL *as_sel_array(self):
-        cdef SEL *sel_array = <SEL*> malloc(sizeof(SEL) * self.PyListSize)
+        cdef SEL *sel_array = <SEL*> self._alloc(sizeof(SEL) * self.PyListSize)
         cdef ObjcSelector obj_selector
-        if sel_array is NULL:
-            raise MemoryError()
         for i in xrange(self.PyListSize):
             obj_selector = <ObjcSelector>self.PyList[i]
             sel_array[i] = <SEL>obj_selector.selector
@@ -344,41 +349,31 @@ cdef class CArray:
         #return <id*> vptr_array
 
         if arg_type[0] == "CGRect":
-            cgrect_array = <CGRect*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
-            if cgrect_array is NULL:
-                raise MemoryError()
+            cgrect_array = <CGRect*> self._alloc(ctypes.sizeof(of_type) * self.PyListSize)
             for i in xrange(self.PyListSize):
                 cgrect_array[i] = (<CGRect*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return <id*>cgrect_array
 
         elif arg_type[0] == "CGSize":
-            cgsize_array = <CGSize*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
-            if cgsize_array is NULL:
-                raise MemoryError()
+            cgsize_array = <CGSize*> self._alloc(ctypes.sizeof(of_type) * self.PyListSize)
             for i in xrange(self.PyListSize):
                 cgsize_array[i] = (<CGSize*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return <id*>cgsize_array
 
         elif arg_type[0] == "CGPoint":
-            cgpoint_array = <CGPoint*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
-            if cgpoint_array is NULL:
-                raise MemoryError()
+            cgpoint_array = <CGPoint*> self._alloc(ctypes.sizeof(of_type) * self.PyListSize)
             for i in xrange(self.PyListSize):
                 cgpoint_array[i] = (<CGPoint*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return <id*>cgpoint_array
 
         elif arg_type[0] == "_NSRange":
-            cfrange_array = <CFRange*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
-            if cfrange_array is NULL:
-                raise MemoryError()
+            cfrange_array = <CFRange*> self._alloc(ctypes.sizeof(of_type) * self.PyListSize)
             for i in xrange(self.PyListSize):
                 cfrange_array[i] = (<CFRange*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return <id*>cfrange_array
 
         else:
-            id_array = <id*> malloc(ctypes.sizeof(of_type) * self.PyListSize)
-            if id_array is NULL:
-                raise MemoryError()
+            id_array = <id*> self._alloc(ctypes.sizeof(of_type) * self.PyListSize)
             for i in xrange(self.PyListSize):
                 id_array[i] = (<id*><unsigned long long*><unsigned long long>ctypes.addressof(self.PyList[i]))[0]
             return id_array

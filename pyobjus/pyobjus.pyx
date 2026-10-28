@@ -385,6 +385,10 @@ cdef class ObjcMethod(object):
         # ffi_prep_cif also lays out struct ffi_types, which have size 0 until then.
         self.ensure_method(signature_args)
 
+        # owns the memory of converted array arguments; it is freed when this
+        # call returns or raises, which is as long as the arguments are needed
+        cdef ArgArena arena = ArgArena()
+
         # allocate f_args
         f_args = <void **>malloc(sizeof(void *) * (2 + len(args)))
         if f_args == NULL:
@@ -430,7 +434,7 @@ cdef class ObjcMethod(object):
 
             dprint('fargs[{}] = {}, {!r}'.format(index + 2, sig, arg))
             f_args[index + 2] = convert_py_arg_to_cy(
-                    arg, sig, by_value, arg_size)
+                    arg, sig, by_value, arg_size, arena)
             dprint('pointer before ffi_call:', pr(f_args[index + 2]))
 
         dprint('--- really call {} with args {} (signature is {})'.format(
