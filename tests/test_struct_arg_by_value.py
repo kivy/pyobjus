@@ -21,15 +21,13 @@ The testlib tests cover structs that contain other structs.
 See: https://github.com/kivy/pyobjus/issues/90
 """
 import ctypes
-import os
-import subprocess
 import sys
 import textwrap
 import unittest
 
 import pytest
 
-GUARD_MALLOC = "/usr/lib/libgmalloc.dylib"
+from guard_malloc import assert_ran_ok, requires_guard_malloc, run_script
 
 ROUND_TRIP = textwrap.dedent("""
     from pyobjus import autoclass
@@ -120,18 +118,9 @@ class TestStructArgByValue(unittest.TestCase):
             arg = PointAndZ(NSPoint(1.5 + i, 2.5), 4.0 + i)
             self.assertEqual(car.sumPointAndZ_(arg), 8.0 + 2 * i)
 
-    @pytest.mark.skipif(not os.path.exists(GUARD_MALLOC),
-                        reason="Guard Malloc is not installed")
+    @requires_guard_malloc
     def test_rect_arg_does_not_overrun_heap(self):
-        env = dict(os.environ, DYLD_INSERT_LIBRARIES=GUARD_MALLOC)
-        result = subprocess.run(
-            [sys.executable, "-c", ROUND_TRIP],
-            env=env, capture_output=True, text=True, timeout=120)
-        self.assertEqual(
-            result.returncode, 0,
-            "exit status {}; stderr:\n{}".format(
-                result.returncode, result.stderr[-2000:]))
-        self.assertIn("ok", result.stdout)
+        assert_ran_ok(self, run_script(ROUND_TRIP, guard_malloc=True))
 
     def test_bit_field_struct_arg_raises_clear_error(self):
         from pyobjus import autoclass, ObjcException

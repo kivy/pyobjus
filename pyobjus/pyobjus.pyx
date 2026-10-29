@@ -382,6 +382,19 @@ cdef class ObjcMethod(object):
         if extra > 0:
             signature_args.extend([signature_args[-1]] * extra)
 
+        # Convert object arguments before preparing this call. Converting a
+        # list calls NSArray's initWithObjects:, which can be this same method
+        # with another argument count; done later, it would re-prepare f_cif
+        # under the call being built. Keeping the converted objects in args
+        # also holds them until the call returns.
+        args = list(args)
+        for index, arg in enumerate(args):
+            sig = signature_args[index + 2]
+            if sig.startswith(b'^'):
+                sig = sig[1:]
+            if sig == b'@':
+                args[index] = convert_py_to_nsobject(arg)
+
         # ensure that ffi method is correctly prepared for our current signature.
         # ffi_prep_cif also lays out struct ffi_types, which have size 0 until then.
         self.ensure_method(signature_args)
