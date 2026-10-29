@@ -101,6 +101,12 @@ class CArrayTest(unittest.TestCase):
             of_type=CArray, return_count=10)
         self.assertEqual(returned, [b"kept%d" % i for i in range(10)])
 
+    def test_carray_char_ptr_rejects_embedded_nul(self):
+        for bad in ("a\x00b", b"a\x00b"):
+            values = ["ok"] * 9 + [bad]
+            with self.assertRaisesRegex(ValueError, "embedded null byte"):
+                _instance.setCharPtrValues_(values)
+
     def test_carray_char_ptr_rejects_other_types(self):
         for bad in (1, None, 1.5, object()):
             values = ["ok"] * 9 + [bad]

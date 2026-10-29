@@ -297,6 +297,8 @@ cdef class CArray:
             else:
                 raise TypeError(
                     "char* array elements must be str or bytes, not {}".format(type(item).__name__))
+            if b"\0" in items[-1]:
+                raise ValueError("embedded null byte")
 
         cdef char **char_ptr_t = <char**> self._alloc(sizeof(char*) * self.PyListSize)
         for i in range(self.PyListSize):

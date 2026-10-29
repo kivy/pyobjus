@@ -626,6 +626,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
             b_arg = arg
         else:
             b_arg = <bytes>arg.encode("utf8")
+        if b"\0" in b_arg:
+            raise ValueError("embedded null byte")
         # FIXME clear leaks here, must found a way to fix it.
         Py_INCREF(b_arg)
         (<char **>val_ptr)[0] = <char *>b_arg
