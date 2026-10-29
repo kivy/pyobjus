@@ -17,3 +17,8 @@ class HelloWorldTest(unittest.TestCase):
     def test_autoclass2(self):
         s = NSString.stringWithUTF8String_('hello world')
         self.assertEqual(s.length(), 11)
+
+    def test_char_ptr_rejects_embedded_nul(self):
+        for bad in ('a\x00b', b'a\x00b'):
+            with self.assertRaisesRegex(ValueError, 'embedded null byte'):
+                NSString.stringWithUTF8String_(bad)
