@@ -87,6 +87,14 @@ class CArrayTest(unittest.TestCase):
         expected = [v if isinstance(v, bytes) else v.encode() for v in values]
         self.assertEqual(returned, expected)
 
+    def test_carray_char_ptr_none_is_null(self):
+        values = [b"abc%d" % i for i in range(9)] + [None]
+        _instance.setCharPtrValues_(values)
+        returned = dereference(
+            _instance.getCharPtrValues(),
+            of_type=CArray, return_count=10)
+        self.assertEqual(returned, values)
+
     def test_carray_char_ptr_str_outlives_python_list(self):
         # pyobjus frees the C strings it passes to setCharPtrValues: as soon as
         # the call returns, so the test library keeps its own copies. Reading
@@ -108,7 +116,7 @@ class CArrayTest(unittest.TestCase):
                 _instance.setCharPtrValues_(values)
 
     def test_carray_char_ptr_rejects_other_types(self):
-        for bad in (1, None, 1.5, object()):
+        for bad in (1, 1.5, object()):
             values = ["ok"] * 9 + [bad]
             with self.assertRaises(TypeError):
                 _instance.setCharPtrValues_(values)

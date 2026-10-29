@@ -276,7 +276,7 @@ cdef class CArray:
         return bool_t
 
     cdef char **as_char_ptr(self):
-        # Elements may be bytes or str. A bytes element is used in place, so
+        # Elements may be bytes, str or None (NULL). A bytes element is used in place, so
         # its pointer is only valid while the caller keeps that object alive.
         # A str element is encoded as UTF-8 and copied into the call's arena,
         # because the encoded temporary would otherwise be freed before the
@@ -288,6 +288,10 @@ cdef class CArray:
         cdef Py_ssize_t n
         # validate everything first so a bad element raises before anything is allocated
         for item in self.PyList:
+            if item is None:
+                items.append(None)
+                is_copy.append(False)
+                continue
             if isinstance(item, str):
                 items.append(item.encode("utf8"))
                 is_copy.append(True)
@@ -309,7 +313,7 @@ cdef class CArray:
                 memcpy(copy, <char*>encoded, n + 1)  # a bytes buffer is NUL-terminated
                 char_ptr_t[i] = copy
             else:
-                char_ptr_t[i] = <char*>encoded
+                char_ptr_t[i] = NULL if encoded is None else <char*>encoded
         return char_ptr_t
 
     cdef id *as_object_array(self):
