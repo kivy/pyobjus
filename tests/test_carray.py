@@ -4,6 +4,7 @@ from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
 from pyobjus.dylib_manager import load_dylib
 import ctypes
 import pytest
+from malloc_stats import malloc_bytes_in_use
 import sys
 
 num_list = [0, 2, 1, 5, 4, 3, 6, 7, 8, 9]
@@ -25,20 +26,6 @@ twoD_array = [
     [81, 82, 83, 84, 85, 86, 87, 88, 89, 90],
     [91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
 ]
-
-
-class _MallocStats(ctypes.Structure):
-    _fields_ = [("blocks_in_use", ctypes.c_uint),
-                ("size_in_use", ctypes.c_size_t),
-                ("max_size_in_use", ctypes.c_size_t),
-                ("size_allocated", ctypes.c_size_t)]
-
-
-def _malloc_bytes_in_use():
-    """Bytes currently allocated by malloc across all zones (macOS)."""
-    stats = _MallocStats()
-    ctypes.CDLL(None).malloc_zone_statistics(None, ctypes.byref(stats))
-    return stats.size_in_use
 
 _instance = None
 
@@ -126,10 +113,10 @@ class CArrayTest(unittest.TestCase):
         # of strings, so 30 calls would leak ~300 MB if they are not freed.
         values = ["x" * (1024 * 1024) for _ in range(10)]
         _instance.setCharPtrValues_(values)  # warm up
-        before = _malloc_bytes_in_use()
+        before = malloc_bytes_in_use()
         for _ in range(30):
             _instance.setCharPtrValues_(values)
-        growth_mb = (_malloc_bytes_in_use() - before) / (1024 * 1024)
+        growth_mb = (malloc_bytes_in_use() - before) / (1024 * 1024)
         # malloc zone accounting can fluctuate by more than one converted
         # array on CI; this remains far below the ~300 MB regression signal.
         self.assertLess(growth_mb, 25)

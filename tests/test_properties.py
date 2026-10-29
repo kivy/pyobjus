@@ -22,11 +22,17 @@ class ObjcPropertyTest(unittest.TestCase):
         car.propDouble = 3456.2345
         self.assertEqual(car.propDouble, 3456.2345)
 
-        # car.prop_double_ptr = 333.444
-        # self.assertEqual(dereference(car.prop_double_ptr), 333.444)
-
         car.propNSString = autoclass('NSString').stringWithUTF8String_('string for test')
         self.assertEqual(car.propNSString.UTF8String(), 'string for test')
+
+    def test_pointer_property_keeps_the_assigned_value(self):
+        # the property stores the pointer pyobjus builds for the assigned
+        # value, so that memory must stay valid after the setter returns
+        car.prop_double_ptr = 333.444
+        self.assertEqual(dereference(car.prop_double_ptr), 333.444)
+        for _ in range(100):  # let freed memory get reused
+            car.propDouble = 1.5
+        self.assertEqual(dereference(car.prop_double_ptr), 333.444)
 
     def test_dynamic_properties(self):
         car.setProp()

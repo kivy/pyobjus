@@ -385,15 +385,12 @@ cdef class ObjcMethod(object):
         # ffi_prep_cif also lays out struct ffi_types, which have size 0 until then.
         self.ensure_method(signature_args)
 
-        # owns the memory of converted array arguments; it is freed when this
-        # call returns or raises, which is as long as the arguments are needed
+        # owns f_args and the memory of every converted argument; it is freed
+        # when this call returns or raises, whichever path that takes
         cdef ArgArena arena = ArgArena()
 
         # allocate f_args
-        f_args = <void **>malloc(sizeof(void *) * (2 + len(args)))
-        if f_args == NULL:
-            free(f_args)
-            raise MemoryError('Unable to allocate f_args')
+        f_args = <void **>arena.alloc(sizeof(void *) * (2 + len(args)))
 
         # arg 0 and 1 are the instance and the method selector
         # for class methods, we need the class itself is theinstance
@@ -516,11 +513,6 @@ cdef class ObjcMethod(object):
         ret_py_val = convert_cy_ret_to_py(res_ptr, sig, self.f_result_type.size,
                 members=kwargs.get('members'), objc_prop=False,
                 main_cls_name=self.main_cls_name)
-
-        # free f_args
-        for index, arg in enumerate(args):
-            free(f_args[index + 2])
-        free(f_args)
 
         return convert_return_value(
             ret_py_val, self.main_cls_name, self.name)

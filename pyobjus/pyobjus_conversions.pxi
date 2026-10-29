@@ -76,19 +76,20 @@ def dereference(py_ptr, **kwargs):
     return convert_cy_ret_to_py(<id*>c_addr, py_ptr.of_type, py_ptr.size)
 
 
-cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value=True, py_val=None):
+cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, ArgArena arena, by_value=True, py_val=None):
     ''' Function for casting Python data type (struct, union) to some Cython type
 
     Args:
         py_obj: address of Python data type which need to be converted to Cython data type
         size: size in bypes of data type
         type: string containing name of data type
+        arena: owns the returned memory; freed when the call is done
         by_value: boolean value, indicate wheather we need pass data type by value or by reference
 
     Returns:
         void* to eqvivalent Cython data type
     '''
-    cdef void *val_ptr = malloc(size)
+    cdef void *val_ptr = arena.alloc(size)
     cdef CGRect rect
     cdef CGRect *rect_ptr
     cdef CGSize sz
@@ -135,7 +136,11 @@ cdef void* cast_to_cy_data_type(id *py_obj, size_t size, char* of_type, by_value
 
             # TODO: find appropriate method and test these cases on iOS
             elif not by_value and py_val:
+                # handed to the callee by reference, which may keep it, so it
+                # is not owned by the arena (see convert_py_arg_to_cy)
                 rect_ptr = <CGRect*>malloc(sizeof(CGRect))
+                if rect_ptr == NULL:
+                    raise MemoryError()
                 rect_ptr.origin = point
                 rect_ptr.size = sz
                 (<CGRect**>val_ptr)[0] = rect_ptr
@@ -318,7 +323,7 @@ def remove_dimensions(array):
 
 
 cdef void *parse_array(sig, arg, size, ArgArena arena, multidimension=False):
-    cdef void *val_ptr = malloc(size)
+    cdef void *val_ptr = arena.alloc(size)
     cdef CArray carray = CArray(arg, arena)
     sig = sig[1:len(sig) - 1]
     sig_split = re.split(b'(\d+)', sig)
@@ -330,7 +335,6 @@ cdef void *parse_array(sig, arg, size, ArgArena arena, multidimension=False):
     if array_size != len(arg) and not multidimension:
         dprint("DyLib is accepting array of size {0}, but you are forwarding {1} args.".format(
             array_size, len(arg)))
-        free(val_ptr)
         raise TypeError()
 
     elif array_type == b"i":
@@ -407,7 +411,6 @@ cdef void *parse_array(sig, arg, size, ArgArena arena, multidimension=False):
         depth = int(sig[0:parse_position])
         sig = sig[parse_position:]
         dprint("Entering recursion for signature {}".format(sig))
-        free(val_ptr)  # the recursive call allocates its own
         return parse_array(sig, remove_dimensions(arg), size, arena, multidimension=True)
 
     elif array_type.startswith((b"{", b"(")):
@@ -455,6 +458,13 @@ cpdef object convert_py_to_nsobject(arg):
     return d
 
 
+# Signatures whose by-reference branch in convert_py_arg_to_cy stores the
+# value in a buffer it allocates (arg_val_ptr); the others never use one.
+_BY_REF_BUFFER_SIGS = frozenset([
+    b'c', b'i', b's', b'l', b'q', b'I', b'S', b'L', b'Q',
+    b'f', b'd', b'B', b'#', b':', b'v', b'?'])
+
+
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena) except *:
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
@@ -468,9 +478,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
         Pointer (void*) to converted Cython object
     '''
 
-    cdef void *val_ptr = malloc(size)
+    cdef void *val_ptr = arena.alloc(size)
     cdef void *arg_val_ptr = NULL
-    cdef object del_arg_val_ptr = False
     cdef object objc_ref = False
     dprint(
         "convert_py_arg_to_cy arg={!r} sig={!r} by_value={!r} size={!r}".format(
@@ -486,9 +495,16 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
             arg_val_ptr = <unsigned long long*><unsigned long long>(
                 ctypes.addressof(arg))
             objc_ref = True
-        elif not isinstance(arg, ctypes.Structure):
+        elif (sig in _BY_REF_BUFFER_SIGS and
+                not isinstance(arg, (ctypes.Structure, ctypes.Union))):
+            # Not owned by the arena: this is the pointer handed to the callee,
+            # which may keep it (a pointer property setter stores it), so it
+            # must outlive the call. Nothing knows when the callee is done
+            # with it, so it is intentionally never freed. Only allocated for
+            # the signatures whose branch below writes the value into it.
             arg_val_ptr = malloc(size)
-            del_arg_val_ptr = True
+            if arg_val_ptr == NULL:
+                raise MemoryError()
         bytype = 'reference'
 
     dprint("passing argument {} by {} (sig={})".format(
@@ -665,13 +681,13 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
         elif by_value:
             str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
             ctypes_struct_cache.append(<unsigned long long>str_long_ptr)
-            val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, by_value=True, py_val=arg)
+            val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, arena, by_value=True, py_val=arg)
         else:
             if not objc_ref:
                 str_long_ptr = <unsigned long long*><unsigned long long>ctypes.addressof(arg)
-                val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, by_value=False, py_val=arg)
+                val_ptr = cast_to_cy_data_type(<id*>str_long_ptr, size, arg_type, arena, by_value=False, py_val=arg)
             else:
-                val_ptr = cast_to_cy_data_type(<id*>arg_val_ptr, size, arg_type, by_value=False)
+                val_ptr = cast_to_cy_data_type(<id*>arg_val_ptr, size, arg_type, arena, by_value=False)
 
     # method is accepting void pointer (void*)
     # XXX is the signature changed or never works?
@@ -722,10 +738,5 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
     else:
         dprint("WARNING: Unknown signature component, passing nil")
         (<int*>val_ptr)[0] = 0
-
-    # TODO: Find best time to dealloc memory used by this pointer
-    # if arg_val_ptr != NULL and del_arg_val_ptr:
-    #     free(arg_val_ptr)
-    #     arg_val_ptr = NULL
 
     return val_ptr
