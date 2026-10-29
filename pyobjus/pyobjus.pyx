@@ -40,12 +40,13 @@ __all__ = (
 import ctypes
 import re
 import os
+import traceback
 
 # Cython import
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport Py_INCREF, Py_DECREF
 from libc.stdlib cimport malloc, free
-from libc.string cimport memcpy
+from libc.string cimport memcpy, memset
 from libcpp cimport bool
 
 # library files
@@ -819,47 +820,79 @@ cdef get_python_delegate_from_id(id self):
 
 
 cdef BOOL protocol_respondsToSelector(id self, SEL _cmd, SEL selector) with gil:
-    # return True if a python delegate class responds to a specific selector
+    # return True for @protocol methods of the python delegate and for methods
+    # the class implements itself (e.g. NSObject's); these are exactly the
+    # selectors methodSignatureForSelector: has a signature for
     delegate = get_python_delegate_from_id(self)
     if not delegate:
         return 0
     py_method_name = sel_getName(selector).replace(b':', b'_').decode("utf8")
-    return hasattr(delegate, py_method_name)
+    py_method = getattr(delegate, py_method_name, None)
+    if hasattr(py_method, '__protocol__'):
+        return 1
+    return class_getInstanceMethod(object_getClass(self), selector) != NULL
 
 
 cdef id protocol_methodSignatureForSelector(id self, SEL _cmd, SEL selector) with gil:
     # returns a method signature for a specific selector, needed for the
     # fallback forwardInvocation:
     cdef ObjcClassInstance sig
+    cdef Method method
     sel_name = sel_getName(selector)
     py_sel_name = (<bytes>sel_name).decode("utf8")
     sig_name = "_sig_{}".format(py_sel_name)
+    enc_name = "_sigenc_{}".format(py_sel_name)
     delegate = get_python_delegate_from_id(self)
     if not delegate:
         return NULL
 
-    if not hasattr(delegate, sig_name):
-        # we didn't find a cached method signature, so create a new one.
-        py_method_name = sel_name.replace(b':', b'_').decode("utf8")
+    enc = None
+    py_method_name = sel_name.replace(b':', b'_').decode("utf8")
+    py_method = getattr(delegate, py_method_name, None)
+    protocol_name = getattr(py_method, '__protocol__', None)
+    if protocol_name:
+        enc = objc_protocol_get_encoding(protocol_name, selector)
+    if enc is None:
+        method = class_getInstanceMethod(object_getClass(self), selector)
+        if method == NULL:
+            return NULL
+        enc = <bytes>method_getDescription(method).types
 
-        protocol_name = getattr(delegate, py_method_name).__protocol__
-        d = objc_protocol_get_delegates(protocol_name)
-        sigs = d.get(py_sel_name)
-
-        NSMethodSignature = autoclass("NSMethodSignature")
-        sig = NSMethodSignature.signatureWithObjCTypes_(sigs[-1])
-        setattr(delegate, sig_name, sig)
-    else:
+    # Refresh the cached signature if the encoding changed (e.g. protocols.py
+    # fallback used before the framework was loaded; runtime CGFloat is
+    # double on 64-bit, while the static table may still say float).
+    if hasattr(delegate, sig_name) and getattr(delegate, enc_name, None) == enc:
         sig = getattr(delegate, sig_name)
+    else:
+        NSMethodSignature = autoclass("NSMethodSignature")
+        sig = NSMethodSignature.signatureWithObjCTypes_(enc)
+        setattr(delegate, sig_name, sig)
+        setattr(delegate, enc_name, enc)
 
     return sig.o_instance
 
 
-cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation) with gil:
+def selector_returns_retained(sel_name):
+    '''True if the selector's method family returns a +1 object: it starts
+    with alloc, new, copy, mutableCopy or init, and the next character is
+    not a lowercase letter (so copyright: or newspaper: do not count).
+    '''
+    if isinstance(sel_name, unicode):
+        sel_name = sel_name.encode('utf8')
+    sel_name = sel_name.lstrip(b'_')
+    for prefix in (b'alloc', b'new', b'copy', b'mutableCopy', b'init'):
+        if sel_name.startswith(prefix):
+            return not sel_name[len(prefix):len(prefix) + 1].islower()
+    return False
+
+
+cdef void protocol_forwardInvocation(id self, SEL _cmd, id invocation) noexcept with gil:
     # Implementation of dynamically added protocol instance method.
     # This function dispatches the protocol method call to the corresponded
     # Python method implementation. It also convert Objective C arguments to
     # corresponded python objects.
+    # Afterwards, write the Python return value onto the NSInvocation
+    # (previously the return was discarded).
 
     dprint('-' * 80)
     dprint('protocol_forwardInvocation called from Objective-C')
@@ -877,27 +910,151 @@ cdef id protocol_forwardInvocation(id self, SEL _cmd, id invocation) with gil:
     cdef id c_arg
     cdef Class cls = object_getClass(self)
     cdef long i
+    cdef id ret_id
+    cdef long long ret_int
+    cdef unsigned long long ret_uint
+    cdef unsigned char ret_bool
+    cdef char ret_char
+    cdef unsigned char ret_uchar
+    cdef float ret_float
+    cdef double ret_double
+    cdef size_t ret_len
+    cdef void *ret_buf
     cls_name = class_getName(cls)
+
+    # Strip ObjC type qualifiers (r/n/N/o/O/R/V) before selecting the kind,
+    # consistent with clean_type_specifier elsewhere.
+    ret_tp = signature.methodReturnType
+    if isinstance(ret_tp, unicode):
+        ret_tp = ret_tp.encode('utf8')
+    kind = clean_type_specifier(ret_tp)[:1]
+
+    # The return buffer is undefined until setReturnValue: runs. Zero it now
+    # so Objective-C gets 0/nil if anything below raises (this function is
+    # noexcept) or the return type is unsupported (structs, etc.).
+    ret_len = <size_t>signature.methodReturnLength
+    if ret_len > 0:
+        ret_buf = malloc(ret_len)
+        if ret_buf != NULL:
+            memset(ret_buf, 0, ret_len)
+            inv.setReturnValue_(<unsigned long long>ret_buf)
+            free(ret_buf)
+
     for i in range(2, signature.numberOfArguments):
         tp = signature.getArgumentTypeAtIndex_(i)
+        if isinstance(tp, unicode):
+            tp = tp.encode('utf8')
+        tp = clean_type_specifier(tp)
+        # Blocks (@?) and typed objects (@"Name") are objects; pointer
+        # encodings (^) keep their pointee type.
+        if tp.startswith(b'@'):
+            tp = b'@'
         dprint("pfi: argument type at {}: {}".format(i, tp))
-        arg_type = type_encoding_to_ffitype(tp[:1])
-        dprint('pfi: convert arg {} with type {}'.format(i, tp[:1]))
+        # Struct/union/array args need a full-size buffer; do not copy them
+        # into a pointer-sized slot (memory corruption). Unsupported for now.
+        if tp.startswith((b'{', b'(', b'[')):
+            dprint('pfi: unsupported complex arg type {!r}, passing None'.format(tp))
+            py_method_args.append(None)
+            continue
+        try:
+            arg_type = type_encoding_to_ffitype(tp)
+        except Exception as e:
+            dprint('pfi: unknown arg type {!r}: {}'.format(tp, e))
+            py_method_args.append(None)
+            continue
+        if arg_type == NULL:
+            dprint('pfi: null ffi type for arg {!r}, passing None'.format(tp))
+            py_method_args.append(None)
+            continue
+        if arg_type.size > sizeof(c_arg):
+            dprint('pfi: arg type {!r} too large ({}), passing None'.format(
+                tp, arg_type.size))
+            py_method_args.append(None)
+            continue
+        dprint('pfi: convert arg {} with type {}'.format(i, tp))
         c_arg = NULL
         inv.getArgument_atIndex_(<unsigned long long>&c_arg, i)
-        py_arg = convert_cy_ret_to_py(&c_arg, tp[:1],
+        py_arg = convert_cy_ret_to_py(&c_arg, tp,
                                       <size_t>arg_type.size, members=None,
                                       objc_prop=False, main_cls_name=cls_name)
         py_method_args.append(py_arg)
 
     # Calls the protocol method defined in Python object.
     # search the delegate object in our database
+    py_ret = None
     delegate = get_python_delegate_from_id(self)
+    py_method = None
     if delegate:
         py_method_name = sel_getName(_cmd).replace(b':', b'_').decode("utf8")
-        py_method = getattr(delegate, py_method_name)
-        py_method(*py_method_args)
+        py_method = getattr(delegate, py_method_name, None)
+        if py_method is not None:
+            # Objective-C is the caller and cannot receive a Python
+            # exception; one left set here breaks the next pyobjus call.
+            # Report it and fall through to a zero/nil return.
+            try:
+                py_ret = py_method(*py_method_args)
+            except BaseException:
+                traceback.print_exc()
+                py_ret = None
 
+    # The return value is already zero/nil; only a real Python value needs
+    # converting and writing.
+    if kind == b'v' or py_ret is None:
+        return
+    try:
+        if kind == b'@':
+            # Ownership: convert_py_to_nsobject() builds a new +1 object from
+            # a bool/int/float/str/list/dict; anything else is borrowed: an
+            # existing wrapper, or the delegate wrapper kept in
+            # delegate_register. The caller expects +0 (autoreleased), or +1
+            # for the alloc/new/copy/mutableCopy/init selector families.
+            new_object = isinstance(py_ret, (int, float, unicode, list, dict))
+            obj = convert_py_to_nsobject(py_ret)
+            ret_id = (<ObjcClassInstance>obj).o_instance if obj is not None else <id>NULL
+            if ret_id != NULL:
+                # setup.py links -framework CoreFoundation on macOS and iOS.
+                if not new_object:
+                    CFRetain(<void*>ret_id)
+                if not selector_returns_retained(sel_getName(_cmd)):
+                    CFAutorelease(<void*>ret_id)
+            inv.setReturnValue_(<unsigned long long>&ret_id)
+        elif kind in (b'q', b'l', b'i', b's'):
+            ret_int = <long long>int(py_ret)
+            inv.setReturnValue_(<unsigned long long>&ret_int)
+        elif kind in (b'Q', b'L', b'I', b'S'):
+            ret_uint = <unsigned long long>int(py_ret)
+            inv.setReturnValue_(<unsigned long long>&ret_uint)
+        elif kind == b'B':
+            ret_bool = <unsigned char>(1 if py_ret else 0)
+            inv.setReturnValue_(<unsigned long long>&ret_bool)
+        elif kind == b'c':
+            if isinstance(py_ret, (bytes, bytearray)) and len(py_ret) >= 1:
+                ret_char = <char>py_ret[0]
+            elif isinstance(py_ret, unicode) and len(py_ret) == 1:
+                ret_char = <char>ord(py_ret)
+            else:
+                ret_char = <char>int(py_ret)
+            inv.setReturnValue_(<unsigned long long>&ret_char)
+        elif kind == b'C':
+            if isinstance(py_ret, (bytes, bytearray)) and len(py_ret) >= 1:
+                ret_uchar = <unsigned char>py_ret[0]
+            elif isinstance(py_ret, unicode) and len(py_ret) == 1:
+                ret_uchar = <unsigned char>ord(py_ret)
+            else:
+                ret_uchar = <unsigned char>int(py_ret)
+            inv.setReturnValue_(<unsigned long long>&ret_uchar)
+        elif kind == b'f':
+            ret_float = <float>float(py_ret)
+            inv.setReturnValue_(<unsigned long long>&ret_float)
+        elif kind == b'd':
+            ret_double = <double>float(py_ret)
+            inv.setReturnValue_(<unsigned long long>&ret_double)
+        else:
+            dprint('pfi: cannot return {!r} as {!r}, returning zero'.format(
+                py_ret, ret_tp), of_type='w')
+    except BaseException:
+        # Same as a failing method: report it, Objective-C gets zero/nil.
+        traceback.print_exc()
 
 def protocol(protocol_name):
     '''Mark the method as part of the implementation of the `protocol_name`.
@@ -918,6 +1075,34 @@ def protocol(protocol_name):
         f2.__protocol__ = protocol_name
         return f2
     return f
+
+
+cdef objc_protocol_get_encoding(py_protocol_name, SEL selector):
+    '''Type encoding of one selector of a protocol, or None.
+
+    Asks the runtime for just that selector, so the per-call lookup in
+    methodSignatureForSelector: does not copy and rebuild the whole protocol.
+    Falls back to the static table in protocols.py.
+    '''
+    cdef bytes protocol_name = py_protocol_name.encode("utf8")
+    cdef Protocol *protocol = objc_getProtocol(protocol_name)
+    cdef objc_method_description desc
+    if protocol != NULL:
+        for required in (YES, NO):
+            desc = protocol_getMethodDescription(protocol, selector, required, YES)
+            if desc.types != NULL:
+                return <bytes>desc.types
+        return None
+
+    from .protocols import protocols
+    sigs = (protocols.get(py_protocol_name) or {}).get(
+        (<bytes>sel_getName(selector)).decode("utf8"))
+    if not sigs:
+        return None
+    enc = sigs[-1]
+    if isinstance(enc, unicode):
+        enc = enc.encode('utf8')
+    return enc
 
 
 def objc_protocol_get_delegates(py_protocol_name):
@@ -1050,9 +1235,13 @@ cdef ObjcClassInstance objc_create_delegate(py_obj):
         objc_cls, sel_registerName(b"forwardInvocation:"),
         <IMP>&protocol_forwardInvocation, "v@:@")
     dprint('   register respondsToSelector:')
+    # BOOL encodes as signed char (c) on x86_64 and bool (B) on arm64.
+    # Copy NSObject's encoding so the override matches the current ABI.
+    selector = sel_registerName(b"respondsToSelector:")
+    method_args = method_getDescription(
+        class_getInstanceMethod(superclass, selector)).types
     class_addMethod(
-        objc_cls, sel_registerName(b"respondsToSelector:"),
-        <IMP>&protocol_respondsToSelector, "v@::")
+        objc_cls, selector, <IMP>&protocol_respondsToSelector, method_args)
 
     dprint('Registering Class Pair: {}...'.format(pr(objc_cls)))
     objc_registerClassPair(objc_cls)

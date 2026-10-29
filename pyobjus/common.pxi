@@ -9,6 +9,8 @@ cdef extern from "string.h":
 cdef extern from "CoreFoundation/CoreFoundation.h":
     ctypedef struct CFRange:
         pass
+    void *CFRetain(void *cf)
+    void *CFAutorelease(void *cf)
 
 
 cdef extern from "CoreGraphics/CoreGraphics.h":
@@ -108,6 +110,7 @@ cdef extern from "objc/runtime.h":
     const_char_ptr  property_getAttributes(objc_property_t property)
     const_char_ptr  property_getName(objc_property_t property)
     objc_method_description* protocol_copyMethodDescriptionList(Protocol *p, BOOL isRequiredMethod, BOOL isInstanceMethod, unsigned int *outCount)
+    objc_method_description protocol_getMethodDescription(Protocol *p, SEL aSel, BOOL isRequiredMethod, BOOL isInstanceMethod)
 
 
 cdef extern from "ffi/ffi.h":
