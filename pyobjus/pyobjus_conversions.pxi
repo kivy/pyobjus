@@ -438,10 +438,11 @@ cpdef object convert_py_to_nsobject(arg):
         args = arg + [None]
         return autoclass('NSArray').alloc().initWithObjects_(*args)
     elif isinstance(arg, dict):
+        # initWithObjectsAndKeys: takes value, key, value, key, ..., nil
         items = []
         for key, value in arg.items():
-            items.append(key)
             items.append(value)
+            items.append(key)
         items.append(None)
         return autoclass('NSDictionary').alloc().initWithObjectsAndKeys_(*items)
 
