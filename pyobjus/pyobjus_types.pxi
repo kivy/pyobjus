@@ -657,14 +657,21 @@ cdef class ObjcClassInstance:
             self.resolve_fields()
 
     def __hash__(self):
-        return self.get_address()
+        # The address is an unsigned 64-bit value; on arm64, tagged pointers
+        # (small NSString/NSNumber) have the high bit set, which does not fit
+        # in the signed Py_ssize_t a Python hash must be.
+        return hash(self.get_address())
 
     def __richcmp__(self, other, op):
+        # Equality is identity of the underlying Objective-C object. Compare
+        # addresses directly: hashes can collide, addresses cannot.
         if isinstance(other, ObjcClassInstance):
             if op == 2:
-                return hash(self) == hash(other)
+                return self.get_address() == other.get_address()
             if op == 3:
-                return hash(self) != hash(other)
+                return self.get_address() != other.get_address()
+        elif op == 3:
+            return True
         return False
 
     def get_address(self):
