@@ -715,6 +715,9 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
             # TODO: Add better conversion between primitive types!
             if type(arg) is int:
                 (<void**>val_ptr)[0] = <void*><unsigned long long>arg
+            elif isinstance(arg, bytes):
+                # The caller holds arg for the duration of the call.
+                (<char **>val_ptr)[0] = <char *>arg
             elif type(arg) is str:
                 # passing bytes as void* is the same as for char*
                 b_arg = <bytes>arg.encode("utf8")
