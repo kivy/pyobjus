@@ -466,6 +466,13 @@ _BY_REF_BUFFER_SIGS = frozenset([
     b'f', b'd', b'B', b'#', b':', b'v', b'?'])
 
 
+cdef bint _void_ptr_arg_uses_buffer(arg):
+    # Only the last arm of the void* branch in convert_py_arg_to_cy passes
+    # arg_val_ptr; the others pass a pointer they already have.
+    return not (isinstance(arg, (ObjcClassInstance, ObjcClass, ObjcSelector, bytes))
+                or type(arg) is int or type(arg) is str)
+
+
 cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena) except *:
     ''' Function for converting Python argument to Cython, by given method signature
     Args:
@@ -497,7 +504,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
                 ctypes.addressof(arg))
             objc_ref = True
         elif (sig in _BY_REF_BUFFER_SIGS and
-                not isinstance(arg, (ctypes.Structure, ctypes.Union))):
+                not isinstance(arg, (ctypes.Structure, ctypes.Union)) and
+                (sig != b'v' or _void_ptr_arg_uses_buffer(arg))):
             # Not owned by the arena: this is the pointer handed to the callee,
             # which may keep it (a pointer property setter stores it), so it
             # must outlive the call. Nothing knows when the callee is done
