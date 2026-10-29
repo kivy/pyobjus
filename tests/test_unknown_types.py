@@ -30,6 +30,18 @@ class UnknownTypesTest(unittest.TestCase):
         self.assertEqual(ret_unknown.CGRect.origin.x, 20)
         self.assertEqual(ret_unknown.CGRect.origin.y, 30)
 
+    def test_members_and_use_as_argument(self):
+        ret_unknown = car.makeUnknownStr(
+            members=['first', 'second', 'struct_field', 'tmp_field'])
+        members = ret_unknown.getMembers()
+        self.assertEqual(
+            [name for name, _typ in members],
+            ['first', 'second', 'struct_field', 'tmp_field'])
+        self.assertEqual(
+            ret_unknown.getMembers(only_types=True),
+            [typ for _name, typ in members])
+        car.useUnknownStr_(ret_unknown)
+
     def test_usingIMP(self):
         imp = car.methodForSelector_(selector('getSumOf:and:'))
         self.assertEqual(car.useImp_withA_andB_(imp, 5, 7), 12)

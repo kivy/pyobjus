@@ -100,3 +100,25 @@ class TestLoadFrameworkIOS(unittest.TestCase):
         message = str(ctx.exception)
         self.assertIn("NoSuchKit.framework", message)
         self.assertIn("NoSuchKit.framework/NoSuchKit", message)
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="Only for macOS")
+class TestMakeDylib(unittest.TestCase):
+
+    def test_compile_and_call_user_class(self):
+        import os
+        import shutil
+        import tempfile
+        from pyobjus import autoclass
+        from pyobjus.dylib_manager import load_dylib, make_dylib
+
+        source = os.path.join(
+            os.path.dirname(__file__), "..", "examples", "objc_lib.m")
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        out = os.path.join(tmp, "objc_lib.dylib")
+        make_dylib(source, frameworks=["Foundation"], out=out)
+        self.assertTrue(os.path.exists(out))
+        load_dylib(out)
+        ObjcClass = autoclass("ObjcClass")
+        ObjcClass.alloc().init().printFromObjectiveC()

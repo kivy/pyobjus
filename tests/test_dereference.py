@@ -33,3 +33,14 @@ class DereferenceTest(unittest.TestCase):
         sel = dereference(sel_ptr, of_type=ObjcSelector)
         self.assertIsInstance(sel, ObjcSelector)
         self.assertTrue(car.respondsToSelector_(sel))
+
+    def test_selector_pointer(self):
+        sel = car.makeSelector()
+        self.assertIsInstance(sel, ObjcSelector)
+        car.useSelector_(sel)
+
+        sel_ptr = car.makeSelectorPtr()
+        self.assertIsInstance(dereference(sel_ptr), ObjcSelector)
+        car.useSelectorPtr_(sel_ptr)
+        # A selector value is accepted where the method wants SEL*.
+        car.useSelectorPtr_(sel)

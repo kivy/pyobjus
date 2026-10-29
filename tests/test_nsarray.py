@@ -41,3 +41,12 @@ def test_enumerator_returns_none_past_the_end():
     assert enumerator.nextObject().intValue() == 2
     assert enumerator.nextObject() is None
     assert enumerator.nextObject() is None
+
+
+def test_nsarray_contains_its_object():
+    NSString = autoclass("NSString")
+    NSArray = autoclass("NSArray")
+    text = NSString.alloc().initWithUTF8String_("some text for NSArray")
+    array = NSArray.arrayWithObject_(text)
+    assert array.objectAtIndex_(0).UTF8String() == "some text for NSArray"
+    assert array.containsObject_(text)
