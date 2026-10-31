@@ -344,6 +344,21 @@ class CArrayTest(unittest.TestCase):
                 flag = False
         self.assertEqual(flag, True)
 
+    def test_get_from_ptr_type_code_as_bytes_or_str(self):
+        _instance.setIntValues_(num_list)
+        int_ptr = _instance.getIntValues()
+        # NSData.bytes returns a void* that is read as a C array.
+        data = autoclass("NSString").stringWithUTF8String_("hi!").dataUsingEncoding_(4)
+        for of_type in (b"i", "i"):
+            with self.subTest(of_type=of_type):
+                self.assertEqual(
+                    CArray().get_from_ptr(int_ptr.arg_ref, of_type, 10), num_list)
+        for of_type in (b"c", "c"):
+            with self.subTest(of_type=of_type):
+                self.assertEqual(
+                    CArray().get_from_ptr(data.bytes().arg_ref, of_type, data.length()),
+                    [b"h", b"i", b"!"])
+
     def test_carray_multidimensional(self):
         _instance.set2DIntValues_(twoD_array)
         returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,10])

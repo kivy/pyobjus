@@ -99,8 +99,8 @@ cdef class CArray:
             raise MemoryError()
         return ptr
 
-    def get_from_ptr(self, unsigned long long ptr, char *of_type, unsigned long long arr_size):
-        cdef bytes b_of_type = of_type
+    def get_from_ptr(self, unsigned long long ptr, of_type, unsigned long long arr_size):
+        cdef bytes b_of_type = of_type.encode("utf-8") if isinstance(of_type, str) else of_type
         dprint("CArray().get_from_ptr({}, {}, {!r})".format(ptr, b_of_type, arr_size))
         ret = list()
         if b_of_type == b"i":  # int
