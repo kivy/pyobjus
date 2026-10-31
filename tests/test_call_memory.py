@@ -1,3 +1,4 @@
+import ctypes
 import gc
 import sys
 import unittest
@@ -77,6 +78,20 @@ class CallMemoryTest(unittest.TestCase):
             lambda: scanner.scanString_intoString_(word, None)) - baseline
         self.assertLess(union_extra, 8)
         self.assertLess(none_extra, 8)
+
+    def test_void_ptr_args_passed_as_pointers_do_not_leak(self):
+        # bytes, str and int are passed to a void* argument as the pointer
+        # itself, so no value buffer may be allocated for them. A ctypes
+        # value brings its own buffer, which makes it the baseline.
+        NSData = autoclass("NSData")
+
+        def call(arg):
+            return lambda: NSData.alloc().initWithBytes_length_(arg, 0)
+
+        baseline = leaked_bytes_per_call(call(ctypes.c_int(0)))
+        for arg in (b"abc", "abc", 0):
+            with self.subTest(arg=arg):
+                self.assertLess(leaked_bytes_per_call(call(arg)) - baseline, 8)
 
 
 if __name__ == '__main__':
