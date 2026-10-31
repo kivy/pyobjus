@@ -5,6 +5,7 @@ def test_convert_py_to_nsobject_keeps_dict_keys():
     d = convert_py_to_nsobject({'first_key': 'first value', 'second_key': 42})
     assert d.count() == 2
     assert d.objectForKey_(objc_str('first_key')).isEqualToString_('first value')
+    assert not d.objectForKey_(objc_str('first_key')).isEqualToString_('other value')
     assert d.objectForKey_(objc_str('second_key')).intValue() == 42
 
 
@@ -12,4 +13,5 @@ def test_dict_passed_as_objc_argument_keeps_keys():
     NSMutableDictionary = autoclass('NSMutableDictionary')
     d = NSMutableDictionary.alloc().initWithDictionary_({'key': 'value'})
     assert d.objectForKey_(objc_str('key')).isEqualToString_('value')
+    assert not d.objectForKey_(objc_str('key')).isEqualToString_('other')
     assert d.objectForKey_(objc_str('value')) is None

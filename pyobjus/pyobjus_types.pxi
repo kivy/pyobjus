@@ -659,7 +659,6 @@ cdef class ObjcClassInstance:
 
         if 'noinstance' not in kwargs:
             self.call_constructor(args)
-            self.resolve_methods()
             self.resolve_fields()
 
     def __hash__(self):
@@ -728,7 +727,6 @@ cdef class ObjcClassInstance:
             self.o_instance = objc_msgSend_custom(self.o_instance, sel_registerName('retain'))
         #print 'retainCount', <int>objc_msgSend(self.o_instance,
         #        sel_registerName('retainCount'))
-        self.resolve_methods()
         self.resolve_fields()
 
     cdef void call_constructor(self, args) except *:
@@ -753,17 +751,6 @@ cdef class ObjcClassInstance:
         #print 'retainCount (init)', <int>objc_msgSend(self.o_instance,
         #        sel_registerName('retainCount'))
 
-
-    cdef void resolve_methods(self) except *:
-
-        cdef ObjcMethod om
-        for name, value in self.__class__.__dict__.items():
-            if isinstance(value, ObjcMethod):
-                om = value
-                #if om.is_static:
-                #    continue
-                om.set_resolve_info(<bytes>name, self.o_cls, self.o_instance)
-                om.p_class = self
 
     cdef void resolve_fields(self) except *:
         pass

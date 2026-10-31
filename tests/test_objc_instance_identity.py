@@ -70,6 +70,23 @@ class ObjcInstanceIdentityTest(unittest.TestCase):
         self.assertIs(getattr(a, "self")(), a)
         self.assertIs(getattr(b, "self")(), b)
 
+    def test_argument_of_the_receivers_class_does_not_become_the_receiver(self):
+        N = lambda s: NSString.alloc().initWithUTF8String_(s)
+        strings = {"tagged": ("abc", "xyz"),
+                   "not tagged": ("a string too long to be tagged 1",
+                                  "a string too long to be tagged 2")}
+        for kind, (first, second) in strings.items():
+            with self.subTest(kind):
+                # The argument is wrapped after the method is looked up:
+                # converted from str, or built before the call.
+                self.assertFalse(N(first).isEqualToString_(second))
+                self.assertFalse(N(first).isEqualToString_(N(second)))
+                self.assertTrue(N(first).isEqualToString_(first))
+        self.assertTrue(N("/tmp").stringByAppendingPathComponent_("x")
+                        .isEqualToString_("/tmp/x"))
+        self.assertEqual(N("/tmp").stringByAppendingPathComponent_("x")
+                         .length(), 6)
+
     def test_not_equal_to_non_objc_values(self):
         obj = NSObject.alloc().init()
         self.assertFalse(obj == 1)

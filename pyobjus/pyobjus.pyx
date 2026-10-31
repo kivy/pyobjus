@@ -142,8 +142,7 @@ class MetaObjcClass(type):
         for name, value in classDict.iteritems():
             if isinstance(value, ObjcMethod):
                 om = value
-                if om.is_static:
-                    om.set_resolve_info(name, storage.o_cls, NULL)
+                om.set_resolve_info(name, storage.o_cls, NULL)
 
         # FIXME do the static fields resolution
 
