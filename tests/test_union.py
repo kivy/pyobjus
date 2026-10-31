@@ -39,6 +39,11 @@ class Union(unittest.TestCase):
         union_arg.rect = rect
         self.assertTrue(car.useUnionPtrTest_(union_arg))
 
+    def test_passing_union_pointer(self):
+        car = Car.alloc().init()
+        union_ptr = car.makeUnionPtr()
+        car.useUnionPtr_(union_ptr)
+
     def test_passing_union_by_value_raises(self):
         car = Car.alloc().init()
         # The retry reuses the signature the first call failed to prepare.

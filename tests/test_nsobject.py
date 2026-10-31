@@ -1,5 +1,5 @@
 import unittest
-from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass
+from pyobjus import ObjcClass, ObjcMethod, MetaObjcClass, autoclass, selector
 import sys
 
 PY2 = sys.version_info.major == 2
@@ -54,3 +54,19 @@ class NSObject(unittest.TestCase):
         self.assertTrue(b.isKindOfClass_(cls))
         c = NSString.alloc().init()
         self.assertTrue(b.isKindOfClass_(c.oclass()))
+
+    def test_responds_to_selector(self):
+        text = NSString.alloc().initWithUTF8String_("some text")
+        NSArray = autoclass("NSArray")
+        array = NSArray.arrayWithObject_(text)
+        sel_utf8 = selector("UTF8String")
+        sel_index = selector("objectAtIndex:")
+
+        self.assertTrue(NSString.instancesRespondToSelector_(sel_utf8))
+        self.assertTrue(text.respondsToSelector_(sel_utf8))
+        self.assertTrue(text.respondsToSelector_(selector("init")))
+        self.assertFalse(text.respondsToSelector_(sel_index))
+        self.assertFalse(array.respondsToSelector_(sel_utf8))
+        self.assertTrue(array.respondsToSelector_(sel_index))
+        self.assertFalse(NSString.isKindOfClass_(NSArray.oclass()))
+        self.assertFalse(text.isKindOfClass_(array.oclass()))

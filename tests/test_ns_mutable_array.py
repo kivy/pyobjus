@@ -36,6 +36,12 @@ class NSMutableArrayTest(unittest.TestCase):
         returned_object = test_array.objectAtIndex_(0)
         self.assertEqual(returned_object.UTF8String(), b'Some text')
 
+    def test_insert_at_index(self):
+        inserted = Str("inserted text")
+        test_array.insertObject_atIndex_(inserted, 1)
+        self.assertEqual(test_array.count(), 3)
+        self.assertEqual(test_array.objectAtIndex_(1).UTF8String(), "inserted text")
+
     def test_replace(self):
         ns_string_object = Str("Replaced text")
         test_array.replaceObjectAtIndex_withObject_(0, ns_string_object)

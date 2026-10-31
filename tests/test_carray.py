@@ -1,5 +1,5 @@
 import unittest
-from pyobjus import autoclass, dereference, CArray
+from pyobjus import autoclass, dereference, CArray, selector, ObjcSelector
 from pyobjus.dylib_manager import load_dylib
 import ctypes
 import pytest
@@ -56,13 +56,18 @@ class CArrayTest(unittest.TestCase):
         self.assertEqual(returned_PyList_withCount, num_list)
 
     def test_carray_char_ptr_bytes(self):
+        count = ctypes.c_uint32(0)
         values = [b"abc1", b"abc2", b"abc3", b"abc4", b"abc5",
                   b"abc6", b"abc7", b"abc8", b"abc9", b"abc10"]
         _instance.setCharPtrValues_(values)
         returned = dereference(
             _instance.getCharPtrValues(),
             of_type=CArray, return_count=10)
+        returned_with_count = dereference(
+            _instance.getCharPtrValuesWithCount_(count),
+            of_type=CArray, return_count=count)
         self.assertEqual(returned, values)
+        self.assertEqual(returned_with_count, values)
 
     def test_carray_char_ptr_str(self):
         values = ["abc1", "abc2", "abc3", "abc4", "abc5",
@@ -283,6 +288,20 @@ class CArrayTest(unittest.TestCase):
             of_type=CArray, return_count=count)
         self.assertEqual(returned_bools, bool_array)
         self.assertEqual(returned_bools_WithCount, bool_array)
+
+    def test_carray_selector(self):
+        count = ctypes.c_uint32(0)
+        sel_array = [selector("printSelector") for _i in range(10)]
+        _instance.setSELValues_(sel_array)
+        returned = dereference(
+            _instance.getSELValues(), of_type=CArray, return_count=10)
+        returned_with_count = dereference(
+            _instance.getSELValuesWithCount_(count),
+            of_type=CArray, return_count=count)
+        self.assertEqual(len(returned), 10)
+        self.assertEqual(len(returned_with_count), 10)
+        self.assertTrue(all(isinstance(item, ObjcSelector) for item in returned))
+        self.assertTrue(_instance.respondsToSelector_(returned[0]))
 
     def test_carray_object(self):
         count = ctypes.c_uint32(0)

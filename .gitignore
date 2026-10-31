@@ -13,3 +13,4 @@ objc_usr_classes/.DS_Store
 pyobjus/config.pxi
 .coverage*
 coverage.xml
+examples/*.dylib

@@ -1,5 +1,7 @@
 import unittest
-from pyobjus import objc_c, objc_str, objc_i, objc_d, objc_arr, objc_dict, objc_b
+from pyobjus import (
+    objc_c, objc_str, objc_i, objc_ui, objc_l, objc_ll,
+    objc_f, objc_d, objc_arr, objc_dict, objc_b)
 
 class LiteralsTest(unittest.TestCase):
 
@@ -11,6 +13,12 @@ class LiteralsTest(unittest.TestCase):
 
     def test_integer(self):
         self.assertEqual(objc_i(123).intValue(), 123)
+
+    def test_unsigned_long_and_float(self):
+        self.assertEqual(objc_ui(42).unsignedIntValue(), 42)
+        self.assertEqual(objc_l(42).longValue(), 42)
+        self.assertEqual(objc_ll(42).longLongValue(), 42)
+        self.assertAlmostEqual(objc_f(3.141592654).floatValue(), 3.141592654, places=5)
 
     def test_double(self):
         self.assertEqual(objc_d(3.14).doubleValue(), 3.14)

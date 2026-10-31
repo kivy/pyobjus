@@ -93,3 +93,30 @@ jobs:
         fi
         cat install.log
         grep -q "can only be built on macOS or iOS" install.log
+
+  examples:
+    # Headless examples, once, on Apple silicon. The unit-test matrix already
+    # covers the Python versions. Intel stays on the unit-test matrix only.
+    name: "examples (macos-latest)"
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.14"
+
+    - name: Install CI/CD requirements
+      run: |
+        pip install -r .ci/cicd-requirements.txt
+
+    - name: Install project
+      run: |
+        pip install -e .
+
+    - name: Build test libraries
+      run: make test_lib
+
+    - name: Run headless examples
+      run: python .ci/run_examples.py
