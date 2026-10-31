@@ -489,6 +489,9 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
     if by_value:
         bytype = 'value'
     else:
+        if arg is None:
+            (<void**>val_ptr)[0] = NULL
+            return val_ptr
         if type(arg) is ObjcReferenceToType:
             arg_val_ptr = <unsigned long long*><unsigned long long>arg.arg_ref
             objc_ref = True
@@ -621,6 +624,8 @@ cdef void* convert_py_arg_to_cy(arg, sig, by_value, size_t size, ArgArena arena)
                 (<bool*>arg_val_ptr)[0] = <bool>ctypes.c_bool(arg).value
             (<bool**>val_ptr)[0] = <bool*>arg_val_ptr
 
+    elif sig == b'*' and arg is None:
+        (<char **>val_ptr)[0] = NULL
     # method is accepting character string (char *)
     elif sig == b'*':
         if isinstance(arg, bytes):

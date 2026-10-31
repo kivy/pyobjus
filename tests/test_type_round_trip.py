@@ -68,10 +68,12 @@ class TypeRoundTripTest(unittest.TestCase):
 
     def test_pointers_including_nil(self):
         self.assertEqual(self.car.readIntPtr_(42), 42)
-        # None is a nil object or struct pointer.
+        # None is passed as NULL for any pointer.
         self.assertIsNone(self.car.echoObject_(None))
         self.assertEqual(self.car.readRangePtr_(None), -1)
         self.assertEqual(self.car.readRangePtr_(NSRange(12, 34)), 12)
+        self.assertEqual(self.car.readIntPtr_(None), -1)
+        self.assertIsNone(self.car.echoCharPtr_(None))
 
     def test_unregistered_struct_name(self):
         # {pyobjus_size=ii} is not a registered name. make_type builds it.
