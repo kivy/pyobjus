@@ -432,14 +432,20 @@ cdef extern from "objc/objc.h":
 cpdef object convert_py_to_nsobject(arg):
     if arg is None or isinstance(arg, ObjcClassInstance):
         return arg
-    elif arg in (True, False):
+    # bool is libcpp's C++ bool in this module; type(True) is Python's.
+    elif isinstance(arg, type(True)):
         return autoclass('NSNumber').alloc().initWithBool_(int(arg))
     elif isinstance(arg, (str, unicode)):
         return autoclass('NSString').alloc().initWithUTF8String_(arg)
     elif isinstance(arg, int):
-        return autoclass('NSNumber').alloc().initWithLong_(arg)
+        if -2 ** 63 <= arg < 2 ** 63:
+            return autoclass('NSNumber').alloc().initWithLongLong_(arg)
+        if 0 <= arg < 2 ** 64:
+            return autoclass('NSNumber').alloc().initWithUnsignedLongLong_(arg)
+        raise OverflowError(
+            '{} does not fit in a 64-bit NSNumber'.format(arg))
     elif isinstance(arg, float):
-        return autoclass('NSNumber').alloc().initWithFloat_(arg)
+        return autoclass('NSNumber').alloc().initWithDouble_(arg)
     elif isinstance(arg, list):
         args = arg + [None]
         return autoclass('NSArray').alloc().initWithObjects_(*args)
