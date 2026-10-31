@@ -13,11 +13,10 @@ class KeyValueCodingTest(unittest.TestCase):
 
     def test_key_path_through_a_nested_object(self):
         inner = autoclass('NSMutableDictionary').alloc().init()
-        inner.setValue_forKey_('deep', 'leaf')
+        inner.setValue_forKey_(7, 'leaf')
         outer = autoclass('NSMutableDictionary').alloc().init()
         outer.setValue_forKey_(inner, 'branch')
-        self.assertTrue(outer.valueForKeyPath_('branch.leaf')
-                        .isEqualToString_('deep'))
+        self.assertEqual(outer.valueForKeyPath_('branch.leaf').intValue(), 7)
 
     def test_collection_operators(self):
         numbers = objc_arr(1, 2, 3)
