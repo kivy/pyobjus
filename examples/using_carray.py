@@ -1,5 +1,5 @@
 import ctypes
-from pyobjus import autoclass, selector, dereference, CArray, CArrayCount
+from pyobjus import autoclass, selector, dereference, CArray
 from pyobjus.dylib_manager import load_dylib
 
 
@@ -8,6 +8,10 @@ load_dylib('CArrayTestlib.dylib', usr_path=False)
 CArrayTestlib = autoclass("CArrayTestlib")
 
 _instance = CArrayTestlib.alloc()
+
+# Methods that return the array length through an 'unsigned int*' argument take a ctypes
+# variable; pass the same variable as return_count when dereferencing the result.
+count = ctypes.c_uint32(0)
 
 
 ################################# INT ARRAY ####################################################
@@ -23,10 +27,10 @@ _instance.setIntValues_(array)  #Do not forget for _ to signify no. of arguments
 #_instance.printIntValues()
 returned_PyList = dereference(_instance.getIntValues(), of_type=CArray, return_count=10)
 print(returned_PyList)
-# If method returns values/ArrayCount over reference and you don't provide CArrayCount 
-# on the right position in the method signature, you will get "IndexError: tuple index out of range" 
-# or segmentation fault, so don't forget to provide CArrayCount on the right position
-returned_PyList_withCount = dereference(_instance.getIntValuesWithCount_(CArrayCount), of_type=CArray)
+# If method returns values/count over reference and you don't provide the ctypes count variable
+# on the right position in the method signature, you will get "IndexError: tuple index out of range"
+# or segmentation fault, so don't forget to provide it on the right position
+returned_PyList_withCount = dereference(_instance.getIntValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_PyList_withCount)
 
 #################################################################################################
@@ -39,12 +43,12 @@ print(returned_PyList_withCount)
 # - (char*) getCharValuesWithCount: (unsigned int*) n;
 
 char_list = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
-char_cstyle = (ctypes.c_char * 10)(*char_list) # this is optional
+char_cstyle = (ctypes.c_char * 10)(*[c.encode() for c in char_list]) # this is optional
 print(char_cstyle)
 _instance.setCharValues_(char_list)
 chars = _instance.getCharValues()  # no need for derefenrencing it since pyobjus converts it to string type 
 print(chars)
-chars_WithCount = _instance.getCharValuesWithCount_(CArrayCount)
+chars_WithCount = _instance.getCharValuesWithCount_(count)
 print(chars_WithCount)
 
 #################################################################################################
@@ -60,7 +64,7 @@ short_array = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 _instance.setShortValues_(short_array)
 returned_shorts = dereference(_instance.getShortValues(), of_type=CArray, return_count=10)
 print(returned_shorts)
-returned_shorts_WithCount = dereference(_instance.getShortValuesWithCount_(CArrayCount), of_type=CArray)
+returned_shorts_WithCount = dereference(_instance.getShortValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_shorts_WithCount)
 
 #################################################################################################
@@ -76,7 +80,7 @@ long_array = [100, -200, 300, -400, 500, -600, 700, -800, 900, -1000]
 _instance.setLongValues_(long_array)
 returned_longs = dereference(_instance.getLongValues(), of_type=CArray, return_count=10)
 print(returned_longs)
-returned_longs_WithCount = dereference(_instance.getLongValuesWithCount_(CArrayCount), of_type=CArray)
+returned_longs_WithCount = dereference(_instance.getLongValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_longs_WithCount)
 
 #################################################################################################
@@ -91,7 +95,7 @@ print(returned_longs_WithCount)
 _instance.setLongLongValues_(long_array)
 returned_longlongs = dereference(_instance.getLongLongValues(), of_type=CArray, return_count=10)
 print(returned_longlongs)
-returned_longlongs_WithCount = dereference(_instance.getLongLongValuesWithCount_(CArrayCount), of_type=CArray)
+returned_longlongs_WithCount = dereference(_instance.getLongLongValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_longlongs_WithCount)
 
 #################################################################################################
@@ -107,7 +111,7 @@ float_array = [1.000000, 2.100000, 3.200000, 4.300000, 5.400000, 6.500000, 7.600
 _instance.setFloatValues_(float_array)
 returned_floats = dereference(_instance.getFloatValues(), of_type=CArray, return_count=10)
 print(returned_floats)  # posible bug in CArray lib, lost precision?
-returned_floats_WithCount = dereference(_instance.getFloatValuesWithCount_(CArrayCount), of_type=CArray)
+returned_floats_WithCount = dereference(_instance.getFloatValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_floats_WithCount)
 
 #################################################################################################
@@ -122,7 +126,7 @@ print(returned_floats_WithCount)
 _instance.setDoubleValues_(float_array)
 returned_doubles = dereference(_instance.getDoubleValues(), of_type=CArray, return_count=10)
 print(returned_doubles)
-returned_doubles_WithCount = dereference(_instance.getDoubleValuesWithCount_(CArrayCount), of_type=CArray)
+returned_doubles_WithCount = dereference(_instance.getDoubleValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_doubles_WithCount)
 
 #################################################################################################
@@ -138,7 +142,7 @@ uint_array = nums
 _instance.setUIntValues_(uint_array)
 returned_uints = dereference(_instance.getUIntValues(), of_type=CArray, return_count=10)
 print(returned_uints)
-returned_uints_WithCount = dereference(_instance.getUIntValuesWithCount_(CArrayCount), of_type=CArray)
+returned_uints_WithCount = dereference(_instance.getUIntValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_uints_WithCount)
 
 #################################################################################################
@@ -154,7 +158,7 @@ ushort_array = short_array
 _instance.setUShortValues_(ushort_array)
 returned_ushorts = dereference(_instance.getUShortValues(), of_type=CArray, return_count=10)
 print(returned_ushorts)
-returned_ushorts_WithCount = dereference(_instance.getUShortValuesWithCount_(CArrayCount), of_type=CArray)
+returned_ushorts_WithCount = dereference(_instance.getUShortValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_ushorts_WithCount)
 
 #################################################################################################
@@ -172,7 +176,7 @@ ulong_array = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,10000]
 _instance.setULongValues_(ulong_array)
 returned_ulongs = dereference(_instance.getULongValues(), of_type=CArray, return_count=10)
 print(returned_ulongs)
-returned_ulongs_WithCount = dereference(_instance.getULongValuesWithCount_(CArrayCount), of_type=CArray, return_count=10)
+returned_ulongs_WithCount = dereference(_instance.getULongValuesWithCount_(count), of_type=CArray, return_count=10)
 print(returned_ulongs_WithCount)
 
 #################################################################################################
@@ -188,7 +192,7 @@ ulonglong_array = ulong_array
 _instance.setULongLongValues_(ulonglong_array)
 returned_ulonglongs = dereference(_instance.getULongLongValues(), of_type=CArray, return_count=10)
 print(returned_ulonglongs)
-returned_ulonglongs_WithCount = dereference(_instance.getULongLongValuesWithCount_(CArrayCount), of_type=CArray)
+returned_ulonglongs_WithCount = dereference(_instance.getULongLongValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_ulonglongs_WithCount)
 
 #################################################################################################
@@ -204,7 +208,7 @@ uchar_array = char_list
 _instance.setUCharValues_(uchar_array)
 returned_uchars = _instance.getUCharValues()
 print(returned_uchars)
-returned_uchars_WithCount = _instance.getUCharValuesWithCount_(CArrayCount)
+returned_uchars_WithCount = _instance.getUCharValuesWithCount_(count)
 print(returned_uchars_WithCount)
 
 #################################################################################################
@@ -220,7 +224,7 @@ bool_array = [True, False, True, True, False, True, False, False, True, True]
 _instance.setBoolValues_(bool_array)
 returned_bools = dereference(_instance.getBoolValues(), of_type=CArray, return_count=10)
 print(returned_bools)
-returned_bools_WithCount = dereference(_instance.getBoolValuesWithCount_(CArrayCount), of_type=CArray)
+returned_bools_WithCount = dereference(_instance.getBoolValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_bools_WithCount)
 
 #################################################################################################
@@ -233,11 +237,12 @@ print(returned_bools_WithCount)
 # - (char**) getCharPtrValues;
 # - (char**) getCharPtrValuesWithCount: (unsigned int*) n;
 
-char_ptr_array = ["abc1", "abc2", "abc3", "abc4", "abc5", "abc6", "abc7", "abc8", "abc9", "abc10"]
+# char* elements must be bytes in Python 3
+char_ptr_array = [b"abc1", b"abc2", b"abc3", b"abc4", b"abc5", b"abc6", b"abc7", b"abc8", b"abc9", b"abc10"]
 _instance.setCharPtrValues_(char_ptr_array)
 returned_chars = dereference(_instance.getCharPtrValues(), of_type=CArray, return_count=10)
 print(returned_chars)
-returned_chars_WithCount = dereference(_instance.getCharPtrValuesWithCount_(CArrayCount), of_type=CArray)
+returned_chars_WithCount = dereference(_instance.getCharPtrValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_chars_WithCount)
 
 
@@ -257,7 +262,7 @@ returned_nsnumbers = dereference(nsnumber_ptr_array, of_type=CArray, return_coun
 for i in range(len(returned_nsnumbers)):
     print(returned_nsnumbers[i].intValue())
 
-returned_nsnumbers_WithCount = dereference(_instance.getNSNumberValuesWithCount_(CArrayCount), of_type=CArray)
+returned_nsnumbers_WithCount = dereference(_instance.getNSNumberValuesWithCount_(count), of_type=CArray, return_count=count)
 for i in range(len(returned_nsnumbers_WithCount)):
     print(returned_nsnumbers_WithCount[i].intValue())
 
@@ -277,7 +282,7 @@ returned_classes = dereference(_instance.getClassValues(), of_type=CArray, retur
 print(returned_classes)
 for i in range(len(returned_classes)):
     print(NSNumber.isKindOfClass_(returned_classes[i]))
-returned_classes_WithCount = dereference(_instance.getClassValuesWithCount_(CArrayCount), of_type=CArray)
+returned_classes_WithCount = dereference(_instance.getClassValuesWithCount_(count), of_type=CArray, return_count=count)
 for i in range(len(returned_classes_WithCount)):
     print(NSNumber.isKindOfClass_(returned_classes_WithCount[i]))
 
@@ -298,7 +303,7 @@ print(sel_array)
 _instance.setSELValues_(sel_array)
 returned_selectors = dereference(_instance.getSELValues(), of_type=CArray, return_count=10)
 print(returned_selectors)
-returned_selectors_WithCount = dereference(_instance.getSELValuesWithCount_(CArrayCount), of_type=CArray)
+returned_selectors_WithCount = dereference(_instance.getSELValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_selectors_WithCount)
 
 # TODO: performSelector example
@@ -341,16 +346,15 @@ print(returned_2d_list)
 # - (bar*) getFooBarValues;
 # - (bar*) getFooBarValuesWithCount: (unsigned int*) n;
 
-from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
+class Bar(ctypes.Structure):  # matches 'struct foo' (typedef'd as 'bar') in CArrayTestlib.h
+    _fields_ = [("a", ctypes.c_int), ("b", ctypes.c_float)]
 
-struct_array = [NSRect(NSPoint(300 + i, 500 + i), NSSize(320, 480)) for i in range(1, 11)]
-print(struct_array)
-_instance.setNSRectValues_(struct_array)
-returned_struct_array = dereference(_instance.getNSRectValues(), of_type=CArray, return_count=10)
-
+struct_array = [Bar(i, i + 0.5) for i in range(1, 11)]
+_instance.setFooBarValues_(struct_array)
+returned_struct_array = dereference(_instance.getFooBarValues(), of_type=CArray, return_count=10)
 print(returned_struct_array)
 for item in returned_struct_array:
-    print(item.origin.x, item.origin.y)
+    print(item.a, item.b)
 
 #################################################################################################
 
@@ -359,5 +363,5 @@ for item in returned_struct_array:
 _instance.setFloatValues_(float_array)
 returned_floats = dereference(_instance.getFloatValues(), of_type=CArray, return_count=10)
 print(returned_floats)
-returned_floats_WithCount = dereference(_instance.getFloatValuesWithCount_(CArrayCount), of_type=CArray)
+returned_floats_WithCount = dereference(_instance.getFloatValuesWithCount_(count), of_type=CArray, return_count=count)
 print(returned_floats_WithCount)

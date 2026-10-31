@@ -1,6 +1,5 @@
 import unittest
 from pyobjus import autoclass, dereference, CArray
-from pyobjus.objc_py_types import NSRect, NSPoint, NSSize
 from pyobjus.dylib_manager import load_dylib
 import ctypes
 import pytest
@@ -26,6 +25,12 @@ twoD_array = [
     [81, 82, 83, 84, 85, 86, 87, 88, 89, 90],
     [91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
 ]
+
+
+class Bar(ctypes.Structure):
+    """struct foo (typedef'd as bar) in CArrayTestlib.h"""
+    _fields_ = [("a", ctypes.c_int), ("b", ctypes.c_float)]
+
 
 _instance = None
 
@@ -317,13 +322,17 @@ class CArrayTest(unittest.TestCase):
         returned_2d_list = dereference(_instance.get2DIntValues(), of_type=CArray, partition=[10,10])
         self.assertEqual(returned_2d_list, twoD_array)
 
-    @unittest.skip("issue with signature that looks invalid, therefore it crash")
     def test_carray_struct(self):
-        struct_array = [NSRect(NSPoint(300 + i, 500 + i), NSSize(320, 480)) for i in range(1, 11)]
-        _instance.setNSRectValues_(struct_array)
-        returned_struct_array = dereference(_instance.getNSRectValues(), of_type=CArray, return_count=10)
-        vals = [(300 + i , 500 + i) for i in range(1, 11)]
-        ret_vals = list()
-        for item in returned_struct_array:
-            ret_vals.append((item.origin.x, item.origin.y))
-        self.assertEqual(ret_vals, vals)
+        count = ctypes.c_uint32(0)
+        struct_array = [Bar(i, i + 0.5) for i in range(1, 11)]
+        _instance.setFooBarValues_(struct_array)
+        returned = dereference(
+            _instance.getFooBarValues(),
+            of_type=CArray, return_count=10)
+        returned_with_count = dereference(
+            _instance.getFooBarValuesWithCount_(count),
+            of_type=CArray, return_count=count)
+        expected = [(i, i + 0.5) for i in range(1, 11)]
+        self.assertEqual(count.value, 10)
+        self.assertEqual([(item.a, item.b) for item in returned], expected)
+        self.assertEqual([(item.a, item.b) for item in returned_with_count], expected)
