@@ -58,6 +58,18 @@ class ObjcInstanceIdentityTest(unittest.TestCase):
                 self.assertTrue(a != b)
                 self.assertFalse(a == b)
 
+    def test_method_returning_its_receiver_returns_the_receiver(self):
+        # Wrapping y after x must not make x's methods return y (#198)
+        x = NSObject.alloc()
+        y = NSObject.alloc()
+        self.assertIs(x.init(), x)
+        self.assertIs(y.init(), y)
+
+        a = NSObject.alloc().init()
+        b = NSObject.alloc().init()
+        self.assertIs(getattr(a, "self")(), a)
+        self.assertIs(getattr(b, "self")(), b)
+
     def test_not_equal_to_non_objc_values(self):
         obj = NSObject.alloc().init()
         self.assertFalse(obj == 1)

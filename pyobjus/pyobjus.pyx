@@ -352,6 +352,7 @@ cdef class ObjcMethod(object):
             return self
         cdef ObjcClassInstance oc = obj
         self.o_instance = oc.o_instance
+        self.p_class = oc
         return self
 
     def __call__(self, *args, **kwargs):
