@@ -34,6 +34,20 @@ NESTED_LISTS = textwrap.dedent("""
     assert outer.count() == 3
     assert outer.objectAtIndex_(0).count() == 1
     assert outer.objectAtIndex_(2).intValue() == 3
+
+    # An empty inner list passes no variadic arguments at all.
+    outer = convert_py_to_nsobject([[]])
+    assert outer.count() == 1
+    assert outer.objectAtIndex_(0).count() == 0
+
+    outer = convert_py_to_nsobject([["x"], []])
+    assert outer.count() == 2
+    assert outer.objectAtIndex_(1).count() == 0
+
+    # The same lists passed as a method argument.
+    from pyobjus import autoclass
+    outer = autoclass("NSArray").arrayWithArray_([[], []])
+    assert outer.count() == 2
     print("ok")
 """)
 
