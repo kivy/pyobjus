@@ -1,4 +1,7 @@
+import gc
 import unittest
+import weakref
+
 from pyobjus import autoclass
 
 NSObject = NSString = NSNumber = NSMutableArray = None
@@ -60,6 +63,16 @@ class ObjcInstanceIdentityTest(unittest.TestCase):
         self.assertFalse(obj == 1)
         self.assertFalse(obj == None)  # noqa: E711
         self.assertTrue(obj != "text")
+
+    def test_weak_reference_to_a_wrapper(self):
+        obj = NSObject.alloc().init()
+        ref = weakref.ref(obj)
+        self.assertIs(ref(), obj)
+        # The class's method objects hold the most recently wrapped instance.
+        NSObject.alloc().init()
+        del obj
+        gc.collect()
+        self.assertIsNone(ref())
 
 
 if __name__ == '__main__':

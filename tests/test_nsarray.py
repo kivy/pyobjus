@@ -33,3 +33,11 @@ def test_objc_arr_adds_nil(array_without_nil, array_with_nil):
     arr1 = [a1.objectAtIndex_(i).intValue() for i in range(a1.count())]
     arr2 = [a2.objectAtIndex_(i).intValue() for i in range(a2.count())]
     assert arr1 == arr2
+
+
+def test_enumerator_returns_none_past_the_end():
+    enumerator = objc_arr(1, 2).objectEnumerator()
+    assert enumerator.nextObject().intValue() == 1
+    assert enumerator.nextObject().intValue() == 2
+    assert enumerator.nextObject() is None
+    assert enumerator.nextObject() is None
