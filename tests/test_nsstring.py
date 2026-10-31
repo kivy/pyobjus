@@ -29,6 +29,20 @@ class NSObject(unittest.TestCase):
         self.assertEqual(text.characterAtIndex_(0), ord('H'))
         self.assertEqual(text.characterAtIndex_(1), ord('e'))
 
+    def test_non_ascii(self):
+        text = N(u'h\xe9llo')
+        self.assertEqual(text.length(), 5)
+        self.assertEqual(text.characterAtIndex_(1), 0xe9)
+        self.assertEqual(text.lengthOfBytesUsingEncoding_(4), 6)
+
+    def test_outside_the_basic_multilingual_plane(self):
+        # NSString counts UTF-16 code units, so one emoji is a surrogate pair.
+        text = N(u'\U0001F600')
+        self.assertEqual(text.length(), 2)
+        self.assertEqual(text.characterAtIndex_(0), 0xd83d)
+        self.assertEqual(text.characterAtIndex_(1), 0xde00)
+        self.assertEqual(text.lengthOfBytesUsingEncoding_(4), 4)
+
     def test_utf8string(self):
         text = N('Hello')
         self.assertEqual(text.UTF8String(), b'Hello')
